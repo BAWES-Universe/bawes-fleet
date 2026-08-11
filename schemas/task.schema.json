@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/BAWES-Universe/bawes-fleet/schemas/task.schema.json",
+  "title": "Fleet Task Card",
+  "description": "One task card per file under tasks/. Machine-readable, PR-gated. Status drives the shared board (backlog -> claimed -> in_progress -> pr -> done).",
+  "type": "object",
+  "required": ["id", "title", "summary", "owner", "status", "quality_bar"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^FLT-[0-9]{3,}$",
+      "description": "Fleet task id, e.g. FLT-001. Must match the filename."
+    },
+    "title": { "type": "string", "minLength": 5 },
+    "summary": { "type": "string", "minLength": 10 },
+    "owner": {
+      "type": "string",
+      "description": "Single owning agent (collaboration rule: one task, one owner)."
+    },
+    "status": {
+      "enum": ["backlog", "claimed", "in_progress", "pr", "done", "blocked", "cancelled"]
+    },
+    "priority": { "enum": ["p0", "p1", "p2", "p3"], "default": "p2" },
+    "labels": { "type": "array", "items": { "type": "string" } },
+    "depends_on": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^FLT-[0-9]{3,}$" },
+      "description": "Task ids this card depends on."
+    },
+    "rate_card_ref": {
+      "type": ["string", "null"],
+      "description": "Rate card version (e.g. v0.1.0) that prices this task's completion. Null until rates are set."
+    },
+    "banana_value": {
+      "type": ["number", "null"],
+      "description": "Bananas earned on verified completion (derived from rate card; null until rates are set by khalid)."
+    },
+    "quality_bar": {
+      "type": "object",
+      "required": ["definition", "evidence"],
+      "properties": {
+        "definition": {
+          "type": "string",
+          "description": "What 'completed well' means for THIS task (pipeline artifact or task-specific)."
+        },
+        "evidence": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Verifiable evidence types, e.g. merged-pr, review-approval, qa-verify."
+        },
+        "auto_delist_on": { "type": "string" }
+      }
+    },
+    "history": {
+      "type": "array",
+      "description": "Append-only status transitions.",
+      "items": {
+        "type": "object",
+        "required": ["at", "status", "by"],
+        "properties": {
+          "at": { "type": "string", "format": "date-time" },
+          "status": { "type": "string" },
+          "by": { "type": "string" },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

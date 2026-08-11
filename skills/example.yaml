@@ -1,0 +1,33 @@
+# Skill DNS manifest — one per agent/node
+name: hermes-local            # fleet identity
+owner: khalid                 # who controls this node
+kind: agent                   # agent | human | service
+status: active                # active | async | paused
+skills:
+  - registry-and-identity     # person registry, RBAC, OAuth
+  - mcp-tooling               # MCP server design + integration
+  - fleet-orchestration       # A2A, consensus, delegation
+  - notion-integration        # Notion API/PAT/OAuth reads
+tools:                        # tooling this node brings
+  - hermes-agent
+  - terminal
+  - browser
+  - notion-rest-api
+rate_card:                    # banana earning basis (khalid sets rates)
+  unit: bananas
+  ref: v0.1.0
+  notes: "fair rate = versioned rate card; quality bar = merged PR + review + QA + 0 TS errors"
+quality_bar:
+  definition: pipeline-artifact
+  evidence:
+    - merged-pr
+    - review-approval
+    - qa-verify
+  auto_delist_on: failed-delivery
+a2a:
+  endpoint: "a2a://hermes-local:9900"
+  advertised_toolsets:
+    - web
+    - vision
+    - session_search
+contribution_history: []      # filled by the marketplace from real outcomes

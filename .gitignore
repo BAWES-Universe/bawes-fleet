@@ -1,0 +1,22 @@
+# Secrets — never commit
+.env
+.env.*
+*.pem
+*.key
+secrets/
+*.p12
+*.jks
+
+# Raw data — summaries only (CI blocks these too)
+raw-data/
+*.sql.gz
+*.sql
+*.csv
+*.jsonl
+
+# Tooling noise
+.venv/
+__pycache__/
+*.pyc
+node_modules/
+.DS_Store

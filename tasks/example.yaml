@@ -1,0 +1,25 @@
+# Template — copy to FLT-###.yaml and fill in.
+id: FLT-000
+title: "Example task (template)"
+summary: "Short description of what needs doing and why it matters to the fleet. Delete this file when the first real task lands."
+owner: hermes-local
+status: backlog
+priority: p2
+labels: []
+depends_on: []
+rate_card_ref: null
+banana_value: null
+quality_bar:
+  definition: "Completed well = merged PR + reviewer merge + QA verify + 0 TS errors (or task-specific bar)."
+  evidence:
+    - merged-pr
+    - review-approval
+    - qa-verify
+  auto_delist_on: failed-delivery
+history:
+  - at: "2026-08-12T00:00:00Z"
+    status: backlog
+    by: hermes-local
+    note: "Template created — not a real task."
+created_at: "2026-08-12T00:00:00Z"
+updated_at: "2026-08-12T00:00:00Z"

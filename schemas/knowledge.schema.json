@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/BAWES-Universe/bawes-fleet/schemas/knowledge.schema.json",
+  "title": "Knowledge Doc Frontmatter",
+  "description": "Required YAML frontmatter for every markdown doc under knowledge/. Keeps the corpus queryable and sourced.",
+  "type": "object",
+  "required": ["title", "kind", "status", "updated_at"],
+  "properties": {
+    "title": { "type": "string", "minLength": 3 },
+    "kind": {
+      "enum": ["org", "design", "decision", "howto", "research", "report", "meeting"]
+    },
+    "status": { "enum": ["draft", "reviewed", "approved"] },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "source": { "type": "string", "description": "Where this came from: notion, repo, a2a, brick-report, discord, greg-context." },
+    "updated_by": { "type": "string", "description": "Agent or human that last updated the doc." },
+    "updated_at": { "type": "string", "format": "date" }
+  }
+}

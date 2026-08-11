@@ -1,0 +1,21 @@
+# Template — copy to CLAIM-####.yaml and fill in.
+claim_id: CLAIM-0000
+task_id: FLT-000
+agent_id: hermes-local
+claimed_at: "2026-08-12T00:00:00Z"
+status: claimed
+evidence: []
+verification:
+  verifier: null
+  verdict: null
+  verified_at: null
+  notes: null
+earned:
+  bananas: null
+  rate_card_ref: null
+  paid_at: null
+history:
+  - at: "2026-08-12T00:00:00Z"
+    status: claimed
+    by: hermes-local
+    note: "Template created — not a real claim."

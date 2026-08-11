@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/BAWES-Universe/bawes-fleet/schemas/rate-card.schema.json",
+  "title": "Versioned Rate Card",
+  "description": "Fair rates for fleet work. One version per file (rate-card/vX.Y.Z.yaml). Old versions stay as superseded — one change at a time. Owner: khalid (governance: khalid defines earning rates).",
+  "type": "object",
+  "required": ["version", "effective_date", "status", "owner", "rates"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Semver; must match the filename."
+    },
+    "effective_date": { "type": "string", "format": "date" },
+    "status": { "enum": ["draft", "active", "superseded"] },
+    "owner": { "type": "string", "description": "khalid sets earning rates (consensus + khalid approval gate)." },
+    "quality_bar_default": {
+      "type": "object",
+      "description": "Default 'completed well' definition when a task card doesn't override it.",
+      "properties": {
+        "definition": { "type": "string" },
+        "evidence": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "rates": {
+      "type": "object",
+      "description": "Work type -> rate. Keys are task labels/work types (e.g. 'research', 'code', 'docs', 'ops').",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["unit"],
+        "properties": {
+          "unit": { "type": "string", "description": "e.g. bananas, banana/hour, usd, usd/hour" },
+          "base_rate": { "type": "number", "description": "Flat rate in unit." },
+          "formula": { "type": "string", "description": "Formula when not flat (e.g. 'verified cost basis + 20% margin')." },
+          "volume_steps": {
+            "type": "array",
+            "description": "Volume margin step-downs (e.g. 20% -> 15% -> 10%).",
+            "items": {
+              "type": "object",
+              "properties": {
+                "at": { "type": "number", "description": "Cumulative volume threshold." },
+                "rate": { "type": "number", "description": "Rate at/above this threshold." }
+              }
+            }
+          },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "change_history": {
+      "type": "array",
+      "description": "Append-only record of what changed per version.",
+      "items": {
+        "type": "object",
+        "required": ["version", "date", "change", "by"],
+        "properties": {
+          "version": { "type": "string" },
+          "date": { "type": "string", "format": "date" },
+          "change": { "type": "string" },
+          "by": { "type": "string" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/BAWES-Universe/bawes-fleet/schemas/claim.schema.json",
+  "title": "Fleet Claim (append-only)",
+  "description": "One claim per file under claims/ (CLAIM-####.yaml). Records the full lifecycle: claimed -> verified -> closed | rejected. History is append-only — never edit past transitions.",
+  "type": "object",
+  "required": ["claim_id", "task_id", "agent_id", "claimed_at", "status"],
+  "properties": {
+    "claim_id": {
+      "type": "string",
+      "pattern": "^CLAIM-[0-9]{4,}$",
+      "description": "Must match the filename (CLAIM-0001.yaml)."
+    },
+    "task_id": {
+      "type": "string",
+      "pattern": "^FLT-[0-9]{3,}$",
+      "description": "The task card being claimed. Must exist in tasks/."
+    },
+    "agent_id": {
+      "type": "string",
+      "description": "Fleet identity of the claimant (matches a skill DNS manifest name)."
+    },
+    "claimed_at": { "type": "string", "format": "date-time" },
+    "status": {
+      "enum": ["claimed", "verified", "closed", "rejected", "refunded"]
+    },
+    "evidence": {
+      "type": "array",
+      "description": "Pipeline-artifact evidence attached during work/verification.",
+      "items": {
+        "type": "object",
+        "required": ["type", "ref"],
+        "properties": {
+          "type": { "enum": ["pr", "commit", "qa", "review", "log", "other"] },
+          "ref": { "type": "string", "description": "URL or git ref proving the artifact." },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "description": "Filled by a reviewer who is NOT the earner (rotating non-earner).",
+      "properties": {
+        "verifier": { "type": ["string", "null"] },
+        "verdict": { "enum": ["verified", "rejected", null] },
+        "verified_at": { "type": ["string", "null"], "format": "date-time" },
+        "notes": { "type": ["string", "null"] }
+      }
+    },
+    "earned": {
+      "type": "object",
+      "description": "Bananas credited on close, per the versioned rate card.",
+      "properties": {
+        "bananas": { "type": ["number", "null"] },
+        "rate_card_ref": { "type": ["string", "null"] },
+        "paid_at": { "type": ["string", "null"], "format": "date-time" }
+      }
+    },
+    "history": {
+      "type": "array",
+      "description": "Append-only lifecycle transitions (claimed/verified/closed/rejected).",
+      "items": {
+        "type": "object",
+        "required": ["at", "status", "by"],
+        "properties": {
+          "at": { "type": "string", "format": "date-time" },
+          "status": { "type": "string" },
+          "by": { "type": "string" },
+          "note": { "type": "string" }
+        }
+      }
+    }
+  }
+}

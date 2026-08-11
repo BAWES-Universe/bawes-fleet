@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/BAWES-Universe/bawes-fleet/schemas/skill.schema.json",
+  "title": "Skill DNS Manifest",
+  "description": "Skill DNS registry: one manifest per agent/node under skills/. Resolution is a file read; CI-validated; failed deliveries cause auto-delist.",
+  "type": "object",
+  "required": ["name", "owner", "kind", "status", "skills"],
+  "properties": {
+    "name": { "type": "string", "description": "Fleet identity, e.g. hermes-local, brick, zero, zeus, angel." },
+    "owner": { "type": "string", "description": "Who controls this node (khalid for khalid-owned instances; external agents declare their owner)." },
+    "kind": { "enum": ["agent", "human", "service"] },
+    "status": { "enum": ["active", "async", "paused"], "description": "async = offline/queued, never blocks fleet progress." },
+    "skills": { "type": "array", "items": { "type": "string" }, "description": "Capability names (skill DNS keys)." },
+    "tools": { "type": "array", "items": { "type": "string" }, "description": "Tooling this node brings." },
+    "rate_card": {
+      "type": "object",
+      "properties": {
+        "unit": { "type": "string" },
+        "ref": { "type": "string", "description": "Rate card version this node earns under." },
+        "notes": { "type": "string" }
+      }
+    },
+    "quality_bar": {
+      "type": "object",
+      "properties": {
+        "definition": { "type": "string" },
+        "evidence": { "type": "array", "items": { "type": "string" } },
+        "auto_delist_on": { "type": "string" }
+      }
+    },
+    "a2a": {
+      "type": "object",
+      "description": "Optional A2A reachability (least-privilege, read-only toolset advertised).",
+      "properties": {
+        "endpoint": { "type": "string" },
+        "advertised_toolsets": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "contribution_history": {
+      "type": "array",
+      "description": "Filled by the marketplace from real outcomes (bananas earned, deliveries).",
+      "items": {
+        "type": "object",
+        "properties": {
+          "task_id": { "type": "string" },
+          "outcome": { "type": "string" },
+          "bananas": { "type": "number" },
+          "at": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  }
+}

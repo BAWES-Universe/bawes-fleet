@@ -1,0 +1,16 @@
+version: v0.1.0
+effective_date: "2026-08-12"
+status: draft
+owner: khalid
+quality_bar_default:
+  definition: "Completed well = merged PR + reviewer merge + QA verify + 0 TS errors."
+  evidence:
+    - merged-pr
+    - review-approval
+    - qa-verify
+rates: {}
+change_history:
+  - version: v0.1.0
+    date: "2026-08-12"
+    change: "Initial skeleton — rates pending khalid (consensus proposes, khalid approves)."
+    by: hermes-local
