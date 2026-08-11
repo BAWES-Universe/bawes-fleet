@@ -11,6 +11,7 @@ Single source of truth for fleet operations: who can do what (skill DNS), what t
 | `tasks/` | Task cards — machine-readable, PR-gated | `schemas/task.schema.json` |
 | `claims/` | Append-only claims ledger (claim → verify → close) | `schemas/claim.schema.json` |
 | `rate-card/` | Versioned rate card (khalid sets earning rates) | `schemas/rate-card.schema.json` |
+| `marketplace/` | Skill listings — lifecycle (proposed→active→stale→archived) + ROI/review evidence | `schemas/marketplace.schema.json` |
 | `schemas/` | JSON Schemas + schema docs | — |
 | `scripts/` | CI guardrail scan + validators | — |
 

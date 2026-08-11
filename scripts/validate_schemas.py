@@ -24,7 +24,11 @@ DIRS = {
     "tasks": "task.schema.json",
     "claims": "claim.schema.json",
     "rate-card": "rate-card.schema.json",
+    "marketplace": "marketplace.schema.json",
 }
+
+# Non-entry files allowed inside a DIR (templates, configs)
+NON_ENTRY = {"example.yaml", "config.yaml"}
 
 FAILURES = []
 
@@ -60,10 +64,12 @@ def main():
     claim_ids = []
     claim_task_refs = []
     active_cards = []
+    skill_keys = set()      # union of all skills[] across node manifests
+    marketplace_keys = []   # (skill_key, path.name) from marketplace entries
 
     for dirname, schema in DIRS.items():
         for path in sorted((ROOT / dirname).glob("*.yaml")):
-            if path.name == "example.yaml":  # templates, not registry entries
+            if path.name in NON_ENTRY:  # templates/configs, not registry entries
                 continue
             data = load_yaml(path)
             if data is None:
@@ -85,6 +91,22 @@ def main():
                     fail(f"{path}: version {data['version']} != filename {path.stem}")
                 if data["status"] == "active":
                     active_cards.append(path.name)
+            elif dirname == "skills":
+                skill_keys.update(data.get("skills", []))
+            elif dirname == "marketplace":
+                key = data["skill_key"]
+                status = data["lifecycle"]["status"]
+                marketplace_keys.append((key, path.name))
+                if key != path.stem:
+                    fail(f"{path}: skill_key {key} != filename {path.stem}")
+                lc = data["lifecycle"]
+                # lifecycle consistency (khalid condition: staleness lifecycle)
+                if status == "archived" and not (lc.get("archived_at") and lc.get("archived_reason")):
+                    fail(f"{path}: archived requires archived_at + archived_reason (archived, not deleted)")
+                if status == "stale" and not lc.get("stale_at"):
+                    fail(f"{path}: stale requires stale_at")
+                if status in ("proposed", "active") and lc.get("archived_at"):
+                    fail(f"{path}: archived_at present but status is {status}")
 
     # knowledge frontmatter (READMEs are instructions, not knowledge docs)
     for path in sorted((ROOT / "knowledge").glob("*.md")):
@@ -125,6 +147,32 @@ def main():
     # exactly one active rate card (zero allowed while rates are pending)
     if len(active_cards) > 1:
         fail(f"multiple active rate cards: {active_cards}")
+
+    # marketplace entries must resolve in the skill DNS (cross-file)
+    for key, name in marketplace_keys:
+        if key not in skill_keys:
+            fail(f"{name}: skill_key '{key}' not registered in any skills/*.yaml manifest")
+
+    # marketplace/config.yaml — singleton + khalid-owned knob sanity (git-native ledger, NO Xero)
+    cfg_path = ROOT / "marketplace" / "config.yaml"
+    if not cfg_path.exists():
+        fail("marketplace/config.yaml missing")
+    else:
+        cfg = load_yaml(cfg_path)
+        st = cfg.get("staleness", {})
+        if not isinstance(st.get("adoption_threshold"), int) or st["adoption_threshold"] < 1:
+            fail("config.yaml: adoption_threshold must be an int >= 1")
+        if not isinstance(st.get("window_days"), int) or st["window_days"] <= 0:
+            fail("config.yaml: window_days must be a positive int")
+        if cfg.get("lifecycle", {}).get("states") != ["proposed", "active", "stale", "archived"]:
+            fail("config.yaml: lifecycle states must be [proposed, active, stale, archived]")
+        ledger = cfg.get("ledger", {})
+        if ledger.get("engine") != "git-native":
+            fail("config.yaml: ledger.engine must be git-native (self-built — khalid condition)")
+        if ledger.get("external_services"):
+            fail(f"config.yaml: external accounting services banned (NO Xero/SaaS): {ledger['external_services']}")
+        if ledger.get("fallback_tooling") != "open-source-only":
+            fail("config.yaml: ledger.fallback_tooling must be open-source-only")
 
     if FAILURES:
         print(f"\n{len(FAILURES)} validation error(s)")

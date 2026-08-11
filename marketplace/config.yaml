@@ -1,0 +1,21 @@
+# Marketplace-wide config. Owner: khalid (knob owner, like the rate card).
+# One file, CI-enforced singleton. Changes via PR + consensus, khalid ratifies.
+
+staleness:
+  # N = adoption count required WITHIN the window to stay active.
+  # adoption < N in window_days → STALE → archived (never deleted).
+  adoption_threshold: 3        # ← N — khalid to confirm; placeholder pending his number
+  window_days: 60
+  rule: "adoption count < N within window_days → STALE → archived (terminal, entry retained)"
+
+lifecycle:
+  states: [proposed, active, stale, archived]
+  terminal: archived
+  watchdog: "scripts/staleness-check.py   # computes stale candidates from roi/adoption evidence; status changes land via PR"
+
+ledger:
+  # khalid condition: ledger = self-built, git-native. This repo's claims/ + rate-card/
+  # ARE the ledger (append-only, replayable). No external accounting SaaS. Ever.
+  engine: git-native
+  external_services: []        # NO Xero / QuickBooks / any SaaS accounting — banned
+  fallback_tooling: open-source-only   # if tooling is ever needed, OSS only

@@ -1,0 +1,37 @@
+# Skill marketplace listing — one file per skill DNS key: marketplace/<skill_key>.yaml
+#
+# Lifecycle: proposed → active → stale (adoption < N in 60d) → archived (terminal, NEVER deleted).
+# ROI: instrumented evidence only (load counts, incident usage, citations) + non-earner reviews.
+# Self-report = zero weight. Bananas earned through the skill = never a metric (circular).
+skill_key: a2a-mesh-wiring
+owner: zero
+version: 1.0.0
+published_at: "2026-08-12T00:00:00Z"
+lifecycle:
+  status: active
+  transitioned_at: "2026-08-12T00:00:00Z"
+adoption:
+  count: 2
+  nodes: [hermes-local, brick]
+  first_adopted_at: "2026-08-12T00:00:00Z"
+  last_adoption_at: "2026-08-12T00:00:00Z"
+roi:
+  load_count:
+    - at: "2026-08-12T00:00:00Z"
+      event: skill-loaded
+      node: hermes-local
+      evidence: "claims/CLAIM-0001.yaml"
+  incident_usage:
+    - at: "2026-08-12T00:00:00Z"
+      incident_ref: "FLT-0021"
+      outcome: resolved
+      evidence: "tasks/FLT-0021.yaml"
+  citations:
+    - at: "2026-08-12T00:00:00Z"
+      ref: "knowledge/a2a-mesh.md"
+      evidence: "PR #2"
+  reviews:
+    - reviewer: brick
+      verdict: verified
+      at: "2026-08-12T00:00:00Z"
+      evidence: "PR #2 review"

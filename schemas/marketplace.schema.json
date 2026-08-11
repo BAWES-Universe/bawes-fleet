@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/BAWES-Universe/bawes-fleet/schemas/marketplace.schema.json",
+  "title": "Skill Marketplace Entry",
+  "description": "One listing per skill under marketplace/. Tracks lifecycle (proposed/active/stale/archived), ROI/review evidence (instrumented load counts, incident usage, citations), and adoption. Metrics are appended by instrumentation only — self-report has zero weight; bananas earned through the skill is never a metric (circular).",
+  "type": "object",
+  "required": ["skill_key", "owner", "published_at", "lifecycle", "roi"],
+  "properties": {
+    "skill_key": {
+      "type": "string",
+      "description": "Skill DNS key — must appear in some skills/*.yaml manifest's skills[] array (CI cross-check)."
+    },
+    "owner": {
+      "type": "string",
+      "description": "Node that published the skill (matches a skills/ manifest name)."
+    },
+    "version": {
+      "type": "string",
+      "description": "Semver of the skill content this listing describes."
+    },
+    "published_at": { "type": "string", "format": "date-time" },
+    "lifecycle": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "enum": ["proposed", "active", "stale", "archived"],
+          "description": "proposed → active; stale when adoption < threshold in window; archived = terminal. Entries are archived, NEVER deleted."
+        },
+        "transitioned_at": { "type": "string", "format": "date-time" },
+        "stale_at": { "type": "string", "format": "date-time", "description": "Set when the watchdog moves the entry to stale (adoption < N in 60d)." },
+        "archived_at": { "type": "string", "format": "date-time", "description": "Required when status = archived." },
+        "archived_reason": { "type": "string", "description": "Required when status = archived. Entry stays in the repo — archived, not deleted." }
+      }
+    },
+    "adoption": {
+      "type": "object",
+      "description": "Recorded adoptions. Peer adoption is a SECONDARY signal — never the primary usefulness metric (instrumented usage + outcome evidence is primary).",
+      "properties": {
+        "count": { "type": "integer", "minimum": 0 },
+        "nodes": { "type": "array", "items": { "type": "string" } },
+        "first_adopted_at": { "type": "string", "format": "date-time" },
+        "last_adoption_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "roi": {
+      "type": "object",
+      "description": "ROI/review evidence. Every entry must carry an evidence ref to a committed artifact (claim id, task id, PR, hash) — bare prose is not evidence.",
+      "properties": {
+        "load_count": {
+          "type": "array",
+          "description": "Instrumented loads/usages of the skill, append-only.",
+          "items": {
+            "type": "object",
+            "required": ["at", "event", "evidence"],
+            "properties": {
+              "at": { "type": "string", "format": "date-time" },
+              "event": { "type": "string", "description": "e.g. skill-loaded, skill-invoked" },
+              "node": { "type": "string", "description": "Which node loaded/used the skill." },
+              "evidence": { "type": "string", "description": "Committed artifact ref." }
+            }
+          }
+        },
+        "incident_usage": {
+          "type": "array",
+          "description": "Skill referenced during incident runs — how it performed under pressure.",
+          "items": {
+            "type": "object",
+            "required": ["at", "incident_ref", "outcome", "evidence"],
+            "properties": {
+              "at": { "type": "string", "format": "date-time" },
+              "incident_ref": { "type": "string", "description": "FLT-### task / incident id." },
+              "outcome": { "enum": ["resolved", "mitigated", "failed"] },
+              "evidence": { "type": "string" }
+            }
+          }
+        },
+        "citations": {
+          "type": "array",
+          "description": "Skill cited in merged artifacts (knowledge docs, PRs, claims).",
+          "items": {
+            "type": "object",
+            "required": ["at", "ref", "evidence"],
+            "properties": {
+              "at": { "type": "string", "format": "date-time" },
+              "ref": { "type": "string", "description": "knowledge/*.md, PR #n, claim id." },
+              "evidence": { "type": "string" }
+            }
+          }
+        },
+        "reviews": {
+          "type": "array",
+          "description": "Quality reviews by a NON-earner reviewer (rotating).",
+          "items": {
+            "type": "object",
+            "required": ["reviewer", "verdict", "at", "evidence"],
+            "properties": {
+              "reviewer": { "type": "string" },
+              "verdict": { "enum": ["verified", "needs-work", "rejected"] },
+              "at": { "type": "string", "format": "date-time" },
+              "evidence": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
