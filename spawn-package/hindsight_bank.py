@@ -11,14 +11,25 @@ Every brick ships a private long-term memory bank:
   - Evidence-first: every entry carries ledger receipt IDs (D-2 sharpening 1);
     an entry with no receipt refs is a blog post, not a learning.
 
-Round-63 guards that apply here:
-  - Write-ups merge into the SHARED layer only via the DA gate (bridge phase);
-    this module is the per-brick store, not the shared layer.
-  - CLAIMED vs VERIFIED: entries carry status "claimed" until probe-pool
-    measurement upgrades them (the register does that; the bank records it).
+Round-63 guards enforced HERE (not just CI):
+  - status is CLAMPED to "claimed" in retain(): a brick can NEVER self-verify
+    (D-3 guard 1); verification only via the register phase with external proof.
+  - receipt IDs must match ledger shape (^[A-Z]+-\d+$ or ^T-...$) — realness,
+    not presence (D-2).
+  - bank data files are mode 0600 (D-5 privacy at the FS level).
+  - retain() is atomic: exclusive flock around check+append (no TOCTOU dupes).
+  - corrupt JSONL rows are counted + surfaced (never silently fail-open).
+  - rejections are logged in the audit, and audit rows are written BEFORE the
+    entry (no crash window where an entry exists without its audit line).
 """
 from __future__ import annotations
-import argparse, hashlib, json, pathlib, sys, time
+import argparse, fcntl, hashlib, json, pathlib, re, sys, time, unicodedata
+
+RECEIPT_SHAPE = re.compile(r"^[A-Z][A-Z0-9-]*-\d+$")  # e.g. T-UNIVERSE-008, K1-42
+VALID_STATUS = {"claimed"}  # nothing else is writable by a brick
+
+class BankRejection(Exception):
+    """Business-rule rejection — a brick catches this; it never kills the worker."""
 
 class HindsightBank:
     def __init__(self, bank_dir: pathlib.Path, brick_id: str):
@@ -27,83 +38,130 @@ class HindsightBank:
         self.entries_path = bank_dir / "entries.jsonl"
         self.audit_path = bank_dir / "audit.jsonl"
         bank_dir.mkdir(parents=True, exist_ok=True)
+        self._secure()
 
     # ---- internal ----
+    def _secure(self):
+        """D-5 privacy at FS level: bank data files are 0600."""
+        for p in (self.entries_path, self.audit_path):
+            if not p.exists():
+                p.touch()
+            p.chmod(0o600)
+
     def _append(self, path: pathlib.Path, row: dict):
         with open(path, "a") as f:
+            fcntl.flock(f, fcntl.LOCK_EX)
             f.write(json.dumps(row) + "\n")
+            f.flush()
+            fcntl.flock(f, fcntl.LOCK_UN)
 
-    def _log(self, op: str, detail: dict):
+    def _log(self, op: str, detail: dict, outcome: str = "ok"):
         self._append(self.audit_path, {"ts": int(time.time()), "brick": self.brick_id,
-                                       "op": op, **detail})
+                                       "op": op, "outcome": outcome, **detail})
 
-    def _read_entries(self) -> list:
+    def _read_entries(self) -> tuple[list, int]:
+        """Returns (entries, corrupt_count). Corrupt rows are counted, never hidden."""
         if not self.entries_path.exists():
-            return []
-        out = []
+            return [], 0
+        out, corrupt = [], 0
         for line in self.entries_path.read_text().splitlines():
             try:
                 out.append(json.loads(line))
             except Exception:
-                continue
-        return out
+                corrupt += 1
+        return out, corrupt
 
     @staticmethod
     def topic_hash(topic: str) -> str:
-        return hashlib.sha256(topic.strip().lower().encode()).hexdigest()[:16]
+        # NFKC + whitespace-normalize: "Python  Memory" == "Python Memory"
+        norm = " ".join(unicodedata.normalize("NFKC", topic.strip().lower()).split())
+        return hashlib.sha256(norm.encode()).hexdigest()[:16]
 
     # ---- API ----
-    def retain(self, topic: str, learning: str, receipt_ids: list[str],
-               status: str = "claimed") -> dict:
-        """Store a verified learning. REJECTED if no receipt refs (D-2)."""
-        if not receipt_ids:
-            raise SystemExit("REJECTED: no receipt refs — an entry without receipts is a blog post (round-63 D-2)")
+    def retain(self, topic: str, learning: str, receipt_ids: list[str]) -> dict:
+        """Store a learning. ALWAYS status='claimed' — self-verify is impossible (D-3)."""
+        receipts = [r for r in receipt_ids if r and r.strip()]
+        for r in receipts:
+            if not RECEIPT_SHAPE.match(r.strip()):
+                self._log("retain", {"topic": topic[:40], "receipts": receipts,
+                                     "reason": "bad receipt shape"}, outcome="rejected")
+                raise BankRejection(f"receipt '{r}' does not match ledger shape "
+                                    f"(^[A-Z][A-Z0-9-]*-\d+$), D-2 realness")
+        if not receipts:
+            self._log("retain", {"topic": topic[:40], "reason": "no receipts"},
+                      outcome="rejected")
+            raise BankRejection("no receipt refs — an entry without receipts is a blog post (D-2)")
+
         th = self.topic_hash(topic)
-        existing = [e for e in self._read_entries() if e["topic_hash"] == th]
-        if existing:
-            raise SystemExit(f"REJECTED: duplicate topic (hash {th}) — one learning per topic ever (D-2)")
         entry = {"brick": self.brick_id, "ts": int(time.time()), "topic": topic.strip(),
-                 "topic_hash": th, "learning": learning, "receipt_ids": receipt_ids,
-                 "status": status}  # claimed until probe-pool measurement
-        self._append(self.entries_path, entry)
-        self._log("retain", {"topic_hash": th, "receipt_ids": receipt_ids})
-        return {"retained": th, "status": status}
+                 "topic_hash": th, "learning": learning, "receipt_ids": receipts,
+                 "status": "claimed"}  # clamped — NEVER user-supplied
+
+        # atomic check+append (no TOCTOU dupes)
+        with open(self.entries_path, "a") as f:
+            fcntl.flock(f, fcntl.LOCK_EX)
+            existing, corrupt = [], 0
+            if self.entries_path.stat().st_size > 0:
+                existing, corrupt = self._read_entries()
+            if any(e["topic_hash"] == th for e in existing):
+                fcntl.flock(f, fcntl.LOCK_UN)
+                self._log("retain", {"topic_hash": th, "reason": "duplicate"}, outcome="rejected")
+                raise BankRejection(f"duplicate topic (hash {th}) — one learning per topic ever (D-2)")
+            # audit row FIRST (no crash window where entry exists without audit)
+            self._append(self.audit_path, {"ts": int(time.time()), "brick": self.brick_id,
+                                           "op": "retain", "outcome": "ok",
+                                           "topic_hash": th, "receipt_ids": receipts})
+            f.write(json.dumps(entry) + "\n")
+            f.flush()
+            fcntl.flock(f, fcntl.LOCK_UN)
+        return {"retained": th, "status": "claimed"}
 
     def recall(self, query: str, top_k: int = 5) -> dict:
         """Search OWN bank only (private by default, D-5). Request is LOGGED (D-1)."""
         q = query.strip().lower()
+        entries, corrupt = self._read_entries()
         hits = []
-        for e in self._read_entries():
+        for e in entries:
             score = 0
-            if q in e["topic"].lower():
+            if q in e.get("topic", "").lower():
                 score += 3
-            if q in e["learning"].lower():
+            if q in e.get("learning", "").lower():
                 score += 1
             if score:
-                hits.append({"topic": e["topic"], "topic_hash": e["topic_hash"],
-                             "status": e["status"], "receipt_ids": e["receipt_ids"],
-                             "learning": e["learning"][:300], "score": score})
+                hits.append({"topic": e.get("topic"), "topic_hash": e.get("topic_hash"),
+                             "status": e.get("status"), "receipt_ids": e.get("receipt_ids", []),
+                             "learning": e.get("learning", "")[:300], "score": score})
         hits.sort(key=lambda h: h["score"], reverse=True)
-        self._log("recall", {"query": query, "hits": len(hits)})
-        return {"brick": self.brick_id, "query": query, "hits": hits[:top_k]}
+        self._log("recall", {"query": query, "hits": len(hits), "corrupt_rows": corrupt})
+        return {"brick": self.brick_id, "query": query, "hits": hits[:top_k],
+                "corrupt_rows": corrupt}
 
     def reflect(self, topic: str) -> dict:
         """Synthesize what THIS brick knows (private). Logged."""
         th = self.topic_hash(topic)
-        mine = [e for e in self._read_entries() if e["topic_hash"] == th]
-        self._log("reflect", {"topic": topic, "entries": len(mine)})
+        entries, corrupt = self._read_entries()
+        mine = [e for e in entries if e.get("topic_hash") == th]
+        self._log("reflect", {"topic": topic, "entries": len(mine), "corrupt_rows": corrupt})
         if not mine:
-            return {"brick": self.brick_id, "topic": topic, "summary": "no entries"}
-        summary = " | ".join(f"[{e['status']}] {e['learning'][:200]}" for e in mine)
+            return {"brick": self.brick_id, "topic": topic, "summary": "no entries",
+                    "corrupt_rows": corrupt}
+        summary = " | ".join(f"[{e.get('status')}] {e.get('learning', '')[:200]}" for e in mine)
         return {"brick": self.brick_id, "topic": topic, "entries": len(mine),
-                "summary": summary, "receipt_ids": [r for e in mine for r in e["receipt_ids"]]}
+                "summary": summary, "corrupt_rows": corrupt,
+                "receipt_ids": [r for e in mine for r in e.get("receipt_ids", [])]}
 
     def status(self) -> dict:
-        entries = self._read_entries()
-        return {"brick": self.brick_id, "entries": len(entries),
-                "claimed": sum(1 for e in entries if e["status"] == "claimed"),
-                "verified": sum(1 for e in entries if e["status"] == "verified"),
-                "audit_rows": sum(1 for _ in self.audit_path.open()) if self.audit_path.exists() else 0}
+        entries, corrupt = self._read_entries()
+        audit_rows = 0
+        if self.audit_path.exists():
+            for line in self.audit_path.read_text().splitlines():
+                if line.strip():
+                    audit_rows += 1
+        self._log("status", {"entries": len(entries), "corrupt_rows": corrupt})
+        return {"brick": self.brick_id, "entries": len(entries), "corrupt_rows": corrupt,
+                "claimed": sum(1 for e in entries if e.get("status") == "claimed"),
+                "verified": sum(1 for e in entries if e.get("status") == "verified"),
+                "audit_rows": audit_rows}
 
 def main():
     ap = argparse.ArgumentParser(description="per-brick hindsight bank (round-63)")
@@ -116,15 +174,19 @@ def main():
     args = ap.parse_args()
 
     bank = HindsightBank(pathlib.Path(args.bank_dir), args.brick_id)
-    if args.op == "retain":
-        print(json.dumps(bank.retain(args.topic, args.learning,
-                                     [r.strip() for r in args.receipts.split(",") if r.strip()])))
-    elif args.op == "recall":
-        print(json.dumps(bank.recall(args.topic)))
-    elif args.op == "reflect":
-        print(json.dumps(bank.reflect(args.topic)))
-    else:
-        print(json.dumps(bank.status()))
+    try:
+        if args.op == "retain":
+            receipts = [r.strip() for r in args.receipts.split(",") if r.strip()]
+            print(json.dumps(bank.retain(args.topic, args.learning, receipts)))
+        elif args.op == "recall":
+            print(json.dumps(bank.recall(args.topic)))
+        elif args.op == "reflect":
+            print(json.dumps(bank.reflect(args.topic)))
+        else:
+            print(json.dumps(bank.status()))
+    except BankRejection as e:
+        print(json.dumps({"error": str(e)}))
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

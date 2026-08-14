@@ -114,16 +114,34 @@ jobs:
               try:
                   bk.retain("topic", "learning", [])
                   raise SystemExit("BANK-1 FAIL: retain without receipts accepted")
-              except SystemExit as e:
+              except hb.BankRejection as e:
                   assert "receipt" in str(e)
-              # happy retain
+              # whitespace-only receipts rejected
+              try:
+                  bk.retain("topic2", "learning", ["   "])
+                  raise SystemExit("BANK-1b FAIL: whitespace receipt accepted")
+              except hb.BankRejection as e:
+                  assert "receipt" in str(e)
+              # fake receipt shape rejected (D-2 realness, not presence)
+              try:
+                  bk.retain("topic3", "learning", ["abc def"])
+                  raise SystemExit("BANK-1c FAIL: fake receipt accepted")
+              except hb.BankRejection as e:
+                  assert "shape" in str(e)
+              # happy retain — status ALWAYS claimed (self-verify impossible, D-3)
               r1 = bk.retain("docker lowercase", "repo names must be lowercase", ["T-UNIVERSE-008"])
               assert r1["status"] == "claimed"
               # duplicate topic rejected (topic-hash dedup, D-2)
               try:
-                  bk.retain("DOCKER LOWERCASE", "dup", ["T-X"])
+                  bk.retain("DOCKER LOWERCASE", "dup", ["T-UNIVERSE-009"])
                   raise SystemExit("BANK-2 FAIL: duplicate topic accepted")
-              except SystemExit as e:
+              except hb.BankRejection as e:
+                  assert "duplicate" in str(e)
+              # NFKC/whitespace-normalized dedup
+              try:
+                  bk.retain("docker  lowercase", "dup2", ["T-UNIVERSE-010"])
+                  raise SystemExit("BANK-2b FAIL: ws-variant accepted")
+              except hb.BankRejection as e:
                   assert "duplicate" in str(e)
               # recall finds own entry
               rc = bk.recall("docker")
@@ -131,13 +149,40 @@ jobs:
               # reflect synthesizes
               rf = bk.reflect("docker lowercase")
               assert rf["entries"] == 1 and "claimed" in rf["summary"]
-              # audit logged retain + recall + reflect
+              # claimed status only (no self-verify)
+              st = bk.status()
+              assert st["entries"] == 1 and st["claimed"] == 1 and st["verified"] == 0 and st["corrupt_rows"] == 0
+              # audit logged retain + recall + reflect (+ rejections + status)
               audit = bk.audit_path.read_text().splitlines()
               ops = [json.loads(l)["op"] for l in audit]
-              assert "retain" in ops and "recall" in ops and "reflect" in ops
-              # upgrade to verified via status()
-              st = bk.status()
-              assert st["entries"] == 1 and st["claimed"] == 1 and st["verified"] == 0
-              print("BANK-1..6: hindsight bank PASS (receipt gate, dedup, recall, reflect, audit, claimed status)")
-          print("ALL SPAWN-PACKAGE PROBES: PASS (S1-S8 spawn/crypto/fail-closed, A1-A8 A2A enforcement, BANK-1..6 hindsight)")
+              assert "retain" in ops and "recall" in ops and "reflect" in ops and "status" in ops
+              # rejected ops logged with outcome=rejected
+              rejected = [json.loads(l) for l in audit if json.loads(l).get("outcome") == "rejected"]
+              assert len(rejected) >= 1
+              # D-5 privacy: bank files mode 0600
+              assert (pathlib.Path(td)/"bank"/"entries.jsonl").stat().st_mode & 0o777 == 0o600
+              assert (pathlib.Path(td)/"bank"/"audit.jsonl").stat().st_mode & 0o777 == 0o600
+              # corrupt row counted, not hidden (fail-open closed)
+              with open(bk.entries_path, "a") as f:
+                  f.write("{not-json}\n")
+              rc2 = bk.recall("docker")
+              assert rc2["corrupt_rows"] == 1
+              st2 = bk.status()
+              assert st2["corrupt_rows"] == 1
+              # concurrency: flock prevents TOCTOU dupes (10 same-topic retains -> exactly 1)
+              import threading
+              errs = []
+              def try_retain():
+                  try:
+                      bk.retain("concurrent topic", "learn", ["T-UNIVERSE-011"])
+                  except hb.BankRejection as e:
+                      errs.append(str(e))
+              threads = [threading.Thread(target=try_retain) for _ in range(10)]
+              for t in threads: t.start()
+              for t in threads: t.join()
+              assert len(errs) == 9, f"expected 9 rejections, got {len(errs)}"
+              st3 = bk.status()
+              assert st3["entries"] == 2 and st3["corrupt_rows"] == 1  # 1 happy + 1 concurrent, +corrupt
+              print("BANK-1..12: hindsight bank PASS (receipt gate+realness, dedup+NFKC, no-self-verify, audit, 0600, corrupt-count, flock)")
+          print("ALL SPAWN-PACKAGE PROBES: PASS (S1-S8 spawn/crypto/fail-closed, A1-A8 A2A enforcement, BANK-1..12 hindsight)")
           PROBES

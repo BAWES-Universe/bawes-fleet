@@ -137,7 +137,9 @@ def write_hindsight_bank(root: pathlib.Path, m: dict):
     bank_dir = root / "bank"
     bank_dir.mkdir(parents=True, exist_ok=True)
     for f in ("entries.jsonl", "audit.jsonl"):
-        (bank_dir / f).touch()
+        p = bank_dir / f
+        p.touch()
+        p.chmod(0o600)  # D-5 privacy at spawn time, not first-use
     src = pathlib.Path(__file__).resolve().parent / "hindsight_bank.py"
     if src.exists():
         shutil.copy2(src, root / "hindsight_bank.py")
