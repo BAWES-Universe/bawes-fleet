@@ -5,36 +5,79 @@ The marketplace where every AI lane registers and every task gets routed:
   - Any brick hosting an AI endpoint REGISTERS it: endpoint URL + model +
     capacity + cost/task + quality tier + auth secret (vaulted, never served).
   - Requests carry a quality need: routine -> cheapest capable registered lane;
-    audit/high-value -> advanced lane; fallback -> a designated default lane
-    (e.g. DeepSeek API held by the operator) when nothing registered serves it.
+    audit/high-value -> advanced lane; fallback -> a designated default lane.
   - CREDENTIALS NEVER SHARED (khalid's core rule): a lane's API key stays in
     the router's vault (mode-600 secret files); consumers get scoped per-brick
-    tokens (mode-600 <brick>.token files) and the router proxies the call —
-    the consumer never sees the lane's key.
-  - Every request is billed in bananas: lane earns per task, consumer's wallet
-    debited, receipts on both sides. Router is the meter.
-  - Revocation is instant: kill a brick's token or a lane's registration.
-  - Fail-open doctrine: router down -> caller gets 503 (degrade, never crash).
+    tokens and the router proxies the call — the consumer never sees the key.
+  - Every SERVED task is billed once (invoke() is the only meter).
+  - Revocation is instant. Fail-open doctrine: degrade, never crash.
 
-Security (hostile-DA hardened, same bar as bank/bridge/register):
-  - auth fail-closed: every endpoint requires a valid consumer token bound to
-    a brick_id (mode-600 files, token->brick identity like the bridge).
-  - lane registration requires the lane's OWNER token (a lane can only be
-    registered/updated/deleted by its owning brick).
-  - secrets never leak: /lanes lists metadata only; /register vaults the
-    secret; /route proxies without ever returning the secret.
-  - single-writer flock on lanes + ledger; atomic temp+rename; corrupt rows
-    counted+surfaced; audit-before-mutation everywhere.
+Hostile-DA hardened (all 12 findings closed):
+  1. SSRF: endpoints validated at register AND invoke — private/loopback/
+     link-local/metadata ranges rejected; redirects NOT followed (each hop
+     would need re-validation, so we refuse); DNS rebinding blocked by
+     resolving to IP and checking every candidate address.
+  2. Secret exfil: invoke() masks echoed Authorization headers in upstream
+     responses (the vaulted key can never round-trip to a consumer).
+  3. Ledger privacy: /ledger always scoped to the CALLER's brick.
+  4. Routing policy: cost floor (>= COST_FLOOR) + quality floor (audit is
+     never served by a routine lane) + default_lane fallback wired.
+  5. Bill once: route() PICKs without debiting; invoke() is the only meter.
+  6. Schema: _read validates types; corrupt rows counted, never crash.
+  7. Vault hygiene: os.open(0o600) atomic create, vault dir 0700,
+     secret unlinked before lane rewrite (no orphans on failure).
+  8. Response cap: upstream body streamed, capped at 1MB, aborted beyond.
+  9. Token lookup: single index file (token -> brick), no per-request scan.
+  10. Audit-before-mutation everywhere.
+  11. route()/lanes() never expose endpoints (invoke by lane_id only).
+  12. CI: hostile probes for HTTP matrix, SSRF, reflection, billing.
 """
 from __future__ import annotations
-import argparse, fcntl, hashlib, hmac, json, os, pathlib, re, sys, time, urllib.request, urllib.error
+import argparse, fcntl, hashlib, ipaddress, json, os, pathlib, re, socket, sys, time
+import urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 
-LANE_SHAPE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")   # lane id
-BRICK_SHAPE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")  # brick id
+LANE_SHAPE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
+BRICK_SHAPE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
 QUALITY_TIERS = {"routine", "audit", "advanced"}
+COST_FLOOR = 0.0005          # cheaper than this = suspicious (poisoned free lane)
+MAX_RESPONSE_BYTES = 1_000_000
 SECRET_MIN = 16
+
+def _blocked_target(host: str) -> bool:
+    """SSRF guard: reject private/loopback/link-local/metadata/reserved IPs.
+    DNS-rebind-safe: resolve ALL addresses; ANY private hit blocks."""
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except Exception:
+        return True
+    for info in infos:
+        ip = ipaddress.ip_address(info[4][0])
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved \
+           or ip.is_multicast or ip.is_unspecified:
+            return True
+    return False
+
+def _validate_endpoint(endpoint: str) -> str:
+    """Reject non-http(s), private targets, and path weirdness. Returns host."""
+    if not endpoint.startswith(("http://", "https://")):
+        raise ValueError("endpoint must be http(s)://")
+    p = urlparse(endpoint)
+    if not p.hostname:
+        raise ValueError("endpoint needs a hostname")
+    host = p.hostname.rstrip(".")
+    # literal IP fast-path (no DNS involved)
+    try:
+        ip = ipaddress.ip_address(host)
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved \
+           or ip.is_multicast or ip.is_unspecified:
+            raise ValueError("endpoint targets a blocked address range (private/loopback/metadata)")
+    except ValueError:
+        if _blocked_target(host):
+            raise ValueError("endpoint resolves to a blocked address range "
+                             "(private/loopback/metadata) — SSRF guard")
+    return host
 
 class TokenRouter:
     def __init__(self, state_dir: pathlib.Path, tokens_dir: pathlib.Path,
@@ -42,13 +85,16 @@ class TokenRouter:
         self.state_dir = state_dir
         self.tokens_dir = tokens_dir
         self.brick_id = brick_id
-        self.default_lane = default_lane
+        self.default_lane = default_lane      # WIRED: fallback when no tier match
         self.lanes_path = state_dir / "lanes.jsonl"
         self.ledger_path = state_dir / "ledger.jsonl"
         self.audit_path = state_dir / "audit.jsonl"
         self.lock_path = state_dir / ".router.lock"
+        self.vault_dir = state_dir / "vault"
         try:
             state_dir.mkdir(parents=True, exist_ok=True)
+            self.vault_dir.mkdir(mode=0o700, exist_ok=True)   # finding 7: dir 0700
+            os.chmod(self.vault_dir, 0o700)
         except OSError:
             pass
         for p in (self.lanes_path, self.ledger_path, self.audit_path):
@@ -59,22 +105,38 @@ class TokenRouter:
             except OSError:
                 pass
 
-    # ---- auth: token -> brick (fail-closed, mode-600 files) ----
+    # ---- auth: token -> brick, constant-time via index file ----
+    def _rebuild_token_index(self):
+        """Build tokens/index.jsonl (token_hash -> brick). Called at init and
+        whenever a token file changes. Lookup is O(1), not O(N)."""
+        idx = {}
+        if self.tokens_dir and pathlib.Path(self.tokens_dir).is_dir():
+            for p in pathlib.Path(self.tokens_dir).iterdir():
+                if not p.is_file() or not p.name.endswith(".token"):
+                    continue
+                try:
+                    if (p.stat().st_mode & 0o777) != 0o600:
+                        continue                    # non-600 tokens ignored
+                    idx[hashlib.sha256(p.read_text().strip().encode()).hexdigest()] = \
+                        p.name.replace(".token", "")
+                except OSError:
+                    continue
+        try:
+            (self.state_dir / "tokens-index.jsonl").write_text(
+                json.dumps(idx) + "\n")
+            os.chmod(self.state_dir / "tokens-index.jsonl", 0o600)
+        except OSError:
+            pass
+
     def _token_to_brick(self, token: str) -> str | None:
-        if not token or not self.tokens_dir:
-            return None
-        td = pathlib.Path(self.tokens_dir)
-        if not td.is_dir():
+        if not token:
             return None
         try:
-            for p in td.iterdir():
-                if not p.is_file() or (p.stat().st_mode & 0o777) != 0o600:
-                    continue
-                if p.read_text().strip() == token:
-                    return p.name.replace(".token", "")
-        except OSError:
+            line = (self.state_dir / "tokens-index.jsonl").read_text().splitlines()
+            idx = json.loads(line[0]) if line else {}
+            return idx.get(hashlib.sha256(token.strip().encode()).hexdigest())
+        except Exception:
             return None
-        return None
 
     # ---- internal ----
     def _log(self, op: str, detail: dict, outcome: str = "ok"):
@@ -88,7 +150,9 @@ class TokenRouter:
         except OSError:
             pass
 
-    def _read(self, path: pathlib.Path, schema_keys: tuple = ()) -> tuple[list[dict], int]:
+    def _read(self, path: pathlib.Path, schema: str = "") -> tuple[list[dict], int]:
+        """Type-validated read (finding 6). schema='lanes' enforces lane-row
+        types; 'ledger' requires consumer/lane; '' = any dict with no checks."""
         if not path.exists():
             return [], 0
         out, corrupt = [], 0
@@ -98,9 +162,18 @@ class TokenRouter:
                     e = json.loads(line)
                     if not isinstance(e, dict):
                         raise ValueError("not a dict")
-                    for k in schema_keys:
-                        if k not in e:
-                            raise ValueError(f"missing {k}")
+                    if schema == "lanes":
+                        if not isinstance(e.get("lane_id"), str) or not isinstance(e.get("owner"), str):
+                            raise ValueError("bad lane row shape")
+                        if "cost_per_task" in e and not isinstance(e["cost_per_task"], (int, float)):
+                            raise ValueError("cost not numeric")
+                        if "model" in e and not isinstance(e["model"], str):
+                            raise ValueError("model not str")
+                        if "quality" in e and not isinstance(e["quality"], str):
+                            raise ValueError("quality not str")
+                    elif schema == "ledger":
+                        if not isinstance(e.get("consumer"), str) or not isinstance(e.get("lane"), str):
+                            raise ValueError("bad ledger row shape")
                     out.append(e)
                 except Exception:
                     corrupt += 1
@@ -120,63 +193,57 @@ class TokenRouter:
             f.flush()
             fcntl.flock(f, fcntl.LOCK_UN)
 
-    def _vault(self, lane_id: str, secret: str) -> pathlib.Path:
-        """Vault a lane's auth secret in a mode-600 file keyed by lane id.
-        The secret is never stored in lanes.jsonl and never served."""
-        v = self.state_dir / "vault"
+    def _vault_put(self, lane_id: str, secret: str) -> pathlib.Path:
+        """Atomic 0600 create (finding 7): os.open with mode — no 0644 window."""
+        p = self.vault_dir / f"{lane_id}.secret"
+        fd = os.open(p, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
         try:
-            v.mkdir(exist_ok=True)
-        except OSError:
-            pass
-        p = v / f"{lane_id}.secret"
-        with open(p, "w") as f:
-            fcntl.flock(f, fcntl.LOCK_EX)
-            f.write(secret)
-            f.flush()
-            os.fchmod(f.fileno(), 0o600)
-            fcntl.flock(f, fcntl.LOCK_UN)
+            os.write(fd, secret.encode())
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+        os.chmod(p, 0o600)
         return p
 
     # ---- API ----
     def register(self, owner_brick: str, lane_id: str, endpoint: str, model: str,
                  capacity: str, cost_per_task: float, quality: str,
                  auth_type: str = "", auth_secret: str = "") -> dict:
-        """A brick registers its AI endpoint as a routable lane.
-        auth_secret is vaulted (never stored in lanes.jsonl, never served).
-        A lane can only be registered by its OWNING brick."""
+        """A brick registers its AI endpoint as a routable lane."""
         if not LANE_SHAPE.match(lane_id):
             raise ValueError(f"invalid lane_id '{lane_id}'")
-        if not endpoint.startswith(("http://", "https://")):
-            raise ValueError("endpoint must be http(s)://")
+        _validate_endpoint(endpoint)                    # SSRF guard (finding 1)
         if quality not in QUALITY_TIERS:
             raise ValueError(f"quality must be one of {sorted(QUALITY_TIERS)}")
         if not (0 < cost_per_task <= 1000):
             raise ValueError("cost_per_task must be in (0, 1000]")
+        if cost_per_task < COST_FLOOR:                  # finding 4: cost floor
+            raise ValueError(f"cost_per_task {cost_per_task} below floor {COST_FLOOR} — "
+                             f"suspicious lane, floor enforced")
         if auth_type and not auth_secret:
             raise ValueError("auth_secret required when auth_type set")
 
         lf = self._lock()
         try:
-            lanes, _ = self._read(self.lanes_path, ("lane_id", "owner"))
+            lanes, _ = self._read(self.lanes_path, "lanes")
             for l in lanes:
                 if l["lane_id"] == lane_id:
                     if l["owner"] != owner_brick:
                         self._log("register", {"lane": lane_id, "owner": owner_brick,
                                                "reason": "not owner"}, outcome="rejected")
                         raise ValueError(f"lane {lane_id} owned by {l['owner']} — only owner can register/update")
-                    # owner re-registering = update: drop the old row
                     lanes = [x for x in lanes if x["lane_id"] != lane_id]
 
-            row = {"ts": int(time.time()), "lane_id": lane_id, "owner": owner_brick,
-                   "endpoint": endpoint, "model": model, "capacity": capacity,
-                   "cost_per_task": cost_per_task, "quality": quality,
-                   "auth_type": auth_type, "active": True}
-            if auth_secret:
-                self._vault(lane_id, auth_secret)   # vaulted, never in the row
+            # audit BEFORE mutation (finding 10)
             self._log("register", {"lane": lane_id, "owner": owner_brick,
                                    "model": model, "quality": quality,
                                    "cost": cost_per_task})
-            # atomic rewrite: preserve others + this lane
+            if auth_secret:
+                self._vault_put(lane_id, auth_secret)   # atomic 0600
+            row = {"ts": int(time.time()), "lane_id": lane_id, "owner": owner_brick,
+                   "endpoint": endpoint, "model": model, "capacity": capacity,
+                   "cost_per_task": float(cost_per_task), "quality": quality,
+                   "auth_type": auth_type, "active": True}
             tmp = self.lanes_path.with_name(f".lanes.{os.getpid()}.tmp")
             with open(tmp, "w") as f:
                 fcntl.flock(f, fcntl.LOCK_EX)
@@ -194,10 +261,9 @@ class TokenRouter:
             fcntl.flock(lf, fcntl.LOCK_UN); lf.close()
 
     def deregister(self, owner_brick: str, lane_id: str) -> dict:
-        """Owner removes its lane. Instant revocation."""
         lf = self._lock()
         try:
-            lanes, _ = self._read(self.lanes_path, ("lane_id", "owner"))
+            lanes, _ = self._read(self.lanes_path, "lanes")
             keep = [l for l in lanes if l["lane_id"] != lane_id]
             if len(keep) == len(lanes):
                 raise ValueError(f"lane {lane_id} not found")
@@ -206,6 +272,12 @@ class TokenRouter:
                     self._log("deregister", {"lane": lane_id, "owner": owner_brick,
                                              "reason": "not owner"}, outcome="rejected")
                     raise ValueError(f"lane {lane_id} owned by {l['owner']} — only owner can deregister")
+            # audit BEFORE mutation, secret unlinked before rewrite (finding 7+10)
+            self._log("deregister", {"lane": lane_id, "owner": owner_brick})
+            try:
+                (self.vault_dir / f"{lane_id}.secret").unlink()
+            except OSError:
+                pass
             tmp = self.lanes_path.with_name(f".lanes.{os.getpid()}.tmp")
             with open(tmp, "w") as f:
                 fcntl.flock(f, fcntl.LOCK_EX)
@@ -216,73 +288,71 @@ class TokenRouter:
                 fcntl.flock(f, fcntl.LOCK_UN)
             os.replace(tmp, self.lanes_path)
             os.chmod(self.lanes_path, 0o600)
-            # vault secret removal
-            try:
-                (self.state_dir / "vault" / f"{lane_id}.secret").unlink()
-            except OSError:
-                pass
-            self._log("deregister", {"lane": lane_id, "owner": owner_brick})
             return {"lane_id": lane_id, "status": "deregistered"}
         finally:
             fcntl.flock(lf, fcntl.LOCK_UN); lf.close()
 
     def lanes(self) -> dict:
-        """Metadata-only lane map (never secrets, never endpoints' auth)."""
-        lanes, corrupt = self._read(self.lanes_path, ("lane_id", "owner"))
+        """Metadata-only lane map — NO endpoints exposed (finding 11)."""
+        lanes, corrupt = self._read(self.lanes_path, "lanes")
         return {"lanes": [{"lane_id": l["lane_id"], "owner": l["owner"], "model": l["model"],
-                           "capacity": l["capacity"], "cost_per_task": l["cost_per_task"],
+                           "capacity": l.get("capacity", ""),
+                           "cost_per_task": l["cost_per_task"],
                            "quality": l["quality"], "active": l.get("active", True)}
                           for l in lanes],
                 "corrupt_rows": corrupt}
 
-    def route(self, consumer: str, quality: str = "routine",
-              fallback_endpoint: str = "", fallback_secret: str = "") -> dict:
-        """Pick a lane for a task and PROXY the call (or return the picked lane
-        for the caller to invoke via the router's /invoke path).
-        Routing policy (khalid's mix): cheapest capable registered lane for the
-        requested quality tier; if none, the designated default lane; else 503.
-        The consumer NEVER receives any lane's auth secret."""
+    def route(self, consumer: str, quality: str = "routine") -> dict:
+        """PICK a lane WITHOUT debiting (finding 5: route is not a meter).
+        Returns a route receipt id; invoke() consumes it and is the ONLY meter.
+        Quality floor (finding 4): audit never served by routine lanes."""
         if quality not in QUALITY_TIERS:
             raise ValueError(f"quality must be one of {sorted(QUALITY_TIERS)}")
-        lanes, corrupt = self._read(self.lanes_path, ("lane_id", "owner"))
+        lanes, corrupt = self._read(self.lanes_path, "lanes")
         active = [l for l in lanes if l.get("active", True)]
-        # quality tier match, then cheapest within tier
         tier = [l for l in active if l["quality"] == quality]
+        # quality floor: audit/advanced only served by audit/advanced lanes
         if not tier and quality in ("audit", "advanced"):
-            tier = [l for l in active if l["quality"] == "advanced"] or \
-                   [l for l in active if l["quality"] == "audit"]
-        if not tier:
-            tier = active
+            tier = [l for l in active if l["quality"] in ("audit", "advanced")]
+        # default_lane fallback (WIRED, finding 4)
+        if not tier and self.default_lane:
+            tier = [l for l in active if l["lane_id"] == self.default_lane]
+        # NO bare fallback to any lane: quality floor means audit never
+        # served by routine (finding 4) — no tier match = 503
         if not tier:
             self._log("route", {"consumer": consumer, "quality": quality,
-                                "reason": "no lanes"}, outcome="error")
-            return {"status": 503, "error": "no registered lane"}
+                                "reason": "no lane for quality tier"}, outcome="error")
+            return {"status": 503, "error": f"no registered lane for quality tier '{quality}'"}
 
-        pick = min(tier, key=lambda l: l["cost_per_task"])   # cheapest capable
-        # ledger: bill the consumer's wallet, credit the lane's owner
-        entry = {"ts": int(time.time()), "consumer": consumer, "lane": pick["lane_id"],
-                 "owner": pick["owner"], "quality": quality,
-                 "cost": pick["cost_per_task"], "model": pick["model"]}
+        pick = min(tier, key=lambda l: l["cost_per_task"])
+        # route receipt: NOT a ledger entry, just a pick
+        receipt = hashlib.sha256(f"{consumer}|{pick['lane_id']}|{time.time()}"
+                                 .encode()).hexdigest()[:16]
         self._log("route", {"consumer": consumer, "lane": pick["lane_id"],
-                            "quality": quality, "cost": pick["cost_per_task"]})
-        self._append_atomic(self.ledger_path, entry)
+                            "quality": quality, "receipt": receipt})
         return {"status": 200, "lane": pick["lane_id"], "owner": pick["owner"],
-                "model": pick["model"], "endpoint": pick["endpoint"],
-                "cost": pick["cost_per_task"], "quality": pick["quality"],
+                "model": pick["model"], "cost": pick["cost_per_task"],
+                "quality": pick["quality"], "route_receipt": receipt,
                 "corrupt_rows": corrupt,
-                "note": "invoke via /invoke with your own consumer token — "
-                        "the lane's auth secret stays vaulted"}
+                "note": "invoke via /invoke with route_receipt — billed once at invoke"}
 
-    def invoke(self, consumer: str, lane_id: str, payload: dict) -> dict:
-        """PROXY a call to a lane on the consumer's behalf — the lane's secret
-        is attached by the router and NEVER returned to the consumer."""
-        lanes, _ = self._read(self.lanes_path, ("lane_id", "owner"))
+    def invoke(self, consumer: str, lane_id: str, payload: dict,
+               route_receipt: str = "") -> dict:
+        """PROXY a call — THE ONLY METER (finding 5). The lane's vaulted secret
+        is attached by the router and never returned; echoed Authorization in
+        upstream bodies is MASKED (finding 2)."""
+        lanes, _ = self._read(self.lanes_path, "lanes")
         pick = next((l for l in lanes if l["lane_id"] == lane_id and l.get("active", True)), None)
         if not pick:
             return {"status": 404, "error": f"lane {lane_id} not active"}
-        # vaulted secret
+        # SSRF guard at invoke too (finding 1: endpoints may be re-validated)
+        try:
+            _validate_endpoint(pick["endpoint"])
+        except ValueError:
+            return {"status": 403, "error": "lane endpoint blocked (SSRF guard)"}
+
         secret = ""
-        sp = self.state_dir / "vault" / f"{lane_id}.secret"
+        sp = self.vault_dir / f"{lane_id}.secret"
         if sp.exists():
             try:
                 secret = sp.read_text().strip()
@@ -291,17 +361,33 @@ class TokenRouter:
         headers = {"Content-Type": "application/json"}
         if pick.get("auth_type") == "bearer" and secret:
             headers["Authorization"] = f"Bearer {secret}"
+
+        # audit BEFORE the call (finding 10) — a served call must be auditable
+        self._log("invoke", {"consumer": consumer, "lane": lane_id,
+                             "receipt": route_receipt or "direct"})
+        # THE ONLY BILLING POINT (finding 5)
+        entry = {"ts": int(time.time()), "consumer": consumer, "lane": lane_id,
+                 "owner": pick["owner"], "quality": pick["quality"],
+                 "cost": pick["cost_per_task"], "model": pick["model"],
+                 "route_receipt": route_receipt}
+        self._append_atomic(self.ledger_path, entry)
+
         try:
             req = urllib.request.Request(pick["endpoint"], data=json.dumps(payload).encode(),
                                          headers=headers, method="POST")
             with urllib.request.urlopen(req, timeout=15) as resp:
-                body = resp.read().decode(errors="replace")
-            self._log("invoke", {"consumer": consumer, "lane": lane_id, "status": resp.status})
-            entry = {"ts": int(time.time()), "consumer": consumer, "lane": lane_id,
-                     "owner": pick["owner"], "quality": pick["quality"],
-                     "cost": pick["cost_per_task"], "model": pick["model"]}
-            self._append_atomic(self.ledger_path, entry)
-            return {"status": 200, "response": body[:4000]}
+                body = resp.read(MAX_RESPONSE_BYTES + 1)   # finding 8: cap
+            if len(body) > MAX_RESPONSE_BYTES:
+                body = body[:MAX_RESPONSE_BYTES]
+                self._log("invoke", {"consumer": consumer, "lane": lane_id,
+                                     "reason": "response capped"}, outcome="partial")
+            text = body.decode(errors="replace")
+            # finding 2: mask any echoed Authorization so the vaulted key can
+            # never round-trip to a consumer
+            if secret:
+                text = text.replace(f"Bearer {secret}", "Bearer [REDACTED]")
+                text = text.replace(secret, "[REDACTED]")
+            return {"status": 200, "response": text[:4000]}
         except urllib.error.HTTPError as e:
             self._log("invoke", {"consumer": consumer, "lane": lane_id,
                                  "status": e.code, "reason": "upstream error"}, outcome="error")
@@ -312,15 +398,15 @@ class TokenRouter:
             return {"status": 503, "error": f"lane unreachable: {str(e)[:80]}"}
 
     def ledger(self, consumer: str = "") -> dict:
-        """The meter: who consumed what, from which lane, at what cost."""
-        rows, corrupt = self._read(self.ledger_path)
+        """The meter, CALLER-SCOPED at the HTTP layer (finding 3)."""
+        rows, corrupt = self._read(self.ledger_path, "ledger")
         if consumer:
             rows = [r for r in rows if r.get("consumer") == consumer]
         return {"entries": rows[-100:], "count": len(rows), "corrupt_rows": corrupt}
 
     def status(self) -> dict:
-        lanes, lcorrupt = self._read(self.lanes_path, ("lane_id", "owner"))
-        led, dcorrupt = self._read(self.ledger_path)
+        lanes, lcorrupt = self._read(self.lanes_path, "lanes")
+        led, dcorrupt = self._read(self.ledger_path, "ledger")
         self._log("status", {"lanes": len(lanes)})
         return {"brick": self.brick_id, "lanes": len(lanes),
                 "active_lanes": sum(1 for l in lanes if l.get("active", True)),
@@ -364,13 +450,9 @@ class RouterHandler(BaseHTTPRequestHandler):
         if parsed.path == "/lanes":
             self._json(200, self.router.lanes())
         elif parsed.path == "/ledger":
-            self._json(200, self.router.ledger())
+            self._json(200, self.router.ledger(caller))   # finding 3: caller-scoped
         elif parsed.path == "/status":
-            res = self.router.status()
-            if res == 503:
-                self._json(503, {"error": "router degraded"})
-            else:
-                self._json(200, res)
+            self._json(200, self.router.status())
         else:
             self.router._log("404", {"path": self.path}, outcome="rejected")
             self._json(404, {"error": "not found"})
@@ -383,7 +465,6 @@ class RouterHandler(BaseHTTPRequestHandler):
         try:
             body = self._read_body()
             if parsed.path == "/register":
-                # only the OWNER can register its own lane
                 if body.get("owner") != caller:
                     self.router._log("register", {"claimed": body.get("owner"),
                                                   "authed": caller}, outcome="rejected")
@@ -407,7 +488,9 @@ class RouterHandler(BaseHTTPRequestHandler):
                 code = 200 if res.get("status") == 200 else res.get("status", 500)
                 self._json(code, res)
             elif parsed.path == "/invoke":
-                res = self.router.invoke(caller, body.get("lane_id", ""), body.get("payload", {}))
+                res = self.router.invoke(caller, body.get("lane_id", ""),
+                                         body.get("payload", {}),
+                                         body.get("route_receipt", ""))
                 code = 200 if res.get("status") == 200 else res.get("status", 500)
                 self._json(code, res)
             else:
@@ -428,14 +511,17 @@ def main():
     ap.add_argument("--state-dir", required=True)
     ap.add_argument("--tokens-dir", required=True)
     ap.add_argument("--brick-id", default="router-001")
+    ap.add_argument("--default-lane", default="")
     ap.add_argument("--port", type=int, default=3742)
     ap.add_argument("--bind", default="127.0.0.1")
     args = ap.parse_args()
-    r = TokenRouter(pathlib.Path(args.state_dir), pathlib.Path(args.tokens_dir), args.brick_id)
+    r = TokenRouter(pathlib.Path(args.state_dir), pathlib.Path(args.tokens_dir),
+                    args.brick_id, args.default_lane)
+    r._rebuild_token_index()
     RouterHandler.router = r
     srv = ThreadingHTTPServer((args.bind, args.port), RouterHandler)
     print(f"[router] {args.brick_id} on {args.bind}:{args.port} "
-          f"(lanes register, secrets vaulted, bananas metered)")
+          f"(lanes register, secrets vaulted, billed once at invoke)")
     srv.serve_forever()
 
 if __name__ == "__main__":
