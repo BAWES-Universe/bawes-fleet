@@ -84,6 +84,28 @@ def verify_manifest(m):
         raise SystemExit(f"REJECTED: signature verification failed: {str(e)[:80]}")
     if m.get("manifest_version", 0) < 1:
         raise SystemExit("REJECTED: manifest_version < 1")
+    # round-52: Hermes runtime version gate (fails closed like everything else)
+    req = m.get("min_hermes_version")
+    if req:
+        got = None
+        try:
+            out = subprocess.run(["hermes", "--version"], capture_output=True, text=True, timeout=20)
+            out_text = (out.stdout or "") + (out.stderr or "")
+            import re
+            mt = re.search(r"v?(\d+\.\d+\.\d+)", out_text)
+            got = mt.group(1) if mt else None
+        except Exception:
+            got = None
+        if not got:
+            raise SystemExit(
+                f"REJECTED: cannot read Hermes version (min required {req}) — "
+                f"run `hermes --version` and check your install")
+        from packaging.version import Version
+        if Version(got) < Version(req):
+            raise SystemExit(
+                f"REJECTED: Hermes {got} < required {req} (manifest min_hermes_version) — "
+                f"upgrade Hermes first, then re-run the installer")
+        log(f"Hermes version OK ({got} >= {req})")
     log(f"signature VERIFIED (JWS ES256, issuer {issuer}, pinned key, payload-bound)")
     return True
 
