@@ -199,45 +199,75 @@ jobs:
               assert st5["entries"] == 3 and st5["corrupt_rows"] == 3, st5
               print("BANK-13/14: corrupt-edge PASS (missing-hash counted, corrupt-only re-retain allowed+surfaced)")
               print("BANK-1..14: hindsight bank PASS (receipt gate+realness, dedup+NFKC, no-self-verify, audit, 0600, corrupt-count, flock)")
-          # ---- hindsight bridge probes (round-63: metadata-only, dedup, aggregate recall, fail-open, auth, audit) ----
+          # ---- hindsight bridge probes (hostile-DA hardened: auth, impersonation, dedup, content, 0600, 503) ----
           import bridge as br
           with tempfile.TemporaryDirectory() as td:
-              idx = pathlib.Path(td) / "index"
-              b = br.Bridge(idx, "bridge-001")
-              # index registration: metadata only — raw content REJECTED (D-5)
-              try:
-                  b.index("brick-a", [{"topic": "docker", "topic_hash": "aa", "learning": "secret"}])
-                  raise SystemExit("BRIDGE-1 FAIL: content ingested")
-              except ValueError as e:
-                  assert "content" in str(e)
-              # happy index + topic-hash dedup at index time
-              r = b.index("brick-a", [{"topic": "docker lowercase", "topic_hash": "aa11", "status": "claimed", "receipt_ids": ["T-UNIVERSE-008"]}])
+              idx = pathlib.Path(td) / "index"; tokd = pathlib.Path(td) / "tokens"; tokd.mkdir()
+              (tokd / "brick-a.token").write_text("tok-a-1234567890123456"); os.chmod(tokd / "brick-a.token", 0o600)
+              (tokd / "brick-b.token").write_text("tok-b-1234567890123456"); os.chmod(tokd / "brick-b.token", 0o600)
+              b = br.Bridge(idx, tokd, "bridge-001")
+              # index registration: metadata only — ANY extra field rejected (D-5), not just 'learning'
+              for bad_field in ["learning", "learning_text", "body", "content", "summary", "nested"]:
+                  try:
+                      b.index("brick-a", [{"topic": "t", "receipt_ids": ["T-UNIVERSE-008"], bad_field: "secret"}])
+                      raise SystemExit(f"BRIDGE-1 FAIL: {bad_field} ingested")
+                  except ValueError as e:
+                      assert "metadata" in str(e)
+              # server-side hash: brick-supplied hash IGNORED + normalized (DA-3)
+              r = b.index("brick-a", [{"topic": "docker  lowercase", "receipt_ids": ["T-UNIVERSE-008"], "topic_hash": "fabricated-hash"}])
               assert r["indexed"] == 1
-              r2 = b.index("brick-a", [{"topic": "docker lowercase", "topic_hash": "aa11", "status": "claimed", "receipt_ids": ["T-UNIVERSE-008"]}])
-              assert r2["indexed"] == 0 and r2["dupes_skipped"] == 1  # dedup
-              # second brick registers
-              b.index("brick-b", [{"topic": "synapse registration", "topic_hash": "bb22", "status": "claimed", "receipt_ids": ["T-UNIVERSE-007"]}])
-              # aggregated recall across bricks — metadata only, never raw text
-              rc = b.recall("docker")
+              rows_a, _ = b._read_index()
+              assert rows_a[0]["topic_hash"] == br.topic_hash("docker lowercase"), "server-side hash not enforced"
+              # same topic, diff hash in body -> still deduped (server normalizes)
+              r2 = b.index("brick-a", [{"topic": "DOCKER LOWERCASE", "receipt_ids": ["T-UNIVERSE-009"]}])
+              assert r2["indexed"] == 0 and r2["dupes_skipped"] == 1
+              # intra-call dedup: same hash twice in ONE registration (DA-3)
+              r3 = b.index("brick-a", [{"topic": "synapse reg", "receipt_ids": ["T-UNIVERSE-007"]},
+                                       {"topic": "SYNAPSE REG", "receipt_ids": ["T-UNIVERSE-007"]}])
+              assert r3["indexed"] == 1 and r3["dupes_skipped"] == 1
+              b.index("brick-b", [{"topic": "synapse registration", "receipt_ids": ["T-UNIVERSE-007"]}])
+              # aggregated recall — metadata only, never raw text, normalized query
+              rc = b.recall("docker lowercase")
               assert rc["hits"] and rc["hits"][0]["brick"] == "brick-a"
               assert all("learning" not in h for h in rc["hits"]), "raw content leaked"
-              assert all("topic" in h for h in rc["hits"])
-              rc2 = b.recall("synapse")
-              assert rc2["hits"][0]["brick"] == "brick-b"
-              assert rc2["bricks_indexed"] == 2
-              # audit log: recall + index + rejected-index logged
+              assert rc["bricks_indexed"] == 2
+              # D-5 at rest: index + audit files mode 0600
+              assert (idx / "index-brick-a.jsonl").stat().st_mode & 0o777 == 0o600
+              assert (idx / "audit.jsonl").stat().st_mode & 0o777 == 0o600
+              # fail-open: broken index path — recall + status degrade to 503, never crash (DA-6)
+              bad_path = pathlib.Path(td) / "not-a-dir"
+              bad_path.write_text("i am a file")
+              b2 = br.Bridge(bad_path, tokd, "bridge-002")
+              assert b2.recall("anything") == 503
+              assert b2.status() == 503
+              # empty query rejected (DA-10)
+              assert b.recall("") == 503
+              # HTTP-level impersonation: POST /index claiming another brick -> 403 (DA-5)
+              class FakeHandler(br.BridgeHandler):
+                  pass
+              import http.server
+              orig_headers = {}
+              h = FakeHandler.__new__(FakeHandler)
+              # exercise _caller_brick + 403 logic via a stub bridge handler
+              stub = br.BridgeHandler.__new__(br.BridgeHandler)
+              stub.bridge = b
+              stub.headers = type("H", (), {"get": lambda self, k, d="": "Bearer tok-a-1234567890123456" if k == "Authorization" else d})()
+              stub.path = "/index"
+              stub.rfile = type("R", (), {"read": lambda self, n: b'{"brick": "brick-b", "rows": []}'})()
+              stub.send_response = lambda code, *a: setattr(stub, "_code", code)
+              stub.send_header = lambda *a: None
+              stub.end_headers = lambda: None
+              stub.wfile = type("W", (), {"write": lambda self, d: None})()
+              stub._json = lambda code, obj: setattr(stub, "_json_out", (code, obj))
+              stub.do_POST()
+              assert stub._json_out[0] == 403, stub._json_out  # brick-b claimed by brick-a token
+              print("BRIDGE-1..11: hindsight bridge PASS (auth-bound identity, impersonation 403, server hash, intra-call dedup, content-at-rest, 0600, 503-degrade, audit)")
+              # audit: recall + index + rejections logged (D-1)
               audit = b.audit_path.read_text().splitlines()
               ops = [json.loads(l)["op"] for l in audit]
               assert "recall" in ops and "index" in ops
               rejected = [json.loads(l) for l in audit if json.loads(l).get("outcome") == "rejected"]
               assert len(rejected) >= 1  # content-reject logged
-              # fail-open doctrine (D-5): broken index path — bridge constructs and
-              # answers (degraded), never crashes
-              bad_path = pathlib.Path(td) / "not-a-dir"
-              bad_path.write_text("i am a file")
-              b2 = br.Bridge(bad_path, "bridge-002")  # must not raise
-              rc3 = b2.recall("anything")  # must not raise
-              assert isinstance(rc3, dict)
-              print("BRIDGE-1..7: hindsight bridge PASS (metadata-only, dedup, aggregate, audit, fail-open)")
-          print("ALL SPAWN-PACKAGE PROBES: PASS (S1-S8 spawn/crypto/fail-closed, A1-A8 A2A enforcement, BANK-1..14 hindsight, BRIDGE-1..7)")
+              print("BRIDGE-1..10: hindsight bridge PASS (auth-bound identity, impersonation guard, server hash, intra-call dedup, content-at-rest, 0600, 503-degrade, audit)")
+          print("ALL SPAWN-PACKAGE PROBES: PASS (S1-S8 spawn/crypto/fail-closed, A1-A8 A2A enforcement, BANK-1..14 hindsight, BRIDGE-1..10)")
           PROBES
