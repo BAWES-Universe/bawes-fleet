@@ -1,0 +1,32 @@
+profile_version: 1
+brick_id: mishari-device-001
+person_id: '231861'
+wallet_ref: wallet-mishari
+discord:
+  token_env: BRICK_DISCORD_TOKEN
+  channel_id: ''
+model:
+  primary: http://127.0.0.1:1234/v1
+  fallback: ''
+  default_model: ''
+  chain: []
+a2a:
+  peer_toolsets:
+  - web
+  - vision
+  - session_search
+  enforce_read_only: true
+  reject:
+  - terminal
+  - code_execution
+  - memory
+  - file
+  - skill_manage
+heartbeat:
+  interval_s: 300
+  registry: /root/.hermes/notes/heartbeat-registry.jsonl
+min_alive:
+  1_boots: hermes --version runs with profile applied
+  2_identity: reports brick_id + person_id + wallet_ref matching ledger at boot
+  3_one_channel: Discord binding responds in channel_id (THE alive signal)
+  4_hello_registry: heartbeat stamp lands in registry
