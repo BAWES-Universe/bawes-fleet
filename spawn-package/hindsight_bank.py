@@ -14,7 +14,7 @@ Every brick ships a private long-term memory bank:
 Round-63 guards enforced HERE (not just CI):
   - status is CLAMPED to "claimed" in retain(): a brick can NEVER self-verify
     (D-3 guard 1); verification only via the register phase with external proof.
-  - receipt IDs must match ledger shape (^[A-Z]+-\d+$ or ^T-...$) — realness,
+  - receipt IDs must match ledger shape (^[A-Z]+-[0-9]+$ or ^T-...$) — realness,
     not presence (D-2).
   - bank data files are mode 0600 (D-5 privacy at the FS level).
   - retain() is atomic: exclusive flock around check+append (no TOCTOU dupes).
@@ -89,7 +89,7 @@ class HindsightBank:
                 self._log("retain", {"topic": topic[:40], "receipts": receipts,
                                      "reason": "bad receipt shape"}, outcome="rejected")
                 raise BankRejection(f"receipt '{r}' does not match ledger shape "
-                                    f"(^[A-Z][A-Z0-9-]*-\d+$), D-2 realness")
+                                    f"(^[A-Z][A-Z0-9-]*-[0-9]+$), D-2 realness")
         if not receipts:
             self._log("retain", {"topic": topic[:40], "reason": "no receipts"},
                       outcome="rejected")
