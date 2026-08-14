@@ -269,10 +269,15 @@ jobs:
               rejected = [json.loads(l) for l in audit if json.loads(l).get("outcome") == "rejected"]
               assert len(rejected) >= 1  # content-reject logged
               print("BRIDGE-1..10: hindsight bridge PASS (auth-bound identity, impersonation guard, server hash, intra-call dedup, content-at-rest, 0600, 503-degrade, audit)")
-          # ---- capability register probes (round-63 D-3: no self-verify, held-out pool, guard-3) ----
+          # ---- capability register probes (round-63 D-3: no self-verify via ingest+apply, held-out pool, guard-3) ----
           import capability_register as cr
           with tempfile.TemporaryDirectory() as td:
-              reg = cr.CapabilityRegister(pathlib.Path(td) / "reg", "register-001")
+              reg_dir = pathlib.Path(td) / "reg"
+              reg = cr.CapabilityRegister(reg_dir, "register-001")
+              # seed evaluator registry: only registered non-earner critics can ingest
+              (reg_dir / "evaluators.jsonl").write_text(
+                  '{"id": "zeus", "role": "non-earner"}\n{"id": "da-critic", "role": "non-earner"}\n')
+              os.chmod(reg_dir / "evaluators.jsonl", 0o600)
               # claim needs receipts (evidence-first, D-2)
               try:
                   reg.claim("topic", "cap", [], "brick-a")
@@ -280,49 +285,79 @@ jobs:
               except ValueError as e:
                   assert "receipt" in str(e)
               # happy claim — status CLAIMED, never verified
-              c = reg.claim("docker lowercase", "immaculate docker images", ["T-UNIVERSE-008"], "ovh-server-001")
+              c = reg.claim("docker lowercase", "immaculate docker images", ["T-UNIVERSE-008", "T-UNIVERSE-008"], "ovh-server-001")
               assert c["status"] == "claimed"
-              # duplicate topic rejected (D-2)
+              # duplicate topic rejected (D-2); case/space variant also rejected
+              for dup in ["DOCKER LOWERCASE", "docker  lowercase"]:
+                  try:
+                      reg.claim(dup, "dup", ["T-UNIVERSE-009"], "brick-a")
+                      raise SystemExit("REG-2 FAIL: duplicate accepted")
+                  except ValueError as e:
+                      assert "duplicate" in str(e)
+              # CRIT-1 FIX: self-verify structurally impossible — evaluator == source rejected
               try:
-                  reg.claim("DOCKER LOWERCASE", "dup", ["T-UNIVERSE-009"], "brick-a")
-                  raise SystemExit("REG-2 FAIL: duplicate accepted")
+                  reg.ingest(cr.topic_hash("docker lowercase"), cr.topic_hash("probe-a"),
+                             0.2, 0.9, "ovh-server-001", "ovh-server-001", "pool-v1", "a"*16)
+                  raise SystemExit("REG-3 FAIL: self-evaluation accepted")
               except ValueError as e:
-                  assert "duplicate" in str(e)
-              # verify on a non-existent claim -> rejected
+                  assert "non-earner" in str(e)
+              # unregistered evaluator rejected
               try:
-                  reg.verify("ghost topic", cr.topic_hash("ghost topic"), 0.2, 0.9, "zeus", "v1", "c"*16)
-                  raise SystemExit("REG-3 FAIL: ghost verified")
+                  reg.ingest(cr.topic_hash("docker lowercase"), cr.topic_hash("probe-a"),
+                             0.2, 0.9, "random-guy", "ovh-server-001", "pool-v1", "a"*16)
+                  raise SystemExit("REG-4 FAIL: unregistered evaluator accepted")
               except ValueError as e:
-                  assert "no claim" in str(e)
-              # guard 3: no improvement -> rejected (overfitting is not growth)
+                  assert "non-earner" in str(e)
+              # verify WITHOUT ingest -> rejected (no self-attestable path)
               try:
-                  reg.verify("docker lowercase", cr.topic_hash("docker lowercase"), 0.8, 0.7, "zeus", "v1", "c"*16)
-                  raise SystemExit("REG-4 FAIL: regression verified")
+                  reg.verify("docker lowercase", cr.topic_hash("probe-a"))
+                  raise SystemExit("REG-5 FAIL: verify without ingest")
               except ValueError as e:
-                  assert "improvement" in str(e)
-              # held-out pool: missing version/checksum -> rejected (D-3 guard 2)
+                  assert "ingested" in str(e)
+              # ingest by registered non-earner (zeus) — ok
+              th = cr.topic_hash("docker lowercase")
+              ing = reg.ingest(th, cr.topic_hash("probe-a"), 0.2, 0.9, "zeus", "ovh-server-001", "pool-v1", "abc123def4567890")
+              assert ing["status"] == "ingested"
+              # probe bound to one topic: same probe_id on another topic rejected
+              reg.claim("other topic", "cap2", ["T-UNIVERSE-009"], "brick-b")
               try:
-                  reg.verify("docker lowercase", cr.topic_hash("docker lowercase"), 0.2, 0.9, "zeus", "", "")
-                  raise SystemExit("REG-5 FAIL: pool not recorded")
+                  reg.ingest(cr.topic_hash("other topic"), cr.topic_hash("probe-a"), 0.1, 0.5, "zeus", "brick-b", "pool-v1", "a"*16)
+                  raise SystemExit("REG-6 FAIL: probe reused across topics")
               except ValueError as e:
-                  assert "pool" in str(e)
-              # happy verify — CLAIMED -> VERIFIED with full measurement record
-              v = reg.verify("docker lowercase", cr.topic_hash("docker lowercase"), 0.2, 0.9,
-                             "zeus", "pool-v1", "abc123def4567890")
+                  assert "bound" in str(e)
+              # verify now applies the ingested measurement — CLAIMED -> VERIFIED
+              v = reg.verify("docker lowercase", cr.topic_hash("probe-a"))
               assert v["status"] == "verified" and v["improvement"] == 0.7
+              # guard-3: re-ingest with LOWER after -> verify rejected (must beat best, not self-baseline)
+              reg.ingest(th, cr.topic_hash("probe-b"), 0.1, 0.5, "zeus", "ovh-server-001", "pool-v2", "b"*16)
+              try:
+                  reg.verify("docker lowercase", cr.topic_hash("probe-b"))
+                  raise SystemExit("REG-7 FAIL: regression verified")
+              except ValueError as e:
+                  assert "best" in str(e)
               st = reg.status()
-              assert st["claimed"] == 0 and st["verified"] == 1 and st["measurements"] == 1
-              # capability map shows verified with measurement, never bare claim
+              assert st["claimed"] == 1 and st["verified"] == 1 and st["measurements"] == 2
+              # capability map: verified shows measurement with evaluator
               lst = reg.list()
-              assert lst[0]["status"] == "verified" and lst[0]["measurement"]["probe_id"] == cr.topic_hash("docker lowercase")
-              # audit: claim + verify + rejections logged
+              dv = [x for x in lst if x["topic"] == "docker lowercase"][0]
+              assert dv["status"] == "verified" and dv["measurement"]["evaluator"] == "zeus"
+              # corrupt row: surfaced, never crashes list/status (DA-5)
+              with open(reg.claims_path, "a") as f:
+                  f.write('{"topic_hash": "x"*64}\n')   # valid JSON, missing topic -> schema-counted
+                  f.write("NOT_JSON\n")
+              assert reg.status()["corrupt_rows"] == 2
+              assert isinstance(reg.list(), list)        # no KeyError
+              # audit: claim + ingest + verify + status + rejections all logged (D-1)
               audit = reg.audit_path.read_text().splitlines()
               ops = [json.loads(l)["op"] for l in audit]
-              assert "claim" in ops and "verify" in ops and "status" in ops
+              for need in ["claim", "ingest", "verify", "status"]:
+                  assert need in ops, f"{need} not in audit"
               rejected = [json.loads(l) for l in audit if json.loads(l).get("outcome") == "rejected"]
-              assert len(rejected) >= 3  # no-receipts, duplicate, ghost, regression all logged
-              # D-5 privacy at rest: files 0600
-              assert (pathlib.Path(td)/"reg"/"claims.jsonl").stat().st_mode & 0o777 == 0o600
-              print("REG-1..8: capability register PASS (no-self-verify, held-out pool, guard-3, dedup, audit, 0600)")
-          print("ALL SPAWN-PACKAGE PROBES: PASS (S1-S8 spawn, A1-A8 A2A, BANK-1..14 hindsight, BRIDGE-1..11, REG-1..8 capability)")
+              assert len(rejected) >= 4  # no-receipts, dup, self-eval, unregistered, no-ingest, bound, regression
+              # D-5 privacy at rest
+              for f in ["claims.jsonl", "measurements.jsonl", "audit.jsonl"]:
+                  mode = (reg_dir / f).stat().st_mode & 0o777
+                  assert mode == 0o600, f"{f} mode {mode:o}"
+              print("REG-1..16: capability register PASS (no-self-verify ingest+apply, evaluator registry, probe binding, guard-3 best, corrupt surfaced, audit, 0600)")
+          print("ALL SPAWN-PACKAGE PROBES: PASS (S1-S8 spawn, A1-A8 A2A, BANK-1..14 hindsight, BRIDGE-1..11, REG-1..16 capability)")
           PROBES

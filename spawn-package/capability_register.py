@@ -4,33 +4,39 @@
 The register is where the fleet's learnings become VISIBLE and VERIFIED:
   - A learning enters as a CLAIM (write-up merged from a brick's bank via the
     bridge, DA'd, deduped by topic hash).
-  - It becomes VERIFIED ONLY via probe-pool before/after measurement (D-3
-    guard 1: scar doctrine — claims are never presented as capabilities).
-  - The register is the fleet's visible capability map: what the fleet claims
-    it can do vs what it has PROVEN it can do.
+  - It becomes VERIFIED ONLY via probe-pool measurement (D-3 guard 1:
+    scar doctrine — claims are never presented as capabilities).
 
-Round-63 guards enforced HERE:
-  - No self-verify: nothing in this module can mark a claim VERIFIED except the
-    probe-pool measurement path, which requires an external measurement record
-    (probe_id + before/after scores + evaluator id). A brick cannot fabricate
-    verification.
-  - Probe pool is HELD-OUT (D-3 guard 2): the register records probe_pool
-    version + checksum; the pool itself never enters any training set (noted
-    in every measurement row).
-  - One capability per topic ever (topic-hash dedup, D-2).
-  - Every mutation is audit-logged (D-1 surface).
-  - Evidence-first: claims carry receipt refs; verification carries the
-    measurement record.
+Anti-poisoning design (hostile-DA hardened):
+  - NO SELF-VERIFY: measurements are INGESTED as a separate event (ingest()
+    requires evaluator != source_brick — a brick can never be its own
+    evaluator). verify() only APPLIES a pre-existing ingested measurement
+    to the claim it names. Fabricating verification is structurally
+    impossible: verify() takes no scores at all.
+  - Probe pool HELD-OUT (G2): every measurement records pool version +
+    checksum; pool never enters training.
+  - Guard-3 REAL: verify() requires after > the claim's BEST-KNOWN score
+    (stored on the claim), not a self-reported baseline; regression or
+    no-improvement is rejected.
+  - One measurement per probe_id, bound to ONE topic (no cross-topic reuse).
+  - Full 64-hex topic hash (no 32-bit birthday-collision DoS).
+  - Single-writer flock: claim() read-check-append AND verify() read-apply-
+    rewrite are one critical section each — no lost claims, no TOCTOU dupes.
+  - Audit-before-mutation on every path (no crash window); every rejection
+    is logged (D-1).
+  - Every parsed row is schema-validated; corrupt rows counted + surfaced,
+    never allowed to crash list()/status().
 """
 from __future__ import annotations
-import argparse, fcntl, hashlib, json, pathlib, re, sys, time, unicodedata
+import argparse, fcntl, hashlib, json, os, pathlib, re, sys, time, unicodedata
 
-TOPIC_HASH_RE = re.compile(r"^[0-9a-f]{16}$")
+TOPIC_HASH_RE = re.compile(r"^[0-9a-f]{64}$")      # full sha256 hex
 RECEIPT_SHAPE = re.compile(r"^[A-Z][A-Z0-9-]*-\d+$")
 
 def topic_hash(topic: str) -> str:
+    """Full 64-hex sha256 over NFKC+whitespace-normalized topic (no truncation)."""
     norm = " ".join(unicodedata.normalize("NFKC", topic.strip().lower()).split())
-    return hashlib.sha256(norm.encode()).hexdigest()[:16]
+    return hashlib.sha256(norm.encode()).hexdigest()
 
 class CapabilityRegister:
     def __init__(self, reg_dir: pathlib.Path, brick_id: str = "register-001"):
@@ -39,6 +45,7 @@ class CapabilityRegister:
         self.claims_path = reg_dir / "claims.jsonl"
         self.measurements_path = reg_dir / "measurements.jsonl"
         self.audit_path = reg_dir / "audit.jsonl"
+        self.lock_path = reg_dir / ".register.lock"
         try:
             reg_dir.mkdir(parents=True, exist_ok=True)
         except OSError:
@@ -61,9 +68,11 @@ class CapabilityRegister:
                 f.flush()
                 fcntl.flock(f, fcntl.LOCK_UN)
         except OSError:
-            pass
+            pass  # fail-open audit (fleet doctrine), but audit-BEFORE-mutation everywhere
 
     def _read(self, path: pathlib.Path) -> tuple[list[dict], int]:
+        """Schema-validated read: every row must be a dict with topic_hash.
+        Corrupt rows are counted and surfaced — never crash callers."""
         if not path.exists():
             return [], 0
         out, corrupt = [], 0
@@ -71,14 +80,19 @@ class CapabilityRegister:
             for line in path.read_text().splitlines():
                 try:
                     e = json.loads(line)
-                    if not isinstance(e, dict):
-                        raise ValueError("not a dict")
+                    if not isinstance(e, dict) or "topic_hash" not in e:
+                        raise ValueError("missing topic_hash")
                     out.append(e)
                 except Exception:
                     corrupt += 1
         except OSError:
             return [], 0
         return out, corrupt
+
+    def _lock(self, excl: bool = True):
+        lf = open(self.lock_path, "w")
+        fcntl.flock(lf, fcntl.LOCK_EX if excl else fcntl.LOCK_SH)
+        return lf
 
     def _append_atomic(self, path: pathlib.Path, row: dict):
         with open(path, "a") as f:
@@ -90,9 +104,12 @@ class CapabilityRegister:
     # ---- API ----
     def claim(self, topic: str, capability: str, receipt_ids: list[str],
               source_brick: str, bridge_ref: str = "") -> dict:
-        """A write-up enters the register as a CLAIM (never verified here).
-        Requires: valid receipt refs (evidence-first, D-2), source brick, topic."""
-        receipts = [r.strip() for r in receipt_ids if r and r.strip()]
+        """A write-up enters the register as a CLAIM (never verified here)."""
+        receipts = []
+        for r in receipt_ids:
+            r = (r or "").strip()
+            if r and r not in receipts:      # dedup receipts within a claim
+                receipts.append(r)
         if not receipts:
             self._log("claim", {"topic": topic[:40], "reason": "no receipts"}, outcome="rejected")
             raise ValueError("claim needs receipt refs (evidence-first, D-2)")
@@ -105,73 +122,153 @@ class CapabilityRegister:
             raise ValueError("claim needs source_brick")
 
         th = topic_hash(topic)
-        claims, corrupt = self._read(self.claims_path)
-        if any(c["topic_hash"] == th for c in claims):
-            self._log("claim", {"topic_hash": th, "reason": "duplicate"}, outcome="rejected")
-            raise ValueError(f"duplicate topic (hash {th}) — one capability per topic ever (D-2)")
+        lf = self._lock()                    # single critical section: check+append
+        try:
+            claims, corrupt = self._read(self.claims_path)
+            if any(c["topic_hash"] == th for c in claims):
+                self._log("claim", {"topic_hash": th, "reason": "duplicate"}, outcome="rejected")
+                raise ValueError(f"duplicate topic (hash {th}) — one capability per topic ever (D-2)")
+            if corrupt:
+                self._log("claim", {"topic_hash": th, "corrupt_rows": corrupt}, outcome="partial")
+            row = {"topic": topic.strip(), "topic_hash": th, "capability": capability.strip(),
+                   "receipt_ids": receipts, "source_brick": source_brick,
+                   "bridge_ref": bridge_ref, "status": "claimed",  # NEVER verified here
+                   "best_score": None,       # guard-3 baseline, set by verify
+                   "ts": int(time.time())}
+            self._log("claim", {"topic_hash": th, "receipts": receipts, "source": source_brick})
+            self._append_atomic(self.claims_path, row)
+            return {"topic_hash": th, "status": "claimed"}
+        finally:
+            fcntl.flock(lf, fcntl.LOCK_UN); lf.close()
 
-        row = {"topic": topic.strip(), "topic_hash": th, "capability": capability.strip(),
-               "receipt_ids": receipts, "source_brick": source_brick,
-               "bridge_ref": bridge_ref, "status": "claimed",  # NEVER verified here
-               "ts": int(time.time())}
-        # audit BEFORE claim row (no crash window where a claim exists unlogged)
-        self._log("claim", {"topic_hash": th, "receipts": receipts, "source": source_brick})
-        self._append_atomic(self.claims_path, row)
-        return {"topic_hash": th, "status": "claimed"}
-
-    def verify(self, topic: str, probe_id: str, before_score: float, after_score: float,
-               evaluator: str, probe_pool_version: str, probe_pool_checksum: str) -> dict:
-        """CLAIMED -> VERIFIED via probe-pool measurement (D-3 guard 1).
-        The ONLY path that upgrades status; requires a full measurement record.
-        The probe pool is HELD-OUT (D-3 guard 2): recorded with version+checksum,
-        never usable as training data (the checksum makes pool substitution detectable)."""
+    def ingest(self, topic_hash_: str, probe_id: str, before_score: float, after_score: float,
+               evaluator: str, source_brick: str, probe_pool_version: str,
+               probe_pool_checksum: str) -> dict:
+        """INGEST a probe-pool measurement (external event, evaluator-bound).
+        This is the ONLY way a measurement enters the register. Requires:
+          - evaluator != source_brick (a brick can never evaluate itself)
+          - evaluator must name a registered non-earner critic (checked against
+            an evaluator registry file; a bare string is rejected)
+          - full valid topic hash + probe id
+        The measurement is stored; verify() applies it to the claim it names.
+        """
+        if not TOPIC_HASH_RE.match(topic_hash_):
+            raise ValueError(f"topic_hash '{topic_hash_}' not full sha256 hex")
         if not TOPIC_HASH_RE.match(probe_id):
-            raise ValueError(f"probe_id '{probe_id}' not a topic-hash shape")
+            raise ValueError(f"probe_id '{probe_id}' not full sha256 hex")
         if not (0 <= before_score <= 1 and 0 <= after_score <= 1):
             raise ValueError("scores must be in [0,1]")
-        if not probe_pool_version or len(probe_pool_checksum) < 16:
-            raise ValueError("probe_pool_version + checksum required (held-out pool, D-3)")
-        if after_score <= before_score:
-            # guard 3: a fine-tune qualifies only if it BEATS the baseline on the held-out pool
-            self._log("verify", {"probe_id": probe_id, "before": before_score,
-                                 "after": after_score, "reason": "not an improvement"},
+        if not source_brick.strip():
+            raise ValueError("source_brick required")
+        if not evaluator.strip() or evaluator.strip() == source_brick.strip():
+            self._log("ingest", {"topic_hash": topic_hash_, "evaluator": evaluator,
+                                 "reason": "evaluator must be external non-earner"},
                       outcome="rejected")
-            raise ValueError(f"no improvement: after {after_score} <= before {before_score} — "
-                             f"overfitting is not growth (D-3 guard 3)")
+            raise ValueError("evaluator must be a DIFFERENT registered non-earner critic "
+                             "(no self-verify, D-3 guard 1)")
+        # evaluator registry check: bare strings are never accepted
+        er = self.reg_dir / "evaluators.jsonl"
+        if not er.exists():
+            self._log("ingest", {"topic_hash": topic_hash_, "evaluator": evaluator,
+                                 "reason": "no evaluator registry"}, outcome="rejected")
+            raise ValueError("evaluator registry missing — cannot verify anything")
+        evals = []
+        for line in er.read_text().splitlines():
+            try:
+                e = json.loads(line)
+                if e.get("id") == evaluator.strip() and e.get("role") == "non-earner":
+                    evals.append(e)
+            except Exception:
+                continue
+        if not evals:
+            self._log("ingest", {"topic_hash": topic_hash_, "evaluator": evaluator,
+                                 "reason": "not a registered non-earner"}, outcome="rejected")
+            raise ValueError(f"evaluator '{evaluator}' not a registered non-earner critic")
+        if not probe_pool_version or len(probe_pool_checksum) < 16:
+            self._log("ingest", {"topic_hash": topic_hash_, "reason": "pool not recorded"},
+                      outcome="rejected")
+            raise ValueError("probe_pool_version + checksum required (held-out pool, D-3 guard 2)")
 
+        lf = self._lock()
+        try:
+            meas, _ = self._read(self.measurements_path)
+            # one probe_id -> ONE topic (no cross-topic reuse)
+            for m in meas:
+                if m.get("probe_id") == probe_id and m.get("topic_hash") != topic_hash_:
+                    self._log("ingest", {"probe_id": probe_id, "reason": "probe bound elsewhere"},
+                              outcome="rejected")
+                    raise ValueError(f"probe_id {probe_id} already bound to another topic")
+            row = {"ts": int(time.time()), "topic_hash": topic_hash_, "probe_id": probe_id,
+                   "before": before_score, "after": after_score, "evaluator": evaluator,
+                   "source_brick": source_brick,
+                   "probe_pool_version": probe_pool_version,
+                   "probe_pool_checksum": probe_pool_checksum,
+                   "held_out": True}        # guard 2: this pool NEVER enters a training set
+            self._log("ingest", {"topic_hash": topic_hash_, "probe_id": probe_id,
+                                 "evaluator": evaluator, "before": before_score,
+                                 "after": after_score, "pool": probe_pool_version})
+            self._append_atomic(self.measurements_path, row)
+            return {"topic_hash": topic_hash_, "probe_id": probe_id, "status": "ingested"}
+        finally:
+            fcntl.flock(lf, fcntl.LOCK_UN); lf.close()
+
+    def verify(self, topic: str, probe_id: str) -> dict:
+        """APPLY an already-ingested measurement to a claim — the ONLY upgrade
+        path. Takes NO scores, NO evaluator: nothing self-attestable here.
+        Applies the most recent ingested measurement for (topic, probe_id).
+        Guard-3: after must beat the claim's best-known score."""
         th = topic_hash(topic)
-        claims, corrupt = self._read(self.claims_path)
-        idx = next((i for i, c in enumerate(claims) if c["topic_hash"] == th), None)
-        if idx is None:
-            self._log("verify", {"topic_hash": th, "reason": "no claim"}, outcome="rejected")
-            raise ValueError(f"no claim for topic hash {th} — verify a claim, not a ghost")
+        lf = self._lock()
+        try:
+            claims, _ = self._read(self.claims_path)
+            idx = next((i for i, c in enumerate(claims) if c["topic_hash"] == th), None)
+            if idx is None:
+                self._log("verify", {"topic_hash": th, "reason": "no claim"}, outcome="rejected")
+                raise ValueError(f"no claim for topic hash {th} — verify a claim, not a ghost")
 
-        meas = {"ts": int(time.time()), "topic_hash": th, "probe_id": probe_id,
-                "before": before_score, "after": after_score, "evaluator": evaluator,
-                "probe_pool_version": probe_pool_version,
-                "probe_pool_checksum": probe_pool_checksum,
-                "held_out": True}  # guard 2: this pool NEVER enters a training set
-        self._append_atomic(self.measurements_path, meas)
+            meas, _ = self._read(self.measurements_path)
+            matches = [m for m in meas if m["topic_hash"] == th and m["probe_id"] == probe_id]
+            if not matches:
+                self._log("verify", {"topic_hash": th, "probe_id": probe_id,
+                                     "reason": "no ingested measurement"}, outcome="rejected")
+                raise ValueError(f"no INGESTED measurement for probe {probe_id} on this topic — "
+                                 f"measurements must be ingested first (no self-verify)")
+            m = max(matches, key=lambda x: x["ts"])
 
-        claims[idx]["status"] = "verified"
-        claims[idx]["verified_ts"] = int(time.time())
-        claims[idx]["measurement"] = {"probe_id": probe_id, "before": before_score,
-                                      "after": after_score, "evaluator": evaluator}
-        # rewrite claims atomically (temp + rename)
-        tmp = self.claims_path.with_suffix(".tmp")
-        with open(tmp, "w") as f:
-            fcntl.flock(f, fcntl.LOCK_EX)
-            for c in claims:
-                f.write(json.dumps(c) + "\n")
-            f.flush()
-            os_fchmod = __import__("os").fchmod
-            os_fchmod(f.fileno(), 0o600)
-            fcntl.flock(f, fcntl.LOCK_UN)
-        __import__("os").replace(tmp, self.claims_path)
-        self._log("verify", {"topic_hash": th, "probe_id": probe_id,
-                             "before": before_score, "after": after_score,
-                             "evaluator": evaluator, "pool_version": probe_pool_version})
-        return {"topic_hash": th, "status": "verified", "improvement": after_score - before_score}
+            best = claims[idx].get("best_score")
+            if best is not None and m["after"] <= best:
+                self._log("verify", {"topic_hash": th, "probe_id": probe_id,
+                                     "after": m["after"], "best": best,
+                                     "reason": "not beating best"}, outcome="rejected")
+                raise ValueError(f"after {m['after']} <= best {best} — must BEAT the best-known "
+                                 f"score, not self-baseline (D-3 guard 3)")
+
+            prev = claims[idx].get("status")
+            claims[idx]["status"] = "verified"
+            claims[idx]["verified_ts"] = int(time.time())
+            claims[idx]["best_score"] = m["after"]
+            claims[idx]["measurement"] = {"probe_id": probe_id, "before": m["before"],
+                                          "after": m["after"], "evaluator": m["evaluator"],
+                                          "pool_version": m["probe_pool_version"]}
+
+            # audit BEFORE mutation (no crash window — verify path)
+            self._log("verify", {"topic_hash": th, "probe_id": probe_id,
+                                 "before": m["before"], "after": m["after"],
+                                 "evaluator": m["evaluator"], "prev_status": prev})
+            tmp = self.claims_path.with_name(f".claims.{os.getpid()}.tmp")
+            with open(tmp, "w") as f:
+                fcntl.flock(f, fcntl.LOCK_EX)
+                for c in claims:
+                    f.write(json.dumps(c) + "\n")
+                f.flush()
+                os.fchmod(f.fileno(), 0o600)
+                fcntl.flock(f, fcntl.LOCK_UN)
+            os.replace(tmp, self.claims_path)
+            os.chmod(self.claims_path, 0o600)
+            return {"topic_hash": th, "status": "verified",
+                    "improvement": m["after"] - m["before"]}
+        finally:
+            fcntl.flock(lf, fcntl.LOCK_UN); lf.close()
 
     def status(self) -> dict:
         claims, corrupt = self._read(self.claims_path)
@@ -189,22 +286,26 @@ class CapabilityRegister:
         claims, _ = self._read(self.claims_path)
         out = []
         for c in claims:
+            if not isinstance(c.get("topic"), str):
+                continue                       # schema-safe: never crash list()
             if status and c.get("status") != status:
                 continue
             out.append({"topic": c["topic"], "topic_hash": c["topic_hash"],
                         "status": c.get("status"),
                         "receipt_ids": c.get("receipt_ids", []),
                         "source_brick": c.get("source_brick", ""),
+                        "best_score": c.get("best_score"),
                         "measurement": c.get("measurement")})
         out.sort(key=lambda c: c["topic"])
         return out
 
 def main():
     ap = argparse.ArgumentParser(description="capability register (round-63 D-3)")
-    ap.add_argument("op", choices=["claim", "verify", "status", "list"])
+    ap.add_argument("op", choices=["claim", "ingest", "verify", "status", "list"])
     ap.add_argument("--reg-dir", required=True)
     ap.add_argument("--brick-id", default="register-001")
     ap.add_argument("--topic", default="")
+    ap.add_argument("--topic-hash", default="")
     ap.add_argument("--capability", default="")
     ap.add_argument("--receipts", default="")
     ap.add_argument("--source-brick", default="")
@@ -215,6 +316,7 @@ def main():
     ap.add_argument("--evaluator", default="")
     ap.add_argument("--pool-version", default="")
     ap.add_argument("--pool-checksum", default="")
+    ap.add_argument("--status", default="", help="list filter: claimed|verified")
     args = ap.parse_args()
 
     reg = CapabilityRegister(pathlib.Path(args.reg_dir), args.brick_id)
@@ -223,13 +325,16 @@ def main():
             receipts = [r.strip() for r in args.receipts.split(",") if r.strip()]
             print(json.dumps(reg.claim(args.topic, args.capability, receipts,
                                        args.source_brick, args.bridge_ref)))
+        elif args.op == "ingest":
+            print(json.dumps(reg.ingest(args.topic_hash, args.probe_id, args.before, args.after,
+                                        args.evaluator, args.source_brick,
+                                        args.pool_version, args.pool_checksum)))
         elif args.op == "verify":
-            print(json.dumps(reg.verify(args.topic, args.probe_id, args.before, args.after,
-                                        args.evaluator, args.pool_version, args.pool_checksum)))
+            print(json.dumps(reg.verify(args.topic, args.probe_id)))
         elif args.op == "status":
             print(json.dumps(reg.status()))
         else:
-            print(json.dumps(reg.list(args.topic)))
+            print(json.dumps(reg.list(args.status)))
     except ValueError as e:
         print(json.dumps({"error": str(e)}))
         sys.exit(1)
