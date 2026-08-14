@@ -359,5 +359,62 @@ jobs:
                   mode = (reg_dir / f).stat().st_mode & 0o777
                   assert mode == 0o600, f"{f} mode {mode:o}"
               print("REG-1..16: capability register PASS (no-self-verify ingest+apply, evaluator registry, probe binding, guard-3 best, corrupt surfaced, audit, 0600)")
-          print("ALL SPAWN-PACKAGE PROBES: PASS (S1-S8 spawn, A1-A8 A2A, BANK-1..14 hindsight, BRIDGE-1..11, REG-1..16 capability)")
+          # ---- token router probes (T-UNIVERSE-013: vaulted secrets, owner-only, cheapest routing, metered) ----
+          import token_router as tr
+          with tempfile.TemporaryDirectory() as td:
+              st = pathlib.Path(td) / "state"; tokd = pathlib.Path(td) / "tokens"; tokd.mkdir()
+              (tokd / "brick-a.token").write_text("tok-a-1234567890123456"); os.chmod(tokd / "brick-a.token", 0o600)
+              (tokd / "brick-b.token").write_text("tok-b-1234567890123456"); os.chmod(tokd / "brick-b.token", 0o600)
+              rt = tr.TokenRouter(st, tokd, "router-001")
+              # register a DeepSeek-style lane with a SECRET — vaulted, never in the row
+              r = rt.register("brick-a", "deepseek-api", "https://api.deepseek.com/v1", "deepseek-chat",
+                              "unlimited", 0.002, "audit", "bearer", "sk-super-secret-1234567890")
+              assert r["status"] == "registered"
+              # SECRET NEVER LEAKS: not in lanes, not in any GET
+              lanes = rt.lanes()["lanes"]
+              assert len(lanes) == 1 and "auth_secret" not in lanes[0]
+              assert "secret" not in json.dumps(rt.lanes())
+              # vault file exists mode 600, lane row has no secret
+              vault = st / "vault" / "deepseek-api.secret"
+              assert vault.exists() and (vault.stat().st_mode & 0o777) == 0o600
+              row = rt._read(rt.lanes_path, ("lane_id", "owner"))[0][0]
+              assert "auth_secret" not in row and "sk-super-secret" not in json.dumps(row)
+              # second cheaper lane registers
+              rt.register("brick-b", "local-qwen", "http://127.0.0.1:9999/v1", "qwen-27b",
+                          "4gb", 0.0005, "routine", "", "")
+              # ROUTE: cheapest capable lane for the quality tier
+              res = rt.route("brick-b", "routine")
+              assert res["status"] == 200 and res["lane"] == "local-qwen", res
+              res2 = rt.route("brick-b", "audit")
+              assert res2["lane"] == "deepseek-api", res2  # only audit-tier lane serves audits
+              # ledger metering: both routes billed
+              led = rt.ledger()["entries"]
+              assert len(led) == 2 and all("consumer" in e and "cost" in e for e in led)
+              # OWNER-ONLY: brick-b cannot register/update brick-a's lane
+              try:
+                  rt.register("brick-b", "deepseek-api", "http://evil", "x", "1gb", 0.001, "routine", "", "")
+                  raise SystemExit("ROUTER-1 FAIL: non-owner updated lane")
+              except ValueError as e:
+                  assert "owner" in str(e)
+              # DEREGISTER: instant revocation, vault secret removed
+              rt.deregister("brick-b", "local-qwen")
+              assert not (st / "vault" / "local-qwen.secret").exists()
+              res3 = rt.route("brick-b", "routine")
+              assert res3["lane"] == "deepseek-api", res3  # fell back to remaining lane
+              # no lanes at all -> 503 (fail-open degrade)
+              rt.deregister("brick-a", "deepseek-api")
+              res4 = rt.route("brick-b", "routine")
+              assert res4["status"] == 503
+              st2 = rt.status()
+              assert st2["lanes"] == 0 and st2["ledger_entries"] == 3  # 3 billed routes; 503 not billed
+              # audit: register/deregister/route/status logged
+              audit = rt.audit_path.read_text().splitlines()
+              ops = [json.loads(l)["op"] for l in audit]
+              for need in ["register", "deregister", "route", "status"]:
+                  assert need in ops, f"{need} not in audit"
+              # files 0600
+              for f in ["lanes.jsonl", "ledger.jsonl", "audit.jsonl"]:
+                  assert (st / f).stat().st_mode & 0o777 == 0o600
+              print("ROUTER-1..12: token router PASS (vaulted secrets never leak, owner-only, cheapest-tier routing, instant revoke, metered ledger, 503 degrade, audit, 0600)")
+          print("ALL SPAWN-PACKAGE PROBES: PASS (S1-S8 spawn, A1-A8 A2A, BANK-1..14 hindsight, BRIDGE-1..11, REG-1..16 capability, ROUTER-1..12)")
           PROBES
