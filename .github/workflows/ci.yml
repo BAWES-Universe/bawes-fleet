@@ -199,5 +199,45 @@ jobs:
               assert st5["entries"] == 3 and st5["corrupt_rows"] == 3, st5
               print("BANK-13/14: corrupt-edge PASS (missing-hash counted, corrupt-only re-retain allowed+surfaced)")
               print("BANK-1..14: hindsight bank PASS (receipt gate+realness, dedup+NFKC, no-self-verify, audit, 0600, corrupt-count, flock)")
-          print("ALL SPAWN-PACKAGE PROBES: PASS (S1-S8 spawn/crypto/fail-closed, A1-A8 A2A enforcement, BANK-1..14 hindsight)")
+          # ---- hindsight bridge probes (round-63: metadata-only, dedup, aggregate recall, fail-open, auth, audit) ----
+          import bridge as br
+          with tempfile.TemporaryDirectory() as td:
+              idx = pathlib.Path(td) / "index"
+              b = br.Bridge(idx, "bridge-001")
+              # index registration: metadata only — raw content REJECTED (D-5)
+              try:
+                  b.index("brick-a", [{"topic": "docker", "topic_hash": "aa", "learning": "secret"}])
+                  raise SystemExit("BRIDGE-1 FAIL: content ingested")
+              except ValueError as e:
+                  assert "content" in str(e)
+              # happy index + topic-hash dedup at index time
+              r = b.index("brick-a", [{"topic": "docker lowercase", "topic_hash": "aa11", "status": "claimed", "receipt_ids": ["T-UNIVERSE-008"]}])
+              assert r["indexed"] == 1
+              r2 = b.index("brick-a", [{"topic": "docker lowercase", "topic_hash": "aa11", "status": "claimed", "receipt_ids": ["T-UNIVERSE-008"]}])
+              assert r2["indexed"] == 0 and r2["dupes_skipped"] == 1  # dedup
+              # second brick registers
+              b.index("brick-b", [{"topic": "synapse registration", "topic_hash": "bb22", "status": "claimed", "receipt_ids": ["T-UNIVERSE-007"]}])
+              # aggregated recall across bricks — metadata only, never raw text
+              rc = b.recall("docker")
+              assert rc["hits"] and rc["hits"][0]["brick"] == "brick-a"
+              assert all("learning" not in h for h in rc["hits"]), "raw content leaked"
+              assert all("topic" in h for h in rc["hits"])
+              rc2 = b.recall("synapse")
+              assert rc2["hits"][0]["brick"] == "brick-b"
+              assert rc2["bricks_indexed"] == 2
+              # audit log: recall + index + rejected-index logged
+              audit = b.audit_path.read_text().splitlines()
+              ops = [json.loads(l)["op"] for l in audit]
+              assert "recall" in ops and "index" in ops
+              rejected = [json.loads(l) for l in audit if json.loads(l).get("outcome") == "rejected"]
+              assert len(rejected) >= 1  # content-reject logged
+              # fail-open doctrine (D-5): broken index path — bridge constructs and
+              # answers (degraded), never crashes
+              bad_path = pathlib.Path(td) / "not-a-dir"
+              bad_path.write_text("i am a file")
+              b2 = br.Bridge(bad_path, "bridge-002")  # must not raise
+              rc3 = b2.recall("anything")  # must not raise
+              assert isinstance(rc3, dict)
+              print("BRIDGE-1..7: hindsight bridge PASS (metadata-only, dedup, aggregate, audit, fail-open)")
+          print("ALL SPAWN-PACKAGE PROBES: PASS (S1-S8 spawn/crypto/fail-closed, A1-A8 A2A enforcement, BANK-1..14 hindsight, BRIDGE-1..7)")
           PROBES
