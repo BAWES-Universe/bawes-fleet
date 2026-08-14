@@ -45,6 +45,23 @@ COST_FLOOR = 0.0005          # cheaper than this = suspicious (poisoned free lan
 MAX_RESPONSE_BYTES = 1_000_000
 SECRET_MIN = 16
 
+# SSRF blocklist superset (finding DA-4): Python flags + ranges Python misses
+def _is_blocked_ip(ip) -> bool:
+    if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved \
+       or ip.is_multicast or ip.is_unspecified:
+        return True
+    # manual superset: CGNAT 100.64/10, 6to4 relay 192.88.99/24
+    if ip.version == 4:
+        b = int(ip)
+        return (b >> 24) == 100 or (b >> 16) == 0xC058
+    return False
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    """REFUSE all 3xx (finding DA-1 CRIT): urllib's default handler follows
+    302 cross-host without re-validation — that is the SSRF hole."""
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise urllib.error.HTTPError(req.full_url, code, "redirect refused (SSRF guard)", headers, fp)
+
 def _blocked_target(host: str) -> bool:
     """SSRF guard: reject private/loopback/link-local/metadata/reserved IPs.
     DNS-rebind-safe: resolve ALL addresses; ANY private hit blocks."""
@@ -54,8 +71,7 @@ def _blocked_target(host: str) -> bool:
         return True
     for info in infos:
         ip = ipaddress.ip_address(info[4][0])
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved \
-           or ip.is_multicast or ip.is_unspecified:
+        if _is_blocked_ip(ip):
             return True
     return False
 
@@ -70,8 +86,7 @@ def _validate_endpoint(endpoint: str) -> str:
     # literal IP fast-path (no DNS involved)
     try:
         ip = ipaddress.ip_address(host)
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved \
-           or ip.is_multicast or ip.is_unspecified:
+        if _is_blocked_ip(ip):
             raise ValueError("endpoint targets a blocked address range (private/loopback/metadata)")
     except ValueError:
         if _blocked_target(host):
@@ -134,7 +149,14 @@ class TokenRouter:
         try:
             line = (self.state_dir / "tokens-index.jsonl").read_text().splitlines()
             idx = json.loads(line[0]) if line else {}
-            return idx.get(hashlib.sha256(token.strip().encode()).hexdigest())
+            hit = idx.get(hashlib.sha256(token.strip().encode()).hexdigest())
+            if hit is None:
+                # finding DA-5: stale index — rebuild once (new token files)
+                self._rebuild_token_index()
+                line = (self.state_dir / "tokens-index.jsonl").read_text().splitlines()
+                idx = json.loads(line[0]) if line else {}
+                hit = idx.get(hashlib.sha256(token.strip().encode()).hexdigest())
+            return hit
         except Exception:
             return None
 
@@ -163,14 +185,13 @@ class TokenRouter:
                     if not isinstance(e, dict):
                         raise ValueError("not a dict")
                     if schema == "lanes":
-                        if not isinstance(e.get("lane_id"), str) or not isinstance(e.get("owner"), str):
-                            raise ValueError("bad lane row shape")
-                        if "cost_per_task" in e and not isinstance(e["cost_per_task"], (int, float)):
+                        need = ("lane_id", "owner", "endpoint", "model",
+                                "capacity", "cost_per_task", "quality")
+                        if any(not isinstance(e.get(k), str) for k in
+                               ("lane_id", "owner", "endpoint", "model", "capacity", "quality")):
+                            raise ValueError("bad lane row shape (missing str key)")
+                        if not isinstance(e.get("cost_per_task"), (int, float)):
                             raise ValueError("cost not numeric")
-                        if "model" in e and not isinstance(e["model"], str):
-                            raise ValueError("model not str")
-                        if "quality" in e and not isinstance(e["quality"], str):
-                            raise ValueError("quality not str")
                     elif schema == "ledger":
                         if not isinstance(e.get("consumer"), str) or not isinstance(e.get("lane"), str):
                             raise ValueError("bad ledger row shape")
@@ -365,17 +386,12 @@ class TokenRouter:
         # audit BEFORE the call (finding 10) — a served call must be auditable
         self._log("invoke", {"consumer": consumer, "lane": lane_id,
                              "receipt": route_receipt or "direct"})
-        # THE ONLY BILLING POINT (finding 5)
-        entry = {"ts": int(time.time()), "consumer": consumer, "lane": lane_id,
-                 "owner": pick["owner"], "quality": pick["quality"],
-                 "cost": pick["cost_per_task"], "model": pick["model"],
-                 "route_receipt": route_receipt}
-        self._append_atomic(self.ledger_path, entry)
 
+        opener = urllib.request.build_opener(NoRedirect)   # finding DA-1: refuse 3xx
         try:
             req = urllib.request.Request(pick["endpoint"], data=json.dumps(payload).encode(),
                                          headers=headers, method="POST")
-            with urllib.request.urlopen(req, timeout=15) as resp:
+            with opener.open(req, timeout=15) as resp:
                 body = resp.read(MAX_RESPONSE_BYTES + 1)   # finding 8: cap
             if len(body) > MAX_RESPONSE_BYTES:
                 body = body[:MAX_RESPONSE_BYTES]
@@ -387,8 +403,19 @@ class TokenRouter:
             if secret:
                 text = text.replace(f"Bearer {secret}", "Bearer [REDACTED]")
                 text = text.replace(secret, "[REDACTED]")
+            # BILL ONLY ON 2xx (finding DA-3): a failed call is not a served task
+            entry = {"ts": int(time.time()), "consumer": consumer, "lane": lane_id,
+                     "owner": pick["owner"], "quality": pick["quality"],
+                     "cost": pick["cost_per_task"], "model": pick["model"],
+                     "route_receipt": route_receipt}
+            self._append_atomic(self.ledger_path, entry)
             return {"status": 200, "response": text[:4000]}
         except urllib.error.HTTPError as e:
+            if 300 <= e.code < 400:
+                self._log("invoke", {"consumer": consumer, "lane": lane_id,
+                                     "status": e.code,
+                                     "reason": "redirect refused (SSRF guard)"}, outcome="error")
+                return {"status": 502, "error": f"lane returned redirect {e.code} — refused (SSRF guard)"}
             self._log("invoke", {"consumer": consumer, "lane": lane_id,
                                  "status": e.code, "reason": "upstream error"}, outcome="error")
             return {"status": 502, "error": f"lane returned {e.code}"}

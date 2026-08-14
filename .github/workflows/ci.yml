@@ -369,7 +369,8 @@ jobs:
               rt._rebuild_token_index()
               # SSRF GUARD (finding 1): private/loopback/metadata endpoints rejected at register
               for bad in ["http://127.0.0.1:5999/internal", "http://169.254.169.254/latest/meta-data/",
-                          "http://[::1]:22/", "http://192.168.1.1/x"]:
+                          "http://[::1]:22/", "http://192.168.1.1/x", "http://100.64.0.1/x",
+                          "http://192.88.99.1/x"]:
                   try:
                       rt.register("brick-a", "evil-" + str(abs(hash(bad)) % 1000), bad,
                                   "m", "1gb", 0.01, "routine", "", "")
@@ -418,7 +419,16 @@ jobs:
               inv = rt.invoke("brick-b", "deepseek-api", {"q": "hi"}, "receipt-1")
               assert inv["status"] in (200, 502, 503)  # upstream may be unreachable from CI
               led = rt.ledger("brick-b")["entries"]
-              assert len(led) == 1, led  # exactly ONE entry for one invoke
+              # bill-ONLY-ON-2xx (finding DA-3): failed invoke (502/503) is NOT billed
+              if inv["status"] == 200:
+                  assert len(led) == 1, led
+              else:
+                  assert len(led) == 0, led  # failed call = not a served task
+              # token index rebuild-on-miss (finding DA-5): new token resolves without restart
+              (tokd / "brick-c.token").write_text("tok-c-1234567890123456"); os.chmod(tokd / "brick-c.token", 0o600)
+              assert rt._token_to_brick("tok-c-1234567890123456") == "brick-c"
+              assert rt._token_to_brick("tok-b-1234567890123456") == "brick-b"
+              assert rt._token_to_brick("wrong-token") is None
               # OWNER-ONLY: brick-b cannot register/update brick-a's lane (public IP to reach owner check)
               try:
                   rt.register("brick-b", "deepseek-api", "https://1.1.1.1/v1", "x", "1gb", 0.001, "routine", "", "")
@@ -433,7 +443,7 @@ jobs:
               res4 = rt.route("brick-b", "routine")
               assert res4["status"] == 503
               st2 = rt.status()
-              assert st2["lanes"] == 0 and st2["ledger_entries"] == 1  # 1 billed invoke only
+              assert st2["lanes"] == 0 and st2["ledger_entries"] in (0, 1)  # billed only if 2xx
               # audit: register/deregister/route/invoke/status logged
               audit = rt.audit_path.read_text().splitlines()
               ops = [json.loads(l)["op"] for l in audit]
