@@ -70,9 +70,11 @@ class CapabilityRegister:
         except OSError:
             pass  # fail-open audit (fleet doctrine), but audit-BEFORE-mutation everywhere
 
-    def _read(self, path: pathlib.Path) -> tuple[list[dict], int]:
+    def _read(self, path: pathlib.Path, require_topic: bool = False) -> tuple[list[dict], int]:
         """Schema-validated read: every row must be a dict with topic_hash.
-        Corrupt rows are counted and surfaced — never crash callers."""
+        Corrupt rows are counted and surfaced — never crash callers.
+        require_topic=True (claims): rows missing 'topic' count as corrupt so a
+        ghost row can't permanently pin a topic hash (DA hardening note)."""
         if not path.exists():
             return [], 0
         out, corrupt = [], 0
@@ -82,6 +84,8 @@ class CapabilityRegister:
                     e = json.loads(line)
                     if not isinstance(e, dict) or "topic_hash" not in e:
                         raise ValueError("missing topic_hash")
+                    if require_topic and not isinstance(e.get("topic"), str):
+                        raise ValueError("missing topic")
                     out.append(e)
                 except Exception:
                     corrupt += 1
@@ -124,7 +128,7 @@ class CapabilityRegister:
         th = topic_hash(topic)
         lf = self._lock()                    # single critical section: check+append
         try:
-            claims, corrupt = self._read(self.claims_path)
+            claims, corrupt = self._read(self.claims_path, require_topic=True)
             if any(c["topic_hash"] == th for c in claims):
                 self._log("claim", {"topic_hash": th, "reason": "duplicate"}, outcome="rejected")
                 raise ValueError(f"duplicate topic (hash {th}) — one capability per topic ever (D-2)")
@@ -220,7 +224,7 @@ class CapabilityRegister:
         th = topic_hash(topic)
         lf = self._lock()
         try:
-            claims, _ = self._read(self.claims_path)
+            claims, _ = self._read(self.claims_path, require_topic=True)
             idx = next((i for i, c in enumerate(claims) if c["topic_hash"] == th), None)
             if idx is None:
                 self._log("verify", {"topic_hash": th, "reason": "no claim"}, outcome="rejected")
@@ -283,7 +287,7 @@ class CapabilityRegister:
 
     def list(self, status: str = "") -> list[dict]:
         """The visible capability map: topic, status, receipts, measurement."""
-        claims, _ = self._read(self.claims_path)
+        claims, _ = self._read(self.claims_path, require_topic=True)
         out = []
         for c in claims:
             if not isinstance(c.get("topic"), str):
