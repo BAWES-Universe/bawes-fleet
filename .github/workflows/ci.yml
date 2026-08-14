@@ -71,7 +71,7 @@ jobs:
               else: assert out.returncode!=0, f"expected rejection: {out.stdout[-200:]}"
           with tempfile.TemporaryDirectory() as td:
               run_spawn(sign(base_manifest()), td); bid="ci-test-001"
-              for a in ["identity.json","manifest.json","death-warrant.json","model-chain.json","a2a-policy.json","heartbeat.py","headless_worker.py","keys/brick.pub"]:
+              for a in ["identity.json","manifest.json","death-warrant.json","model-chain.json","a2a-policy.json","heartbeat.py","headless_worker.py","keys/brick.pub","bank/entries.jsonl","bank/audit.jsonl","hindsight_bank.py"]:
                   assert (pathlib.Path(td)/bid/a).exists(), f"missing {a}"
               assert "registry" in (pathlib.Path(td)/bid/"heartbeat.py").read_text()
               m2=sign(base_manifest()); m2["owner"]="EVIL"; run_spawn(m2,td,expect_ok=False)
@@ -106,5 +106,98 @@ jobs:
               bad=tokd/"peer-bad"; bad.write_text("token-12345678901234567890"); os.chmod(bad,0o644)
               try: a2a_server.load_peers(tokd); raise SystemExit("644 accepted")
               except SystemExit as e: assert "600" in str(e)
-          print("ALL SPAWN-PACKAGE PROBES: PASS (S1-S8 spawn/crypto/fail-closed, A1-A8 A2A enforcement)")
+          # ---- hindsight bank probes (round-63: retain/recall/reflect, dedup, receipt gate, audit) ----
+          import hindsight_bank as hb
+          with tempfile.TemporaryDirectory() as td:
+              bk = hb.HindsightBank(pathlib.Path(td) / "bank", "ci-test-001")
+              # retain requires receipts (D-2: evidence-first)
+              try:
+                  bk.retain("topic", "learning", [])
+                  raise SystemExit("BANK-1 FAIL: retain without receipts accepted")
+              except hb.BankRejection as e:
+                  assert "receipt" in str(e)
+              # whitespace-only receipts rejected
+              try:
+                  bk.retain("topic2", "learning", ["   "])
+                  raise SystemExit("BANK-1b FAIL: whitespace receipt accepted")
+              except hb.BankRejection as e:
+                  assert "receipt" in str(e)
+              # fake receipt shape rejected (D-2 realness, not presence)
+              try:
+                  bk.retain("topic3", "learning", ["abc def"])
+                  raise SystemExit("BANK-1c FAIL: fake receipt accepted")
+              except hb.BankRejection as e:
+                  assert "shape" in str(e)
+              # happy retain — status ALWAYS claimed (self-verify impossible, D-3)
+              r1 = bk.retain("docker lowercase", "repo names must be lowercase", ["T-UNIVERSE-008"])
+              assert r1["status"] == "claimed"
+              # duplicate topic rejected (topic-hash dedup, D-2)
+              try:
+                  bk.retain("DOCKER LOWERCASE", "dup", ["T-UNIVERSE-009"])
+                  raise SystemExit("BANK-2 FAIL: duplicate topic accepted")
+              except hb.BankRejection as e:
+                  assert "duplicate" in str(e)
+              # NFKC/whitespace-normalized dedup
+              try:
+                  bk.retain("docker  lowercase", "dup2", ["T-UNIVERSE-010"])
+                  raise SystemExit("BANK-2b FAIL: ws-variant accepted")
+              except hb.BankRejection as e:
+                  assert "duplicate" in str(e)
+              # recall finds own entry
+              rc = bk.recall("docker")
+              assert rc["hits"] and rc["hits"][0]["topic_hash"] == r1["retained"]
+              # reflect synthesizes
+              rf = bk.reflect("docker lowercase")
+              assert rf["entries"] == 1 and "claimed" in rf["summary"]
+              # claimed status only (no self-verify)
+              st = bk.status()
+              assert st["entries"] == 1 and st["claimed"] == 1 and st["verified"] == 0 and st["corrupt_rows"] == 0
+              # audit logged retain + recall + reflect (+ rejections + status)
+              audit = bk.audit_path.read_text().splitlines()
+              ops = [json.loads(l)["op"] for l in audit]
+              assert "retain" in ops and "recall" in ops and "reflect" in ops and "status" in ops
+              # rejected ops logged with outcome=rejected
+              rejected = [json.loads(l) for l in audit if json.loads(l).get("outcome") == "rejected"]
+              assert len(rejected) >= 1
+              # D-5 privacy: bank files mode 0600
+              assert (pathlib.Path(td)/"bank"/"entries.jsonl").stat().st_mode & 0o777 == 0o600
+              assert (pathlib.Path(td)/"bank"/"audit.jsonl").stat().st_mode & 0o777 == 0o600
+              # corrupt row counted, not hidden (fail-open closed)
+              with open(bk.entries_path, "a") as f:
+                  f.write("{not-json}\n")
+              rc2 = bk.recall("docker")
+              assert rc2["corrupt_rows"] == 1
+              st2 = bk.status()
+              assert st2["corrupt_rows"] == 1
+              # concurrency: flock prevents TOCTOU dupes (10 same-topic retains -> exactly 1)
+              import threading
+              errs = []
+              def try_retain():
+                  try:
+                      bk.retain("concurrent topic", "learn", ["T-UNIVERSE-011"])
+                  except hb.BankRejection as e:
+                      errs.append(str(e))
+              threads = [threading.Thread(target=try_retain) for _ in range(10)]
+              for t in threads: t.start()
+              for t in threads: t.join()
+              assert len(errs) == 9, f"expected 9 rejections, got {len(errs)}"
+              st3 = bk.status()
+              assert st3["entries"] == 2 and st3["corrupt_rows"] == 1  # 1 happy + 1 concurrent, +corrupt
+              # BANK-13: corrupt-only topic — re-retain allowed (surfaced via corrupt_rows, not silent).
+              # The row is GENUINELY unreadable (invalid JSON) so the topic is gone from the dedup set.
+              with open(bk.entries_path, "a") as f:
+                  f.write('{"brick": "x", "ts": 0, "topic": "gone topic", "learning": "x", "receipt_ids": ["T-UNIVERSE-012"], "status": "claimed" NOT_JSON\n')
+              # corrupt the second row: valid JSON but missing topic_hash -> counted corrupt
+              with open(bk.entries_path, "a") as f:
+                  f.write(json.dumps({"brick": "x", "ts": 0, "learning": "no hash"}) + "\n")
+              st4 = bk.status()
+              assert st4["corrupt_rows"] == 3, st4  # {not-json} + NOT_JSON + missing-topic_hash row
+              # re-retain on "gone topic" is allowed (its only row is unreadable; dedup intact elsewhere)
+              r_dead = bk.retain("gone topic", "relearned", ["T-UNIVERSE-013"])
+              assert r_dead["status"] == "claimed"
+              st5 = bk.status()
+              assert st5["entries"] == 3 and st5["corrupt_rows"] == 3, st5
+              print("BANK-13/14: corrupt-edge PASS (missing-hash counted, corrupt-only re-retain allowed+surfaced)")
+              print("BANK-1..14: hindsight bank PASS (receipt gate+realness, dedup+NFKC, no-self-verify, audit, 0600, corrupt-count, flock)")
+          print("ALL SPAWN-PACKAGE PROBES: PASS (S1-S8 spawn/crypto/fail-closed, A1-A8 A2A enforcement, BANK-1..14 hindsight)")
           PROBES
