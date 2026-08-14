@@ -184,8 +184,9 @@ jobs:
               st3 = bk.status()
               assert st3["entries"] == 2 and st3["corrupt_rows"] == 1  # 1 happy + 1 concurrent, +corrupt
               # BANK-13: corrupt-only topic — re-retain allowed (surfaced via corrupt_rows, not silent)
+              dead_hash = hb.HindsightBank.topic_hash("gone topic")
               with open(bk.entries_path, "a") as f:
-                  f.write(json.dumps({"brick": "x", "ts": 0, "topic_hash": "deadbeefdeadbeef",
+                  f.write(json.dumps({"brick": "x", "ts": 0, "topic_hash": dead_hash,
                                       "topic": "gone", "learning": "x", "receipt_ids": ["T-UNIVERSE-012"],
                                       "status": "claimed"}) + "\n")
               # corrupt the only row of a topic: valid JSON but missing topic_hash -> counted corrupt
@@ -193,9 +194,9 @@ jobs:
                   f.write(json.dumps({"brick": "x", "ts": 0, "learning": "no hash"}) + "\n")
               st4 = bk.status()
               assert st4["corrupt_rows"] == 2, st4  # {not-json} + missing-topic_hash row
-              # re-retain on the deadbeef topic is allowed (its only row is corrupt; dedup intact elsewhere)
+              # re-retain on the gone topic is allowed (its only row is corrupt; dedup intact elsewhere)
               r_dead = bk.retain("gone topic", "relearned", ["T-UNIVERSE-013"])
-              assert r_dead["retained"] == "deadbeefdeadbeef"
+              assert r_dead["retained"] == dead_hash
               print("BANK-13/14: corrupt-edge PASS (missing-hash counted, corrupt-only re-retain allowed+surfaced)")
               print("BANK-1..14: hindsight bank PASS (receipt gate+realness, dedup+NFKC, no-self-verify, audit, 0600, corrupt-count, flock)")
           print("ALL SPAWN-PACKAGE PROBES: PASS (S1-S8 spawn/crypto/fail-closed, A1-A8 A2A enforcement, BANK-1..14 hindsight)")
