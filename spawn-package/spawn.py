@@ -130,6 +130,19 @@ while True:
     (root / "heartbeat.py").write_text(script)
     (root / "heartbeat.py").chmod(0o750)
 
+def write_hindsight_bank(root: pathlib.Path, m: dict):
+    """SHIPPED per-brick hindsight bank (round-63 D-1): bank dir + module copy.
+    Bank content is private to its brick by default; existence is public
+    (registry-visible), content owner-gated (D-5)."""
+    bank_dir = root / "bank"
+    bank_dir.mkdir(parents=True, exist_ok=True)
+    for f in ("entries.jsonl", "audit.jsonl"):
+        (bank_dir / f).touch()
+    src = pathlib.Path(__file__).resolve().parent / "hindsight_bank.py"
+    if src.exists():
+        shutil.copy2(src, root / "hindsight_bank.py")
+        (root / "hindsight_bank.py").chmod(0o750)
+
 def write_on_device_keys(root: pathlib.Path, m: dict):
     """Real on-device keypair (DA M6): identity.pub embedded in identity.json."""
     keys_dir = root / "keys"
@@ -189,6 +202,7 @@ def main():
     write_model_chain(root, m)
     write_a2a(root, m)
     write_heartbeat(root, m, pathlib.Path(args.registry))
+    write_hindsight_bank(root, m)
     install_worker(root, pathlib.Path(args.worker_src))
 
     identity = {

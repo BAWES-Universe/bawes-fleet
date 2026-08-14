@@ -71,7 +71,7 @@ jobs:
               else: assert out.returncode!=0, f"expected rejection: {out.stdout[-200:]}"
           with tempfile.TemporaryDirectory() as td:
               run_spawn(sign(base_manifest()), td); bid="ci-test-001"
-              for a in ["identity.json","manifest.json","death-warrant.json","model-chain.json","a2a-policy.json","heartbeat.py","headless_worker.py","keys/brick.pub"]:
+              for a in ["identity.json","manifest.json","death-warrant.json","model-chain.json","a2a-policy.json","heartbeat.py","headless_worker.py","keys/brick.pub","bank/entries.jsonl","bank/audit.jsonl","hindsight_bank.py"]:
                   assert (pathlib.Path(td)/bid/a).exists(), f"missing {a}"
               assert "registry" in (pathlib.Path(td)/bid/"heartbeat.py").read_text()
               m2=sign(base_manifest()); m2["owner"]="EVIL"; run_spawn(m2,td,expect_ok=False)
@@ -106,5 +106,38 @@ jobs:
               bad=tokd/"peer-bad"; bad.write_text("token-12345678901234567890"); os.chmod(bad,0o644)
               try: a2a_server.load_peers(tokd); raise SystemExit("644 accepted")
               except SystemExit as e: assert "600" in str(e)
-          print("ALL SPAWN-PACKAGE PROBES: PASS (S1-S8 spawn/crypto/fail-closed, A1-A8 A2A enforcement)")
+          # ---- hindsight bank probes (round-63: retain/recall/reflect, dedup, receipt gate, audit) ----
+          import hindsight_bank as hb
+          with tempfile.TemporaryDirectory() as td:
+              bk = hb.HindsightBank(pathlib.Path(td) / "bank", "ci-test-001")
+              # retain requires receipts (D-2: evidence-first)
+              try:
+                  bk.retain("topic", "learning", [])
+                  raise SystemExit("BANK-1 FAIL: retain without receipts accepted")
+              except SystemExit as e:
+                  assert "receipt" in str(e)
+              # happy retain
+              r1 = bk.retain("docker lowercase", "repo names must be lowercase", ["T-UNIVERSE-008"])
+              assert r1["status"] == "claimed"
+              # duplicate topic rejected (topic-hash dedup, D-2)
+              try:
+                  bk.retain("DOCKER LOWERCASE", "dup", ["T-X"])
+                  raise SystemExit("BANK-2 FAIL: duplicate topic accepted")
+              except SystemExit as e:
+                  assert "duplicate" in str(e)
+              # recall finds own entry
+              rc = bk.recall("docker")
+              assert rc["hits"] and rc["hits"][0]["topic_hash"] == r1["retained"]
+              # reflect synthesizes
+              rf = bk.reflect("docker lowercase")
+              assert rf["entries"] == 1 and "claimed" in rf["summary"]
+              # audit logged retain + recall + reflect
+              audit = bk.audit_path.read_text().splitlines()
+              ops = [json.loads(l)["op"] for l in audit]
+              assert "retain" in ops and "recall" in ops and "reflect" in ops
+              # upgrade to verified via status()
+              st = bk.status()
+              assert st["entries"] == 1 and st["claimed"] == 1 and st["verified"] == 0
+              print("BANK-1..6: hindsight bank PASS (receipt gate, dedup, recall, reflect, audit, claimed status)")
+          print("ALL SPAWN-PACKAGE PROBES: PASS (S1-S8 spawn/crypto/fail-closed, A1-A8 A2A enforcement, BANK-1..6 hindsight)")
           PROBES
