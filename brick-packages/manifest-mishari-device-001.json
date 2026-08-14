@@ -1,0 +1,57 @@
+{
+  "manifest_version": 1,
+  "brick_id": "mishari-device-001",
+  "person_id": "231861",
+  "owner": "mishari",
+  "hardware_owner": "mishari",
+  "kill_switch": "mishari",
+  "identity_card": {
+    "name": "Mishari's Brick",
+    "role": "citizen",
+    "voice": "fixed"
+  },
+  "skills": [],
+  "seeded_knowledge": [],
+  "backlog": [
+    "T-001",
+    "T-002"
+  ],
+  "wallet_ref": "banana-bank/wallet-mishari-device-001.jsonl",
+  "resource_links": [
+    {
+      "name": "queue",
+      "url": "git@github.com:BAWES-Universe/orbit-browser.git",
+      "branch": "queue",
+      "readonly": true
+    },
+    {
+      "name": "observatory",
+      "url": "https://control-plane/observatory",
+      "readonly": true
+    }
+  ],
+  "host_class": {
+    "device": "laptop",
+    "ram_gb_min": 8,
+    "vram_gb_min": 0,
+    "model": "local-tiny"
+  },
+  "model_chain": [
+    "local",
+    "deepseek-v4-flash"
+  ],
+  "weights_cache": "volume-persisted",
+  "scheduling": "idle-only, owner-preemptible",
+  "death_warrant": {
+    "lifetime_max_s": 0,
+    "spend_max_usd": 0,
+    "idle_max_s": 300,
+    "seeder_mode": false
+  },
+  "public_key": "GENERATED-ON-DEVICE",
+  "signature": {
+    "alg": "ES256",
+    "issuer": "khalid",
+    "value": "MEYCIQDqskluILVLjjGW7bl-F8-gAqpyiO0pom06FcmG2FjNlQIhAM43PUn1-EcSNTLVdz6HzITAUUqV4qPn05_pgGia_Lgv"
+  }
+}
