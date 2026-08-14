@@ -26,4 +26,85 @@ jobs:
           fi
           echo "secret scan clean"
       - name: Spawn package — syntax + real-crypto signature + A2A enforcement
-        run: echo "spawn-package checks run in .github/workflows/spawn-package.yml"
+        run: |
+          pip install -q cryptography
+          python3 -m py_compile spawn-package/spawn.py spawn-package/a2a_server.py
+          # full probe suite: S1-S8 (spawn/crypto/fail-closed) + A1-A8 (A2A enforcement)
+          # extracted verbatim from spawn-package/ci-spawn-package.yml (single source of truth)
+          python3 - <<'PROBES'
+          import json, base64, subprocess, tempfile, pathlib, os, re, sys, time, socket, threading
+          import urllib.request, urllib.error
+          from cryptography.hazmat.primitives import hashes, serialization
+          from cryptography.hazmat.primitives.asymmetric import ec
+          from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
+          key = ec.generate_private_key(ec.SECP256R1())
+          pub_pem = key.public_key().public_bytes(serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo).decode()
+          def sign(m):
+              body = {k: v for k, v in m.items() if k != "signature"}
+              pb = json.dumps(body, sort_keys=True, separators=(",", ":")).encode()
+              p64 = base64.urlsafe_b64encode(pb).rstrip(b"=").decode()
+              hdr = base64.urlsafe_b64encode(json.dumps({"alg": "ES256", "typ": "JWT"}, sort_keys=True).encode()).rstrip(b"=").decode()
+              sig = key.sign(f"{hdr}.{p64}".encode(), ec.ECDSA(hashes.SHA256()))
+              r, s = decode_dss_signature(sig)
+              jws = base64.urlsafe_b64encode(r.to_bytes(32, "big") + s.to_bytes(32, "big")).rstrip(b"=").decode()
+              m["signature"] = {"issuer": "ci-test", "value": f"{hdr}.{p64}.{jws}"}
+              return m
+          def base_manifest(bid="ci-test-001"):
+              return {"manifest_version": 1, "brick_id": bid, "person_id": "999999", "owner": "ci",
+                      "hardware_owner": "ci", "kill_switch": "khalid",
+                      "identity_card": {"name": "CI Test", "role": "citizen", "voice": "fixed"},
+                      "skills": [], "seeded_knowledge": [], "backlog": ["T-CI"],
+                      "wallet_ref": "banana-bank/wallet-ci-test.jsonl", "resource_links": [],
+                      "toolsets": ["web", "vision", "session_search"], "model_chain": ["lm-studio"],
+                      "min_hermes_version": "0.20", "rules": []}
+          src = pathlib.Path("spawn-package/spawn.py").read_text()
+          repl = f'ISSUER_KEYS = {{"ci-test": {json.dumps(pub_pem.strip())}}}'
+          pathlib.Path("spawn-package/spawn_test.py").write_text(re.sub(r'ISSUER_KEYS = \{[^}]*\}', lambda _m: repl, src, flags=re.S))
+          sys.path.insert(0, "spawn-package")
+          wsrc = "spawn-package/worker_stub.py"
+          def run_spawn(m, td, expect_ok=True, version="0.20.1"):
+              mp = pathlib.Path(td)/"m.json"; mp.write_text(json.dumps(m, indent=1))
+              stub = pathlib.Path(td)/"hermes"; stub.write_text(f"#!/bin/sh\necho 'Hermes Agent v{version} (2026.8.13)'\n"); stub.chmod(0o755)
+              env = dict(os.environ, PATH=f"{td}:{os.environ['PATH']}")
+              out = subprocess.run(["python3","spawn-package/spawn_test.py",str(mp),"--root",td,"--worker-src",wsrc], capture_output=True, text=True, env=env)
+              if expect_ok: assert out.returncode==0 and "BRICK PACKAGED" in out.stdout, out.stderr[-400:]
+              else: assert out.returncode!=0, f"expected rejection: {out.stdout[-200:]}"
+          with tempfile.TemporaryDirectory() as td:
+              run_spawn(sign(base_manifest()), td); bid="ci-test-001"
+              for a in ["identity.json","manifest.json","death-warrant.json","model-chain.json","a2a-policy.json","heartbeat.py","headless_worker.py","keys/brick.pub"]:
+                  assert (pathlib.Path(td)/bid/a).exists(), f"missing {a}"
+              assert "registry" in (pathlib.Path(td)/bid/"heartbeat.py").read_text()
+              m2=sign(base_manifest()); m2["owner"]="EVIL"; run_spawn(m2,td,expect_ok=False)
+              m3=base_manifest(); m3["signature"]={"issuer":"ci-test","value":"eyJhbGciOiJub25lIn0.e30."}; run_spawn(m3,td,expect_ok=False)
+              run_spawn(sign(base_manifest()),td,expect_ok=False,version="0.19.20")
+              run_spawn(sign(base_manifest("dup-001")),td)
+              m6=sign(base_manifest("dup-001")); m6["owner"]="EVIL-OWNER"; run_spawn(m6,td,expect_ok=False)
+              m7=sign(base_manifest()); m7["toolsets"]=["terminal"]; run_spawn(m7,td,expect_ok=False)
+              m8=sign(base_manifest()); del m8["kill_switch"]; run_spawn(m8,td,expect_ok=False)
+          import a2a_server
+          with tempfile.TemporaryDirectory() as td:
+              root=pathlib.Path(td); bid="ci-test-001"; (root/bid).mkdir(parents=True)
+              (root/bid/"identity.json").write_text(json.dumps({"brick_id":bid,"skills":["python"]}))
+              (root/bid/"a2a-policy.json").write_text(json.dumps({"brick_id":bid,"allow":["web","vision","session_search"],"reject":["terminal","code_execution","memory","file","skill_manage"],"enforce_read_only":True,"bind":"outbound-only"}))
+              tokd=root/bid/"tokens"; tokd.mkdir(); tok="scoped-test-token-1234567890"; tf=tokd/"peer-a"; tf.write_text(tok); os.chmod(tf,0o600)
+              reg=root/"registry.jsonl"; reg.write_text(json.dumps({"brick_id":"peer-a","status":"alive","ts":time.time()})+"\n")
+              s=socket.socket(); s.bind(("127.0.0.1",0)); port=s.getsockname()[1]; s.close()
+              srv=a2a_server.A2AServer(("127.0.0.1",port),a2a_server.A2AHandler,{"brick_id":bid,"skills":["python"],"peers":{"peer-a":{"token":tok,"scope":["web"]}},"registry_peers":a2a_server.read_registry_peers(reg),"start":time.time()})
+              threading.Thread(target=srv.serve_forever,daemon=True).start(); time.sleep(0.5)
+              def get(path,token=None):
+                  hdrs={"Authorization":f"Bearer {token}"} if token else {}
+                  try: return urllib.request.urlopen(urllib.request.Request(f"http://127.0.0.1:{port}{path}",headers=hdrs),timeout=5).getcode()
+                  except urllib.error.HTTPError as e: return e.code
+              assert get("/identity")==401 and get("/identity","short")==401
+              assert get("/a2a/handshake",tok)==200 and get("/a2a/peers",tok)==200
+              assert get("/a2a/peers","wrong-token-1234567890")==401
+              try:
+                  urllib.request.urlopen(urllib.request.Request(f"http://127.0.0.1:{port}/job",data=b"{}",headers={"Authorization":f"Bearer {tok}"}),timeout=5)
+                  raise SystemExit("POST allowed")
+              except urllib.error.HTTPError as e: assert e.code==501, e.code
+              srv.shutdown()
+              bad=tokd/"peer-bad"; bad.write_text("token-12345678901234567890"); os.chmod(bad,0o644)
+              try: a2a_server.load_peers(tokd); raise SystemExit("644 accepted")
+              except SystemExit as e: assert "600" in str(e)
+          print("ALL SPAWN-PACKAGE PROBES: PASS (S1-S8 spawn/crypto/fail-closed, A1-A8 A2A enforcement)")
+          PROBES
