@@ -1,0 +1,47 @@
+{
+ "manifest_version": 1,
+ "brick_id": "ovh-server-001",
+ "person_id": "000001",
+ "owner": "bawes",
+ "hardware_owner": "khalid",
+ "kill_switch": "khalid",
+ "identity_card": {
+  "name": "OVH Server Brick",
+  "role": "citizen",
+  "voice": "fixed"
+ },
+ "skills": [],
+ "seeded_knowledge": [],
+ "backlog": [
+  "T-UNIVERSE-007"
+ ],
+ "wallet_ref": "banana-bank/wallet-ovh-server-001.jsonl",
+ "resource_links": [
+  {
+   "name": "queue",
+   "url": "git@github.com:BAWES-Universe/orbit-browser.git",
+   "branch": "queue",
+   "readonly": true
+  }
+ ],
+ "toolsets": [
+  "web",
+  "vision",
+  "session_search"
+ ],
+ "model_chain": [
+  "lm-studio",
+  "deepseek-api"
+ ],
+ "min_hermes_version": "0.20",
+ "rules": [
+  "read-only A2A",
+  "heartbeat 5min",
+  "kill switch: khalid",
+  "no spend without approval"
+ ],
+ "signature": {
+  "issuer": "khalid",
+  "value": "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogIkpXVCJ9.eyJiYWNrbG9nIjpbIlQtVU5JVkVSU0UtMDA3Il0sImJyaWNrX2lkIjoib3ZoLXNlcnZlci0wMDEiLCJoYXJkd2FyZV9vd25lciI6ImtoYWxpZCIsImlkZW50aXR5X2NhcmQiOnsibmFtZSI6Ik9WSCBTZXJ2ZXIgQnJpY2siLCJyb2xlIjoiY2l0aXplbiIsInZvaWNlIjoiZml4ZWQifSwia2lsbF9zd2l0Y2giOiJraGFsaWQiLCJtYW5pZmVzdF92ZXJzaW9uIjoxLCJtaW5faGVybWVzX3ZlcnNpb24iOiIwLjIwIiwibW9kZWxfY2hhaW4iOlsibG0tc3R1ZGlvIiwiZGVlcHNlZWstYXBpIl0sIm93bmVyIjoiYmF3ZXMiLCJwZXJzb25faWQiOiIwMDAwMDEiLCJyZXNvdXJjZV9saW5rcyI6W3siYnJhbmNoIjoicXVldWUiLCJuYW1lIjoicXVldWUiLCJyZWFkb25seSI6dHJ1ZSwidXJsIjoiZ2l0QGdpdGh1Yi5jb206QkFXRVMtVW5pdmVyc2Uvb3JiaXQtYnJvd3Nlci5naXQifV0sInJ1bGVzIjpbInJlYWQtb25seSBBMkEiLCJoZWFydGJlYXQgNW1pbiIsImtpbGwgc3dpdGNoOiBraGFsaWQiLCJubyBzcGVuZCB3aXRob3V0IGFwcHJvdmFsIl0sInNlZWRlZF9rbm93bGVkZ2UiOltdLCJza2lsbHMiOltdLCJ0b29sc2V0cyI6WyJ3ZWIiLCJ2aXNpb24iLCJzZXNzaW9uX3NlYXJjaCJdLCJ3YWxsZXRfcmVmIjoiYmFuYW5hLWJhbmsvd2FsbGV0LW92aC1zZXJ2ZXItMDAxLmpzb25sIn0.aMrqv7FQHht5lAv90K0AFtVAv40gAi_pgRbFU9eSg5PG_vBmhzh1pnq_oZd54ybnhSLC3GrNRmMKWu7fhLxC2Q"
+ }
+}

@@ -3,20 +3,23 @@
 
 CORE of the spawn package, not a bolt-on:
   - peer discovery: /a2a/peers lists registry bricks + skills
-  - scoped-token auth: per-peer bearer tokens (mode-600), read-only toolsets
-    from a2a-policy.json are ENFORCED at request time (not advertised)
-  - outbound-only bind on untrusted hosts: never inbound holes, never raw keys
-  - gateway consumption: the broker/gateway calls /a2a/* with a scoped token
+  - scoped-token auth: per-peer bearer tokens (mode-600), min 16 chars,
+    compared with hmac.compare_digest; read-only toolsets from a2a-policy.json
+    are ENFORCED at request time (not advertised)
+  - outbound-only: binds 127.0.0.1 by default (never an inbound hole);
+    a broker/gateway dials OUT to the brick, not in
+  - fail-closed: missing policy / missing tokens / wrong identity -> REJECTED
 
 Acceptance (round-61 §4.5): heartbeat in registry + A2A handshake with a peer
 succeeds + read-only toolsets verified enforced.
 """
 from __future__ import annotations
-import argparse, hashlib, hmac, json, os, pathlib, secrets, time
+import argparse, hmac, json, os, pathlib, stat, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-ALLOWED_TOOLS = {"web", "vision", "session_search"}  # read-only surface
+ALLOWED_TOOLS = {"web", "vision", "session_search"}
 REJECTED_TOOLS = {"terminal", "code_execution", "memory", "file", "skill_manage"}
+MIN_TOKEN_LEN = 16
 
 class A2AServer(ThreadingHTTPServer):
     daemon_threads = True
@@ -26,7 +29,7 @@ class A2AServer(ThreadingHTTPServer):
 
 class A2AHandler(BaseHTTPRequestHandler):
     def log_message(self, *args):
-        pass  # quiet
+        pass
 
     def _json(self, code, obj):
         body = json.dumps(obj).encode()
@@ -36,35 +39,32 @@ class A2AHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _authed(self, path: str) -> dict | None:
-        """Enforce per-peer scoped token (mode-600 file). Read-only only."""
+    def _authed(self) -> dict | None:
         tok = self.headers.get("Authorization", "")
         tok = tok.removeprefix("Bearer ").strip()
-        peers = self.server.ctx["peers"]  # {brick_id: {"token": ..., "scope": [...]}}
-        for bid, p in peers.items():
+        if len(tok) < MIN_TOKEN_LEN:
+            self._json(401, {"error": "unauthorized"})
+            return None
+        for bid, p in self.server.ctx["peers"].items():
             if hmac.compare_digest(tok, p["token"]):
-                # enforce read-only scope at request time
-                if path.startswith("/a2a/") or path in ("/identity", "/skills", "/health"):
-                    return {"peer": bid, "scope": p["scope"]}
-                self._json(403, {"error": "read-only: operation not allowed for scoped peer"})
-                return None
+                return {"peer": bid, "scope": p["scope"]}
         self._json(401, {"error": "unauthorized"})
         return None
 
     def do_GET(self):
         ctx = self.server.ctx
         if self.path == "/health":
-            self._json(200, {"status": "ok", "brick": ctx["brick_id"], "uptime_s": round(time.time() - ctx["start"], 1)})
+            self._json(200, {"status": "ok", "brick": ctx["brick_id"],
+                             "uptime_s": round(time.time() - ctx["start"], 1)})
             return
-        who = self._authed(self.path)
+        who = self._authed()
         if who is None:
             return
         if self.path == "/identity":
             self._json(200, {"brick_id": ctx["brick_id"], "skills": ctx["skills"]})
         elif self.path == "/a2a/peers":
-            self._json(200, {"peers": ctx["registry_peers"]})  # from heartbeat registry
+            self._json(200, {"peers": ctx["registry_peers"]})
         elif self.path == "/a2a/handshake":
-            # acceptance: A2A handshake with a peer succeeds
             self._json(200, {"ok": True, "peer": who["peer"], "brick": ctx["brick_id"],
                              "enforced_read_only": sorted(REJECTED_TOOLS)})
         elif self.path == "/skills":
@@ -72,19 +72,29 @@ class A2AHandler(BaseHTTPRequestHandler):
         else:
             self._json(404, {"error": "not found"})
 
+    def do_POST(self):
+        # no write surface exists on a read-only brick — 501, always
+        self._json(501, {"error": "read-only brick: no write operations"})
+
 def load_peers(token_dir: pathlib.Path) -> dict:
-    """Per-peer scoped tokens, mode-600 files: {brick_id: {token, scope}}."""
+    """Per-peer scoped tokens: files in tokens/ dir, mode must be 600/400,
+    content min 16 chars. Any violation -> that peer is rejected."""
     peers = {}
-    if token_dir.exists():
-        for f in token_dir.iterdir():
-            if f.suffix == ".token":
-                tok = f.read_text().strip()
-                scope = ["web", "vision", "session_search"]  # read-only by construction
-                peers[f.stem] = {"token": tok, "scope": scope}
+    if not token_dir.exists():
+        return peers
+    for f in token_dir.iterdir():
+        if not f.is_file():
+            continue
+        mode = stat.S_IMODE(f.stat().st_mode)
+        if mode & 0o077:
+            raise SystemExit(f"REJECTED: token file {f.name} is {mode:o} — must be 600 (mode-600 rule)")
+        tok = f.read_text().strip()
+        if len(tok) < MIN_TOKEN_LEN:
+            raise SystemExit(f"REJECTED: token file {f.name} too short (<{MIN_TOKEN_LEN} chars)")
+        peers[f.name] = {"token": tok, "scope": ["web", "vision", "session_search"]}
     return peers
 
 def read_registry_peers(registry_path: pathlib.Path) -> list:
-    """Last-known bricks from the heartbeat registry (discovery source)."""
     out, seen = [], set()
     if registry_path.exists():
         for line in registry_path.read_text().splitlines():
@@ -101,9 +111,11 @@ def read_registry_peers(registry_path: pathlib.Path) -> list:
 
 def main():
     ap = argparse.ArgumentParser(description="A2A mesh participation (round-61)")
-    ap.add_argument("--brick-root", default="/srv/bricks", help="brick root parent")
-    ap.add_argument("--brick-id", default="", help="brick_id (default: from identity.json)")
+    ap.add_argument("--brick-root", default="/srv/bricks")
+    ap.add_argument("--brick-id", default="")
     ap.add_argument("--port", type=int, default=3738)
+    ap.add_argument("--bind", default="127.0.0.1",
+                    help="outbound-only model: 127.0.0.1 default; broker dials OUT to us")
     ap.add_argument("--registry", default="/srv/bricks/registry/heartbeat-registry.jsonl")
     args = ap.parse_args()
 
@@ -112,36 +124,36 @@ def main():
     identity = {}
     if brick_id:
         idf = root / brick_id / "identity.json"
-        if idf.exists():
-            identity = json.loads(idf.read_text())
+        if not idf.exists():
+            raise SystemExit(f"REJECTED: no identity.json for {brick_id}")
+        identity = json.loads(idf.read_text())
     else:
-        # find the single brick under root
-        for cand in root.iterdir():
-            if (cand / "identity.json").exists():
-                brick_id = cand.name
-                identity = json.loads((cand / "identity.json").read_text())
-                break
-    if not brick_id:
-        raise SystemExit("REJECTED: no brick identity found under --brick-root")
+        found = [c for c in root.iterdir() if (c / "identity.json").exists()]
+        if len(found) != 1:
+            raise SystemExit(f"REJECTED: need exactly one brick under {root} (found {len(found)})")
+        brick_id = found[0].name
+        identity = json.loads((found[0] / "identity.json").read_text())
 
-    # enforce read-only policy from a2a-policy.json (the spawn package wrote it)
     pol = root / brick_id / "a2a-policy.json"
-    if pol.exists():
-        policy = json.loads(pol.read_text())
-        allow = set(policy.get("allow", []))
-        assert allow <= ALLOWED_TOOLS, f"policy allows non-read-only tools: {allow - ALLOWED_TOOLS}"
-        assert set(policy.get("reject", [])) >= REJECTED_TOOLS, "policy must reject terminal/code_execution/memory/file/skill_manage"
+    if not pol.exists():
+        raise SystemExit("REJECTED: missing a2a-policy.json (fail-closed)")
+    policy = json.loads(pol.read_text())
+    allow = set(policy.get("allow", []))
+    if not allow <= ALLOWED_TOOLS:
+        raise SystemExit(f"REJECTED: policy allows non-read-only tools: {sorted(allow - ALLOWED_TOOLS)}")
+    if not set(policy.get("reject", [])) >= REJECTED_TOOLS:
+        raise SystemExit("REJECTED: policy must reject terminal/code_execution/memory/file/skill_manage")
 
     peers = load_peers(root / brick_id / "tokens")
     if not peers:
-        raise SystemExit("REJECTED: no per-peer tokens — create mode-600 tokens/ dir (round-61: scoped tokens are the auth layer)")
+        raise SystemExit("REJECTED: no valid per-peer tokens (mode-600, >=16 chars)")
 
-    skills = identity.get("skills", [])
-    ctx = {"brick_id": brick_id, "skills": skills, "peers": peers,
+    ctx = {"brick_id": brick_id, "skills": identity.get("skills", []), "peers": peers,
            "registry_peers": read_registry_peers(pathlib.Path(args.registry)),
            "start": time.time()}
-    srv = A2AServer(("0.0.0.0", args.port), A2AHandler, ctx)
-    print(f"[a2a] {brick_id} mesh participation on :{args.port} (read-only enforced: {sorted(REJECTED_TOOLS)})", flush=True)
+    srv = A2AServer((args.bind, args.port), A2AHandler, ctx)
+    print(f"[a2a] {brick_id} mesh participation on {args.bind}:{args.port} "
+          f"(read-only enforced: {sorted(REJECTED_TOOLS)})", flush=True)
     srv.serve_forever()
 
 if __name__ == "__main__":
