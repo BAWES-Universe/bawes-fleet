@@ -66,7 +66,10 @@ class HindsightBank:
         out, corrupt = [], 0
         for line in self.entries_path.read_text().splitlines():
             try:
-                out.append(json.loads(line))
+                e = json.loads(line)
+                if not isinstance(e, dict) or "topic_hash" not in e:
+                    raise ValueError("missing topic_hash")
+                out.append(e)
             except Exception:
                 corrupt += 1
         return out, corrupt
