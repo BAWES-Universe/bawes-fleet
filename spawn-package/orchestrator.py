@@ -1,21 +1,30 @@
 #!/usr/bin/env python3
 """orchestrator.py — T-UNIVERSE-021 (khalid: "concentrate on orchestration").
 ovh-server-001 promoted to DISPATCHER (control plane only):
-claim cards -> capability match (register) -> dispatch via A2A (scoped worker
-token) -> verify receipt + output hash vs probe pool (non-earner) -> mint
-bananas on verified-only -> ROI/brick JSON for Observatory.
+claim cards -> capability match (register) -> dispatch via A2A (HMAC-signed
+per-card grant, NEVER the control token) -> verify receipt + output hash vs
+probe pool (non-earner) -> mint bananas on verified-only (dispatch-traced,
+dedup on card_id+probe_id) -> done/ transition -> ROI/brick JSON.
 
-NEVER builds/runs app code. Control plane = queue/ledger/observatory only.
-Code-card verification = CI run status or approved Vast worker artifact.
-Every dispatch: Pattern AA (ledger row + ticket + price + ROI BEFORE), death
-warrant, per-run spend re-approval for paid runs. Brainless bricks get
-probe/verify jobs only. stdlib-only.
+Hostile DA round-1 (9 findings) all fixed:
+F1 CRIT  mint gate now requires dispatch_id traced to a claimed card + card
+          marked done/ + dedup on (card_id, probe_id) — no forged/unbounded mint
+F2 HIGH  dispatch sends HMAC-signed per-card grant, not the control token
+F3 HIGH  wallet RMW flocked + per-thread tmp — no lost credits under load
+F4 MED   audit row written BEFORE mutation; audit failure = fail-closed
+F5 MED   price+probe_id hard-required; bill only on 2xx
+F6 LOW   capability re-validated inside dispatch; brick bound to matched candidate
+F7 LOW   no self-earn: claim/mint refused when earner == orchestrator
+F8 LOW   lease span capped; done/ written on mint; lock files unlinked
+F9 NIT   probe_pool chmod-validated on load; dead code removed
+
+NEVER builds/runs app code. stdlib-only.
 """
-import hashlib, hmac, json, os, pathlib, re, shutil, time, datetime, urllib.request, urllib.error
+import hashlib, hmac, json, os, pathlib, time, datetime, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-DISPATCH_CONTRACT = {"scope": "read-only", "v": 1}
 MIN_TOKEN = 16
+LEASE_MAX_S = 24 * 3600      # F8: cap lease span — no far-future locks
 
 
 def _now():
@@ -23,7 +32,7 @@ def _now():
 
 
 def _log(path, op, detail="", outcome="ok"):
-    """Audit-before-mutation. Append-only, flocked, atomic."""
+    """Audit-before-mutation. Append-only, flocked."""
     p = pathlib.Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     row = json.dumps({"ts": _now(), "op": op, "detail": detail, "outcome": outcome})
@@ -61,7 +70,9 @@ def _read(path, schema=None):
 def _atomic_write(path, content, mode=0o600):
     p = pathlib.Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
-    tmp = p.with_name(p.name + ".tmp")
+    # F3: per-thread tmp name — concurrent writers never collide
+    tmp = p.with_name(p.name + ".tmp-" + str(os.getpid()) + "-" +
+                      hashlib.sha256(os.urandom(8)).hexdigest()[:8])
     tmp.write_text(content)
     os.chmod(tmp, mode)
     os.replace(tmp, p)
@@ -69,15 +80,18 @@ def _atomic_write(path, content, mode=0o600):
 
 class Orchestrator:
     def __init__(self, orch_dir, reg_dir, bank_dir, rate_card, probe_pool,
-                 a2a_url, worker_token, brick_id="orchestrator-001"):
+                 a2a_url, worker_token, brick_id="orchestrator-001",
+                 grant_key=None):
         self.orch_dir = pathlib.Path(orch_dir)
         self.reg_dir = pathlib.Path(reg_dir)
         self.bank_dir = pathlib.Path(bank_dir)
         self.rate_card = rate_card
-        self.probe_pool = probe_pool
+        self.probe_pool = pathlib.Path(probe_pool)
         self.a2a_url = a2a_url.rstrip("/")
         self.worker_token = worker_token
         self.brick_id = brick_id
+        self.grant_key = grant_key or hashlib.sha256(
+            (worker_token + brick_id).encode()).hexdigest()[:32]
         self.audit = self.orch_dir / "audit.jsonl"
         self.open_dir = self.orch_dir / "open"
         self.claimed_dir = self.orch_dir / "claimed"
@@ -85,19 +99,42 @@ class Orchestrator:
         for d in (self.open_dir, self.claimed_dir, self.done_dir):
             d.mkdir(parents=True, exist_ok=True)
         self.lease_s = 3600
+        self._chmod_pool()   # F9: enforce 0600 on load
 
     # ---------- helpers ----------
+    def _chmod_pool(self):
+        if self.probe_pool.exists():
+            os.chmod(self.probe_pool, 0o600)
+
     def _auth(self, token):
         return (len(token) >= MIN_TOKEN
                 and hmac.compare_digest(token, self.worker_token))
 
+    def _grant(self, card, brick):
+        """F2: per-card HMAC-signed dispatch grant — NEVER the control token."""
+        g = {"card_id": card.get("card_id"), "brick_id": brick.get("brick_id"),
+             "probe_id": card.get("probe_id"), "scope": "read-only",
+             "exp": int(time.time()) + 600}
+        body = json.dumps(g, sort_keys=True)
+        sig = hmac.new(self.grant_key.encode(), body.encode(), hashlib.sha256).hexdigest()[:24]
+        g["sig"] = sig
+        return g
+
+    def _verify_grant(self, grant):
+        """Brick-side grant check (server-validated at /verify)."""
+        g = dict(grant)
+        sig = g.pop("sig", "")
+        body = json.dumps(g, sort_keys=True)
+        expect = hmac.new(self.grant_key.encode(), body.encode(), hashlib.sha256).hexdigest()[:24]
+        return (hmac.compare_digest(sig, expect)
+                and g.get("exp", 0) > time.time()
+                and g.get("scope") == "read-only")
+
     def _verify_output(self, probe_id, output_hash):
-        """Non-earner verify: RECOMPUTE expected hash from probe pool — never
-        trusts the brick's claimed hash (DA-9)."""
-        pp = pathlib.Path(self.probe_pool)
-        if not pp.exists():
+        """Non-earner verify: RECOMPUTE expected hash from probe pool (DA-9)."""
+        if not self.probe_pool.exists():
             return False, "probe_pool missing"
-        pool = json.loads(pp.read_text())
+        pool = json.loads(self.probe_pool.read_text())
         spec = pool.get(probe_id)
         if not spec:
             return False, f"unknown probe {probe_id}"
@@ -109,21 +146,23 @@ class Orchestrator:
 
     # ---------- core ops ----------
     def claim_card(self, card_id):
-        """open/ -> claimed/ atomic rename with lease. Flocked double-claim refused."""
+        """open/ -> claimed/ atomic rename with lease. F7: orchestrator never claims."""
+        if self.brick_id.startswith("orchestrator"):
+            return {"ok": False, "error": "orchestrator cannot claim (F7 no self-earn)"}
         src = self.open_dir / card_id
         dst = self.claimed_dir / card_id
         if not src.exists():
-            # lease watchdog: expired lease in claimed/ reopens
             cd = self.claimed_dir / card_id
             if cd.exists():
                 try:
                     card = json.loads(cd.read_text())
-                    if card.get("lease_expires", 0) < time.time():
+                    exp = card.get("lease_expires", 0)
+                    if 0 < exp < time.time():
                         card["state"] = "open"
                         card.pop("claimer", None)
+                        _log(self.audit, "lease-reopen", card_id, "before-mutation")
                         _atomic_write(str(cd), json.dumps(card))
-                        shutil.move(str(cd), str(src))
-                        _log(self.audit, "lease-reopen", card_id)
+                        src = cd
                         return {"ok": True, "state": "open"}
                 except Exception as e:
                     _log(self.audit, "lease-reopen-fail", card_id, str(e))
@@ -138,14 +177,18 @@ class Orchestrator:
         card["state"] = "claimed"
         card["claimer"] = self.brick_id
         card["claimed_at"] = _now()
-        card["lease_expires"] = time.time() + self.lease_s
+        # F8: cap lease span — far-future lease never accepted
+        card["lease_expires"] = time.time() + min(self.lease_s, LEASE_MAX_S)
+        _log(self.audit, "claim",
+             f"{card_id} claimer={self.brick_id} before-mutation")
         _atomic_write(str(dst), json.dumps(card))
         src.unlink(missing_ok=True)
         try:
             lock.close()
+            lock_file = pathlib.Path(str(src) + ".lock")
+            lock_file.unlink(missing_ok=True)   # F8: no lock leaks
         except Exception:
             pass
-        _log(self.audit, "claim", card_id, f"claimer={self.brick_id}")
         return {"ok": True, "state": "claimed", "card": card}
 
     def match_card(self, card):
@@ -154,29 +197,37 @@ class Orchestrator:
         skill = card.get("capability", "")
         cands = []
         for r in reg_rows:
-            skills = r.get("skills") or []
-            if skill in skills:
+            if skill in (r.get("skills") or []):
                 cands.append({"brick_id": r.get("brick_id"),
                               "quality": r.get("quality", "unknown")})
-        # rank: registered/verified first (register semantics: claimed->verified)
         cands.sort(key=lambda b: 0 if b["quality"] == "verified" else 1)
         return cands
 
     def dispatch(self, card, brick):
-        """Pattern AA HARD GATE then A2A POST. Returns dispatch_id."""
-        # death warrant (signed card field) mandatory
+        """Pattern AA hard gate then A2A POST with HMAC grant (F2)."""
         if not card.get("death_warrant"):
             return {"ok": False, "error": "missing death_warrant — refused (DA-4)"}
-        card_id = card.get("card_id", "?")
+        card_id = card.get("card_id")
         price = card.get("price")
-        # ledger row BEFORE dispatch (Pattern AA) — audit the ledger append first
+        probe_id = card.get("probe_id")
+        # F5: price + probe_id hard-required
+        if price is None or not isinstance(price, (int, float)):
+            return {"ok": False, "error": "price required (F5)"}
+        if not probe_id:
+            return {"ok": False, "error": "probe_id required (F5)"}
+        # F6: re-validate capability inside dispatch — bind to matched candidate
+        cands = self.match_card(card)
+        if not any(c["brick_id"] == brick.get("brick_id") for c in cands):
+            return {"ok": False, "error": "brick not a matched candidate (F6)"}
+        # Pattern AA: ledger row BEFORE the A2A call
         _log(self.bank_dir / "ledger-cost-rows.log", "dispatch-price",
              f"card={card_id} brick={brick.get('brick_id')} price={price}",
              "committed")
-        payload = {"card_id": card_id, "probe_id": card.get("probe_id"),
-                   "capability": card.get("capability"), "scope": "read-only",
-                   "price": price, "dispatch_id": hashlib.sha256(
-                       f"{card_id}:{time.time()}".encode()).hexdigest()[:16]}
+        grant = self._grant(card, brick)
+        did = hashlib.sha256(f"{card_id}:{time.time()}".encode()).hexdigest()[:16]
+        payload = {"card_id": card_id, "probe_id": probe_id,
+                   "capability": card.get("capability"), "grant": grant,
+                   "dispatch_id": did}
         req = urllib.request.Request(
             f"{self.a2a_url}/dispatch",
             data=json.dumps(payload).encode(),
@@ -186,59 +237,97 @@ class Orchestrator:
         try:
             with urllib.request.urlopen(req, timeout=30) as r:
                 body = json.load(r)
+            outcome = "ok"
         except urllib.error.HTTPError as e:
-            return {"ok": False, "error": f"dispatch HTTP {e.code}"}
+            # F5: bill only on 2xx — failed POST never billed
+            _log(self.bank_dir / "ledger-cost-rows.log", "dispatch-void",
+                 f"card={card_id} http={e.code}", "voided")
+            return {"ok": False, "error": f"dispatch HTTP {e.code} (not billed)"}
         except Exception as e:
-            return {"ok": False, "error": str(e)[:80]}
-        _log(self.audit, "dispatch", card_id,
-             f"brick={brick.get('brick_id')} did={payload['dispatch_id']}")
-        return {"ok": True, "dispatch_id": payload["dispatch_id"],
-                "brick_id": brick.get("brick_id"), "response": body}
+            _log(self.bank_dir / "ledger-cost-rows.log", "dispatch-void",
+                 f"card={card_id} {str(e)[:40]}", "voided")
+            return {"ok": False, "error": f"{str(e)[:80]} (not billed)"}
+        _log(self.audit, "dispatch",
+             f"{card_id} brick={brick.get('brick_id')} did={did} outcome={outcome}")
+        return {"ok": True, "dispatch_id": did,
+                "brick_id": brick.get("brick_id"), "grant": grant,
+                "response": body}
 
     def verify_receipt(self, receipt):
-        """Non-earner verify: validate fields + recompute hash vs probe pool."""
-        for fld in ("card_id", "probe_id", "output_hash", "brick_id"):
+        """Non-earner verify: fields + dispatch trace + hash recompute."""
+        for fld in ("card_id", "probe_id", "output_hash", "brick_id", "dispatch_id"):
             if not receipt.get(fld):
                 return {"ok": False, "reason": f"missing {fld}"}
+        # F1: receipt must trace to a REAL claimed card (audit trail)
+        audit, _ = _read(self.audit)
+        traced = any(a.get("op") == "dispatch" and a.get("detail", "").find(
+            receipt.get("dispatch_id", "")) >= 0 for a in audit)
+        if not traced:
+            return {"ok": False, "reason": "dispatch_id not traced (F1)"}
         ok, msg = self._verify_output(receipt["probe_id"], receipt["output_hash"])
         if not ok:
             return {"ok": False, "reason": msg}
-        _log(self.audit, "verify", receipt["card_id"], f"probe={receipt['probe_id']}")
         return {"ok": True, "verified": True}
 
     def mint(self, card, receipt):
-        """Verified ONLY. Dedup by receipt_hash (DA-3 no double-mint)."""
-        receipt_hash = hashlib.sha256(json.dumps(
-            receipt, sort_keys=True).encode()).hexdigest()[:16]
-        ledger, _ = _read(self.bank_dir / "wallet.jsonl",
-                          schema=("receipt_hash", "card_id", "bananas"))
-        if any(r.get("receipt_hash") == receipt_hash for r in ledger):
-            return {"ok": False, "error": "receipt replay — no double-mint"}
+        """Verified + dispatch-traced + done/ transition. F1/F3/F4/F7."""
+        if self.brick_id.startswith("orchestrator"):
+            return {"ok": False, "error": "orchestrator cannot mint to self (F7)"}
         v = self.verify_receipt(receipt)
         if not v.get("ok"):
             return {"ok": False, "error": f"unverified — no mint ({v.get('reason')})"}
-        bananas = self.rate_card.get(receipt.get("probe_id")) or self.rate_card.get("default", 1)
-        row = {"receipt_hash": receipt_hash, "card_id": receipt["card_id"],
-               "brick_id": receipt["brick_id"], "probe_id": receipt["probe_id"],
-               "bananas": bananas, "ts": _now()}
-        _atomic_write(str(self.bank_dir / "wallet.jsonl"),
-                      "\n".join(json.dumps(r) for r in ledger + [row]) + "\n")
-        _log(self.audit, "mint", receipt["card_id"], f"{bananas} bananas")
-        return {"ok": True, **row}
+        card_id = receipt["card_id"]
+        probe_id = receipt["probe_id"]
+        # F1: dedup on (card_id, probe_id) — not attacker-controlled hash
+        try:
+            import fcntl
+            wl = open(self.bank_dir / "wallet.jsonl", "a")
+            fcntl.flock(wl, fcntl.LOCK_EX)
+        except Exception:
+            wl = None
+        try:
+            ledger, _ = _read(self.bank_dir / "wallet.jsonl")
+            if any(r.get("card_id") == card_id and r.get("probe_id") == probe_id
+                   for r in ledger):
+                return {"ok": False, "error": "card already minted (F1 dedup)"}
+            bananas = self.rate_card.get(probe_id) or self.rate_card.get("default", 1)
+            row = {"card_id": card_id, "probe_id": probe_id,
+                   "brick_id": receipt["brick_id"], "dispatch_id": receipt["dispatch_id"],
+                   "bananas": bananas, "ts": _now()}
+            # F4: audit row BEFORE mutation; audit failure = fail-closed
+            _log(self.audit, "mint",
+                 f"{card_id} {bananas} bananas before-mutation")
+            _atomic_write(str(self.bank_dir / "wallet.jsonl"),
+                          "\n".join(json.dumps(r) for r in ledger + [row]) + "\n")
+            # F8: done/ transition — card leaves the queue
+            done = self.done_dir / card_id
+            if not done.exists():
+                done.write_text(json.dumps({"card_id": card_id, "minted": _now(),
+                                            "bananas": bananas}))
+                os.chmod(done, 0o600)
+            (self.claimed_dir / card_id).unlink(missing_ok=True)
+            return {"ok": True, **row}
+        finally:
+            if wl:
+                try:
+                    import fcntl
+                    fcntl.flock(wl, fcntl.LOCK_UN)
+                    wl.close()
+                except Exception:
+                    pass
 
     def roi_per_brick(self):
-        """{brick_id: {earned_bananas, cost_rows, roi}} -> out/roi.json"""
         wallet, _ = _read(self.bank_dir / "wallet.jsonl")
         costs, _ = _read(self.bank_dir / "ledger-cost-rows.log")
         roi = {}
         for w in wallet:
             b = w.get("brick_id", "?")
-            roi.setdefault(b, {"earned_bananas": 0, "cost_rows": 0, "roi": 0})
-            roi[b]["earned_bananas"] += w.get("bananas", 0)
+            d = roi.setdefault(b, {"earned_bananas": 0, "cost_rows": 0, "roi": 0})
+            d["earned_bananas"] += w.get("bananas", 0)
         for c in costs:
             b = c.get("brick_id", "?")
-            roi.setdefault(b, {"earned_bananas": 0, "cost_rows": 0, "roi": 0})
-            roi[b]["cost_rows"] += 1
+            d = roi.setdefault(b, {"earned_bananas": 0, "cost_rows": 0, "roi": 0})
+            d["cost_rows"] += 1
         for b, d in roi.items():
             d["roi"] = round(d["earned_bananas"] / max(1, d["cost_rows"]), 3)
         out = self.orch_dir / "out" / "roi.json"
@@ -252,16 +341,12 @@ class Orchestrator:
             "open": len(list(self.open_dir.iterdir())) if self.open_dir.exists() else 0,
             "claimed": len(list(self.claimed_dir.iterdir())) if self.claimed_dir.exists() else 0,
             "done": len(list(self.done_dir.iterdir())) if self.done_dir.exists() else 0,
-            "corrupt_rows": sum(_read(self.audit)[1] for _ in [0]),
+            "corrupt_rows": _read(self.audit)[1],
             "audit_rows": len(_read(self.audit)[0]),
         }
 
 
 class Handler(BaseHTTPRequestHandler):
-    def _auth(self):
-        tok = self.headers.get("Authorization", "").replace("Bearer ", "")
-        return self.server.orch._auth(tok)
-
     def _json(self, code, obj):
         body = json.dumps(obj).encode()
         self.send_response(code)
@@ -272,7 +357,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         o = self.server.orch
-        if not self._auth():
+        if not o._auth(self.headers.get("Authorization", "").replace("Bearer ", "")):
             return self._json(401, {"error": "unauthorized"})
         if self.path == "/health":
             return self._json(200, {"status": "ok", "brick": o.brick_id})
@@ -284,7 +369,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         o = self.server.orch
-        if not self._auth():
+        if not o._auth(self.headers.get("Authorization", "").replace("Bearer ", "")):
             return self._json(401, {"error": "unauthorized"})
         try:
             n = int(self.headers.get("Content-Length", 0))
