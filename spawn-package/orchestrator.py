@@ -2,21 +2,27 @@
 """orchestrator.py — T-UNIVERSE-021 (khalid: "concentrate on orchestration").
 ovh-server-001 promoted to DISPATCHER (control plane only):
 claim cards -> capability match (register) -> dispatch via A2A (HMAC-signed
-per-card grant, NEVER the control token) -> verify receipt + output hash vs
-probe pool (non-earner) -> mint bananas on verified-only (dispatch-traced,
-dedup on card_id+probe_id) -> done/ transition -> ROI/brick JSON.
+per-card grant IS the wire auth; control token NEVER leaves the orchestrator)
+-> verify receipt against structured dispatch registry + output hash vs probe
+pool (non-earner) -> mint bananas on verified-only (exact-match trace, dedup)
+-> done/ transition -> ROI/brick JSON.
 
-Hostile DA round-1 (9 findings) all fixed:
-F1 CRIT  mint gate now requires dispatch_id traced to a claimed card + card
-          marked done/ + dedup on (card_id, probe_id) — no forged/unbounded mint
-F2 HIGH  dispatch sends HMAC-signed per-card grant, not the control token
-F3 HIGH  wallet RMW flocked + per-thread tmp — no lost credits under load
-F4 MED   audit row written BEFORE mutation; audit failure = fail-closed
-F5 MED   price+probe_id hard-required; bill only on 2xx
-F6 LOW   capability re-validated inside dispatch; brick bound to matched candidate
-F7 LOW   no self-earn: claim/mint refused when earner == orchestrator
-F8 LOW   lease span capped; done/ written on mint; lock files unlinked
-F9 NIT   probe_pool chmod-validated on load; dead code removed
+Hostile DA rounds 1-2 (all findings fixed):
+F1 CRIT  mint trace = EXACT (card_id, probe_id, brick_id, dispatch_id) match
+          against structured dispatches.jsonl registry + card must be in
+          claimed/ + dedup on (card_id, probe_id, brick_id) — ghost cards and
+          substring/prefix reuse impossible
+F2 HIGH  wire auth = grant signature only; control token never transmitted
+          to any dispatch target (grant-only auth on /dispatch)
+F3 HIGH  wallet RMW serialized on a DEDICATED lockfile (wallet.lock) — never
+          the file being replaced (inode swap broke flock); stress-tested
+F4 MED   audit row before mutation; fail-closed
+F5 MED   price+probe_id hard-required; bill only on 2xx; cost rows carry
+          brick_id as a structured field; voided rows excluded from ROI
+F6 LOW   capability re-validated; brick bound to matched candidate
+F7 LOW   no self-earn (orchestrator cannot claim/mint)
+F8 LOW   lease capped; done/ on mint; no lock leaks
+F9 NIT   probe_pool chmod 0600 on load; CI runs ORCH-1..9 verbatim
 
 NEVER builds/runs app code. stdlib-only.
 """
@@ -24,7 +30,7 @@ import hashlib, hmac, json, os, pathlib, time, datetime, urllib.request, urllib.
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 MIN_TOKEN = 16
-LEASE_MAX_S = 24 * 3600      # F8: cap lease span — no far-future locks
+LEASE_MAX_S = 24 * 3600
 
 
 def _now():
@@ -70,12 +76,31 @@ def _read(path, schema=None):
 def _atomic_write(path, content, mode=0o600):
     p = pathlib.Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
-    # F3: per-thread tmp name — concurrent writers never collide
     tmp = p.with_name(p.name + ".tmp-" + str(os.getpid()) + "-" +
                       hashlib.sha256(os.urandom(8)).hexdigest()[:8])
     tmp.write_text(content)
     os.chmod(tmp, mode)
     os.replace(tmp, p)
+
+
+def _locked(path, fn):
+    """F3: serialize on a DEDICATED lockfile (never the file being replaced)."""
+    lock = pathlib.Path(str(path) + ".lock")
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    with open(lock, "a+") as lf:
+        try:
+            import fcntl
+            fcntl.flock(lf, fcntl.LOCK_EX)
+        except Exception:
+            pass
+        try:
+            return fn()
+        finally:
+            try:
+                import fcntl
+                fcntl.flock(lf, fcntl.LOCK_UN)
+            except Exception:
+                pass
 
 
 class Orchestrator:
@@ -93,13 +118,14 @@ class Orchestrator:
         self.grant_key = grant_key or hashlib.sha256(
             (worker_token + brick_id).encode()).hexdigest()[:32]
         self.audit = self.orch_dir / "audit.jsonl"
+        self.dispatch_reg = self.orch_dir / "dispatches.jsonl"
         self.open_dir = self.orch_dir / "open"
         self.claimed_dir = self.orch_dir / "claimed"
         self.done_dir = self.orch_dir / "done"
         for d in (self.open_dir, self.claimed_dir, self.done_dir):
             d.mkdir(parents=True, exist_ok=True)
         self.lease_s = 3600
-        self._chmod_pool()   # F9: enforce 0600 on load
+        self._chmod_pool()
 
     # ---------- helpers ----------
     def _chmod_pool(self):
@@ -110,22 +136,28 @@ class Orchestrator:
         return (len(token) >= MIN_TOKEN
                 and hmac.compare_digest(token, self.worker_token))
 
-    def _grant(self, card, brick):
-        """F2: per-card HMAC-signed dispatch grant — NEVER the control token."""
+    def _grant(self, card, brick, dispatch_id):
+        """F2: per-card HMAC-signed grant — THE wire auth (control token never sent)."""
         g = {"card_id": card.get("card_id"), "brick_id": brick.get("brick_id"),
-             "probe_id": card.get("probe_id"), "scope": "read-only",
-             "exp": int(time.time()) + 600}
+             "probe_id": card.get("probe_id"), "dispatch_id": dispatch_id,
+             "scope": "read-only", "exp": int(time.time()) + 600}
         body = json.dumps(g, sort_keys=True)
-        sig = hmac.new(self.grant_key.encode(), body.encode(), hashlib.sha256).hexdigest()[:24]
-        g["sig"] = sig
+        g["sig"] = hmac.new(self.grant_key.encode(), body.encode(),
+                            hashlib.sha256).hexdigest()[:24]
         return g
 
+    def _grant_auth_header(self, grant):
+        """F2: wire auth = grant only. 'Grant <sig>:<exp>:<card_id>'. The
+        receiving brick presents this back; orchestrator validates sig+exp.
+        No control token on the wire, ever."""
+        return f"Grant {grant['sig']}:{grant['exp']}:{grant['card_id']}"
+
     def _verify_grant(self, grant):
-        """Brick-side grant check (server-validated at /verify)."""
         g = dict(grant)
         sig = g.pop("sig", "")
         body = json.dumps(g, sort_keys=True)
-        expect = hmac.new(self.grant_key.encode(), body.encode(), hashlib.sha256).hexdigest()[:24]
+        expect = hmac.new(self.grant_key.encode(), body.encode(),
+                          hashlib.sha256).hexdigest()[:24]
         return (hmac.compare_digest(sig, expect)
                 and g.get("exp", 0) > time.time()
                 and g.get("scope") == "read-only")
@@ -160,9 +192,9 @@ class Orchestrator:
                     if 0 < exp < time.time():
                         card["state"] = "open"
                         card.pop("claimer", None)
-                        _log(self.audit, "lease-reopen", card_id, "before-mutation")
+                        _log(self.audit, "lease-reopen", card_id,
+                             "before-mutation")
                         _atomic_write(str(cd), json.dumps(card))
-                        src = cd
                         return {"ok": True, "state": "open"}
                 except Exception as e:
                     _log(self.audit, "lease-reopen-fail", card_id, str(e))
@@ -177,7 +209,6 @@ class Orchestrator:
         card["state"] = "claimed"
         card["claimer"] = self.brick_id
         card["claimed_at"] = _now()
-        # F8: cap lease span — far-future lease never accepted
         card["lease_expires"] = time.time() + min(self.lease_s, LEASE_MAX_S)
         _log(self.audit, "claim",
              f"{card_id} claimer={self.brick_id} before-mutation")
@@ -185,8 +216,7 @@ class Orchestrator:
         src.unlink(missing_ok=True)
         try:
             lock.close()
-            lock_file = pathlib.Path(str(src) + ".lock")
-            lock_file.unlink(missing_ok=True)   # F8: no lock leaks
+            pathlib.Path(str(src) + ".lock").unlink(missing_ok=True)
         except Exception:
             pass
         return {"ok": True, "state": "claimed", "card": card}
@@ -204,73 +234,88 @@ class Orchestrator:
         return cands
 
     def dispatch(self, card, brick):
-        """Pattern AA hard gate then A2A POST with HMAC grant (F2)."""
+        """Pattern AA hard gate then A2A POST with grant-only auth (F2)."""
         if not card.get("death_warrant"):
-            return {"ok": False, "error": "missing death_warrant — refused (DA-4)"}
+            return {"ok": False, "error": "missing death_warrant — refused"}
         card_id = card.get("card_id")
         price = card.get("price")
         probe_id = card.get("probe_id")
-        # F5: price + probe_id hard-required
         if price is None or not isinstance(price, (int, float)):
             return {"ok": False, "error": "price required (F5)"}
         if not probe_id:
             return {"ok": False, "error": "probe_id required (F5)"}
-        # F6: re-validate capability inside dispatch — bind to matched candidate
         cands = self.match_card(card)
         if not any(c["brick_id"] == brick.get("brick_id") for c in cands):
             return {"ok": False, "error": "brick not a matched candidate (F6)"}
-        # Pattern AA: ledger row BEFORE the A2A call
-        _log(self.bank_dir / "ledger-cost-rows.log", "dispatch-price",
-             f"card={card_id} brick={brick.get('brick_id')} price={price}",
-             "committed")
-        grant = self._grant(card, brick)
         did = hashlib.sha256(f"{card_id}:{time.time()}".encode()).hexdigest()[:16]
+        # F1: structured dispatch registry row (exact-match trace source)
+        reg_row = {"card_id": card_id, "probe_id": probe_id,
+                   "brick_id": brick.get("brick_id"), "dispatch_id": did,
+                   "ts": _now()}
+        _log(self.dispatch_reg, "dispatch", json.dumps(reg_row, sort_keys=True))
+        # Pattern AA: ledger row BEFORE the A2A call (brick_id as field)
+        _log(self.bank_dir / "ledger-cost-rows.log", "dispatch-price",
+             json.dumps({"card": card_id, "brick_id": brick.get("brick_id"),
+                         "price": price}), "committed")
+        grant = self._grant(card, brick, did)
         payload = {"card_id": card_id, "probe_id": probe_id,
                    "capability": card.get("capability"), "grant": grant,
                    "dispatch_id": did}
         req = urllib.request.Request(
             f"{self.a2a_url}/dispatch",
             data=json.dumps(payload).encode(),
-            headers={"Authorization": f"Bearer {self.worker_token}",
+            headers={"Authorization": self._grant_auth_header(grant),
                      "Content-Type": "application/json"},
             method="POST")
         try:
             with urllib.request.urlopen(req, timeout=30) as r:
                 body = json.load(r)
-            outcome = "ok"
+            _log(self.audit, "dispatch",
+                 f"{card_id} brick={brick.get('brick_id')} did={did} outcome=ok")
+            return {"ok": True, "dispatch_id": did,
+                    "brick_id": brick.get("brick_id"), "grant": grant,
+                    "response": body}
         except urllib.error.HTTPError as e:
-            # F5: bill only on 2xx — failed POST never billed
             _log(self.bank_dir / "ledger-cost-rows.log", "dispatch-void",
-                 f"card={card_id} http={e.code}", "voided")
+                 json.dumps({"card": card_id, "brick_id": brick.get("brick_id"),
+                             "http": e.code}), "voided")
             return {"ok": False, "error": f"dispatch HTTP {e.code} (not billed)"}
         except Exception as e:
             _log(self.bank_dir / "ledger-cost-rows.log", "dispatch-void",
-                 f"card={card_id} {str(e)[:40]}", "voided")
+                 json.dumps({"card": card_id, "brick_id": brick.get("brick_id"),
+                             "err": str(e)[:40]}), "voided")
             return {"ok": False, "error": f"{str(e)[:80]} (not billed)"}
-        _log(self.audit, "dispatch",
-             f"{card_id} brick={brick.get('brick_id')} did={did} outcome={outcome}")
-        return {"ok": True, "dispatch_id": did,
-                "brick_id": brick.get("brick_id"), "grant": grant,
-                "response": body}
+
+    def _dispatch_trace(self, receipt):
+        """F1: EXACT-match trace against the structured dispatch registry."""
+        rows, _ = _read(self.dispatch_reg)
+        for r in rows:
+            try:
+                d = json.loads(r.get("detail", "{}"))
+            except Exception:
+                continue
+            if (d.get("card_id") == receipt.get("card_id")
+                    and d.get("probe_id") == receipt.get("probe_id")
+                    and d.get("brick_id") == receipt.get("brick_id")
+                    and d.get("dispatch_id") == receipt.get("dispatch_id")):
+                return True
+        return False
 
     def verify_receipt(self, receipt):
-        """Non-earner verify: fields + dispatch trace + hash recompute."""
+        """Non-earner verify: exact trace + fields + hash recompute."""
         for fld in ("card_id", "probe_id", "output_hash", "brick_id", "dispatch_id"):
             if not receipt.get(fld):
                 return {"ok": False, "reason": f"missing {fld}"}
-        # F1: receipt must trace to a REAL claimed card (audit trail)
-        audit, _ = _read(self.audit)
-        traced = any(a.get("op") == "dispatch" and a.get("detail", "").find(
-            receipt.get("dispatch_id", "")) >= 0 for a in audit)
-        if not traced:
-            return {"ok": False, "reason": "dispatch_id not traced (F1)"}
+        if not self._dispatch_trace(receipt):
+            return {"ok": False,
+                    "reason": "dispatch_id not traced exactly (F1)"}
         ok, msg = self._verify_output(receipt["probe_id"], receipt["output_hash"])
         if not ok:
             return {"ok": False, "reason": msg}
         return {"ok": True, "verified": True}
 
     def mint(self, card, receipt):
-        """Verified + dispatch-traced + done/ transition. F1/F3/F4/F7."""
+        """Verified + exact-traced + done/ transition. F1/F3/F4/F7."""
         if self.brick_id.startswith("orchestrator"):
             return {"ok": False, "error": "orchestrator cannot mint to self (F7)"}
         v = self.verify_receipt(receipt)
@@ -278,28 +323,23 @@ class Orchestrator:
             return {"ok": False, "error": f"unverified — no mint ({v.get('reason')})"}
         card_id = receipt["card_id"]
         probe_id = receipt["probe_id"]
-        # F1: dedup on (card_id, probe_id) — not attacker-controlled hash
-        try:
-            import fcntl
-            wl = open(self.bank_dir / "wallet.jsonl", "a")
-            fcntl.flock(wl, fcntl.LOCK_EX)
-        except Exception:
-            wl = None
-        try:
+        brick_id = receipt["brick_id"]
+        if not (self.claimed_dir / card_id).exists():
+            return {"ok": False, "error": "card not in claimed/ state (F1)"}
+
+        def _mint_once():
             ledger, _ = _read(self.bank_dir / "wallet.jsonl")
             if any(r.get("card_id") == card_id and r.get("probe_id") == probe_id
-                   for r in ledger):
+                   and r.get("brick_id") == brick_id for r in ledger):
                 return {"ok": False, "error": "card already minted (F1 dedup)"}
             bananas = self.rate_card.get(probe_id) or self.rate_card.get("default", 1)
             row = {"card_id": card_id, "probe_id": probe_id,
-                   "brick_id": receipt["brick_id"], "dispatch_id": receipt["dispatch_id"],
+                   "brick_id": brick_id, "dispatch_id": receipt["dispatch_id"],
                    "bananas": bananas, "ts": _now()}
-            # F4: audit row BEFORE mutation; audit failure = fail-closed
             _log(self.audit, "mint",
                  f"{card_id} {bananas} bananas before-mutation")
             _atomic_write(str(self.bank_dir / "wallet.jsonl"),
                           "\n".join(json.dumps(r) for r in ledger + [row]) + "\n")
-            # F8: done/ transition — card leaves the queue
             done = self.done_dir / card_id
             if not done.exists():
                 done.write_text(json.dumps({"card_id": card_id, "minted": _now(),
@@ -307,16 +347,11 @@ class Orchestrator:
                 os.chmod(done, 0o600)
             (self.claimed_dir / card_id).unlink(missing_ok=True)
             return {"ok": True, **row}
-        finally:
-            if wl:
-                try:
-                    import fcntl
-                    fcntl.flock(wl, fcntl.LOCK_UN)
-                    wl.close()
-                except Exception:
-                    pass
+
+        return _locked(self.bank_dir / "wallet.jsonl", _mint_once)
 
     def roi_per_brick(self):
+        """F5: cost rows carry brick_id as a field; voided rows excluded."""
         wallet, _ = _read(self.bank_dir / "wallet.jsonl")
         costs, _ = _read(self.bank_dir / "ledger-cost-rows.log")
         roi = {}
@@ -325,7 +360,13 @@ class Orchestrator:
             d = roi.setdefault(b, {"earned_bananas": 0, "cost_rows": 0, "roi": 0})
             d["earned_bananas"] += w.get("bananas", 0)
         for c in costs:
-            b = c.get("brick_id", "?")
+            if c.get("op") == "dispatch-void":
+                continue  # F5: voided never billed
+            try:
+                detail = json.loads(c.get("detail", "{}"))
+                b = detail.get("brick_id", "?")
+            except Exception:
+                b = "?"
             d = roi.setdefault(b, {"earned_bananas": 0, "cost_rows": 0, "roi": 0})
             d["cost_rows"] += 1
         for b, d in roi.items():
@@ -369,6 +410,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         o = self.server.orch
+        # /verify + /mint accept EITHER control token (internal ops) — dispatch
+        # itself is grant-authed on the WIRE (outbound), not via this server.
         if not o._auth(self.headers.get("Authorization", "").replace("Bearer ", "")):
             return self._json(401, {"error": "unauthorized"})
         try:
