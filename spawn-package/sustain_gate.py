@@ -43,14 +43,20 @@ def decide(wallet_path, roi_path, instance_cost_per_hr, ledger_path=None):
     BANANA_PEG = 0.012
     earned_value = earned_total * BANANA_PEG
 
+    # self-sustaining requires REAL earnings that cover BOTH ledger cost and
+    # the instance's hourly cost — an empty fleet (0 earned, 0 cost) or an
+    # instance the earnings can't cover must never report self_sustain=True
+    # (round-84: the gate exists to refuse GPU spend the fleet hasn't earned)
+    self_sustain = earned_value > 0 and earned_value >= cost_total + instance_cost_per_hr
+
     verdict = "HOLD"
     reason = f"earned ${earned_value:.4f} vs cost ${cost_total:.4f} (inst ${instance_cost_per_hr}/hr)"
-    if earned_value >= cost_total + instance_cost_per_hr * 4:
+    if self_sustain and earned_value >= cost_total + instance_cost_per_hr * 4:
         verdict = "SCALE"
-    elif earned_value < cost_total * 0.5 and cost_total > 0:
+    elif cost_total > 0 and earned_value < cost_total * 0.5:
         verdict = "STOP"
 
-    print(json.dumps({
+    result = {
         "verdict": verdict,
         "reason": reason,
         "earned_bananas": earned_total,
@@ -58,10 +64,11 @@ def decide(wallet_path, roi_path, instance_cost_per_hr, ledger_path=None):
         "cost_usd": round(cost_total, 4),
         "instance_cost_per_hr_usd": instance_cost_per_hr,
         "banana_peg_usd": BANANA_PEG,
-        "self_sustain": earned_value >= cost_total,
+        "self_sustain": self_sustain,
         "scar_doctrine": "all numbers from real ledger rows",
-    }, indent=2))
-    return verdict
+    }
+    print(json.dumps(result, indent=2))
+    return result
 
 if __name__ == "__main__":
     import argparse
