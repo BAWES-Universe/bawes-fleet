@@ -657,7 +657,7 @@ jobs:
           PROBES
       - name: Brick profile — Discord probe UA + fail-closed regression
         run: |
-          pip install -q pyyaml
+          pip install -q pyyaml hermes-agent
           python3 - <<'BPROBES'
           import json, os, sys, threading, time, urllib.request, urllib.error
           from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -781,7 +781,15 @@ jobs:
                   assert "ALLOWED_USERS=231861\n" not in env_text and \
                          "ALLOWED_USERS=231861 " not in env_text, env_text
                   cfg_text = gw.CONFIG.read_text()
-                  assert "BRICK-A2A" in cfg_text and "BRICK-MODEL" in cfg_text
+                  # REAL Hermes keys (dead brick_model/a2a_policy are gone):
+                  assert "model: m" in cfg_text, cfg_text
+                  assert "providers:" in cfg_text and "lmstudio" in cfg_text, cfg_text
+                  assert "base_url: http://127.0.0.1:1" in cfg_text, cfg_text
+                  assert "api_mode: chat_completions" in cfg_text, cfg_text
+                  assert "a2a_agents:" in cfg_text, cfg_text
+                  assert "platforms:" in cfg_text and "advertised_toolsets" in cfg_text, cfg_text
+                  assert "BRICK-A2A" not in cfg_text and "BRICK-MODEL" not in cfg_text, \
+                      "dead keys must not be written"
               finally:
                   if old_token is None: os.environ.pop("BRICK_DISCORD_TOKEN", None)
                   else: os.environ["BRICK_DISCORD_TOKEN"] = old_token
@@ -807,6 +815,54 @@ jobs:
                   assert "discord_user_id" in captured.getvalue(), \
                       "expected fail message, got: " + captured.getvalue()
 
-          print("BPROBE-1..9: Discord + model + identity-separation PASS (UA sent, model probes, "
-                "person_id != discord_user_id, ALLOWED_USERS=discord id, missing-id fail-closed)")
+          # 10. REAL HERMES CONSUMER: wire a full config then load it with Hermes's
+          #     own config loader — the lmstudio provider must resolve via
+          #     providers_dict_to_custom_providers (the exact runtime path), and
+          #     a2a_agents / platforms.a2a.extra must survive the round-trip.
+          with tempfile.TemporaryDirectory() as td:
+              scratch_root = _pl.Path(td)
+              bp.ROOT = scratch_root
+              outdir = scratch_root / "out"; outdir.mkdir()
+              bp.apply_profile(
+                  {"brick_id": "mishari-device-001", "person_id": "231861",
+                   "discord_user_id": "231861753082937346", "wallet_ref": "w",
+                   "a2a": {"peer_toolsets": ["web", "vision"], "reject": ["terminal"],
+                           "enforce_read_only": True},
+                   "model": {"primary": "http://172.20.64.1:1234/v1",
+                             "default_model": "qwen/qwen3-4b-2507"}},
+                  {"manifest": {"model_chain": ["local", "deepseek-v4-flash"]}})
+              scratch = _pl.Path(td) / "brick-profile"; scratch.mkdir()
+              _sh.copytree(outdir, scratch / "out")
+              import gateway_wire as gw3
+              gw3.OUT = scratch / "out"
+              home = _pl.Path(td) / "hermes-home"; home.mkdir()
+              gw3.HERMES_DIR = home; gw3.CONFIG = home / "config.yaml"; gw3.ENV = home / ".env"
+              old_token = os.environ.get("BRICK_DISCORD_TOKEN")
+              os.environ["BRICK_DISCORD_TOKEN"] = "tok-1234567890"
+              try:
+                  assert gw3.wire(dry_run=False, force=True) == 0
+                  os.environ["HERMES_HOME"] = str(home)
+                  import hermes_cli.config as hcfg
+                  cfg = hcfg.load_config() or {}
+                  assert cfg.get("model") == "qwen/qwen3-4b-2507", cfg.get("model")
+                  cps = hcfg.providers_dict_to_custom_providers(cfg.get("providers"))
+                  lm = [c for c in cps if c.get("name") == "lmstudio"]
+                  assert lm, f"lmstudio NOT resolved: {cps}"
+                  assert lm[0]["base_url"] == "http://172.20.64.1:1234/v1", lm[0]
+                  assert lm[0]["model"] == "qwen/qwen3-4b-2507", lm[0]
+                  assert lm[0].get("api_mode") == "chat_completions", lm[0]
+                  assert cfg.get("a2a_agents") == {}, cfg.get("a2a_agents")
+                  pl = cfg.get("platforms") or {}
+                  assert pl.get("a2a", {}).get("extra", {}).get("enabled") is True, pl
+                  assert "web" in pl["a2a"]["extra"]["advertised_toolsets"], pl
+                  fb = cfg.get("fallback_providers") or []
+                  assert any(f.get("model") == "deepseek-v4-flash" for f in fb), fb
+              finally:
+                  if old_token is None: os.environ.pop("BRICK_DISCORD_TOKEN", None)
+                  else: os.environ["BRICK_DISCORD_TOKEN"] = old_token
+                  os.environ.pop("HERMES_HOME", None)
+
+          print("BPROBE-1..10: Discord + model + identity-separation + REAL-HERMES-CONSUMER PASS "
+                "(UA sent, model probes, person_id != discord_user_id, ALLOWED_USERS=discord id, "
+                "missing-id fail-closed, hermes load_config resolves lmstudio + a2a)")
           BPROBES

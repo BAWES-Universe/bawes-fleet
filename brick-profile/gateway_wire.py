@@ -2,13 +2,23 @@
 """gateway_wire.py — T-UNIVERSE-022 THE CONSUMER (khalid: "the product's face").
 The missing wiring: reads brick-profile/out/*.json (identity.json,
 a2a-policy.json, model.json — written by brick_profile.py apply) and writes
-the REAL Hermes gateway config so a brick profile becomes a LIVE brick:
-  - ~/.hermes/config.yaml  (identity, A2A read-only policy, model chain)
-  - ~/.hermes/.env         (DISCORD_BOT_TOKEN, DISCORD_ALLOWED_USERS)
+REAL Hermes gateway config so a brick profile becomes a LIVE brick:
+
+  - ~/.hermes/.env          (DISCORD_BOT_TOKEN, DISCORD_ALLOWED_USERS, A2A_PORT)
+  - ~/.hermes/config.yaml   (model + providers.<name> + fallback_providers,
+                             a2a_agents, platforms.a2a.extra)
+
+Config is deep-MERGED into any existing config.yaml (never marker-appended —
+duplicating a top-level ``platforms:``/``providers:``/``model:`` key would
+silently drop the user's existing entries). Original files are backed up.
 Fails closed. Never writes secrets to the repo. Dry-run default.
-Round-64/Zeus: consumer ships within the week; receipts within days of sign.
 """
-import json, os, re, sys, pathlib, shutil, subprocess, datetime
+import json, os, re, sys, pathlib, shutil, datetime
+
+try:
+    import yaml
+except ImportError:
+    yaml = None
 
 OUT = pathlib.Path(__file__).parent / "out"
 HERMES_DIR = pathlib.Path.home() / ".hermes"
@@ -16,9 +26,15 @@ CONFIG = HERMES_DIR / "config.yaml"
 ENV = HERMES_DIR / ".env"
 BACKUP_SUFFIX = ".bak-" + datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
+# A2A adapter reads platforms.a2a.extra.{enabled,port,advertised_toolsets}
+# (plugins/platforms/a2a/adapter.py) and env A2A_PORT / A2A_PEER_TOKENS.
+A2A_PORT_DEFAULT = 9900
+
+
 def fail(msg):
     print(f"REJECTED: {msg}")
     sys.exit(1)
+
 
 def load_out(name):
     p = OUT / name
@@ -26,6 +42,7 @@ def load_out(name):
         fail(f"{name} missing — run brick_profile.py apply first")
     with open(p) as f:
         return json.load(f)
+
 
 def write_env(env_path, pairs):
     """Append/update KEY=VALUE lines in an env file, preserving everything else."""
@@ -38,23 +55,36 @@ def write_env(env_path, pairs):
     env_path.write_text("\n".join(kept) + "\n")
     os.chmod(env_path, 0o600)
 
-def patch_yaml_block(path, marker, block):
-    """Insert/replace a YAML block delimited by # BEGIN/END <marker> markers."""
+
+def _deep_merge(base, override):
+    """Recursive dict merge (override wins; lists replace)."""
+    for k, v in override.items():
+        if isinstance(v, dict) and isinstance(base.get(k), dict):
+            _deep_merge(base[k], v)
+        else:
+            base[k] = v
+    return base
+
+
+def load_yaml(path):
+    if yaml is None:
+        fail("pyyaml not installed — gateway_wire requires `pip install pyyaml`")
     text = path.read_text() if path.exists() else ""
-    begin = f"# BEGIN {marker}"
-    end = f"# END {marker}"
-    new_block = f"{begin}\n{block}\n{end}"
-    if begin in text:
-        text = re.sub(rf"{begin}.*?{end}", new_block, text, flags=re.S)
-    else:
-        text = text.rstrip() + "\n" + new_block + "\n"
-    path.write_text(text)
+    try:
+        return yaml.safe_load(text) or {} if text.strip() else {}
+    except Exception as e:
+        fail(f"existing config.yaml unparseable: {str(e)[:80]}")
 
-def wire(dry_run=True, force=False):
-    ident = load_out("identity.json")
-    a2a = load_out("a2a-policy.json")
-    model = load_out("model.json")
 
+def write_yaml(path, data):
+    if yaml is None:
+        fail("pyyaml not installed — gateway_wire requires `pip install pyyaml`")
+    path.write_text(yaml.safe_dump(data, sort_keys=False, default_flow_style=False))
+    os.chmod(path, 0o600)
+
+
+def build_wiring(ident, a2a, model):
+    """Return (env_pairs, config_override) — the REAL Hermes 0.20.x settings."""
     brick_id = ident.get("brick_id")
     person_id = ident.get("person_id")
     discord_user_id = ident.get("discord_user_id")
@@ -64,56 +94,99 @@ def wire(dry_run=True, force=False):
         fail("identity.json missing discord_user_id — Discord identity is explicit, "
              "never inferred from person_id")
 
-    # ---- 1. .env: Discord token + allowed users (A2A enforcement target) ----
+    primary = (model.get("primary") or "").strip().rstrip("/")
+    default_model = (model.get("default_model") or "").strip()
+    if not primary or not default_model:
+        fail("model.json missing primary/default_model — point model.primary at the "
+             "LM Studio /v1 endpoint and set default_model to a loaded model id")
+
     token = os.environ.get("BRICK_DISCORD_TOKEN", "")
-    if not token and not force:
-        fail("BRICK_DISCORD_TOKEN not set (and no --force) — brick can't speak")
-    users = [discord_user_id]
-    pairs = {"BRICK_ID": brick_id, "PERSON_ID": person_id, "DISCORD_USER_ID": discord_user_id}
+    peer_toolsets = a2a.get("peer_toolsets") or ["web", "vision", "session_search"]
+
+    # ---- .env: Discord + A2A transport ---- 
+    env_pairs = {
+        "BRICK_ID": brick_id,
+        "PERSON_ID": person_id,
+        "DISCORD_USER_ID": discord_user_id,
+        "DISCORD_ALLOWED_USERS": discord_user_id,
+        "A2A_PORT": str(A2A_PORT_DEFAULT),
+    }
     if token:
-        pairs["DISCORD_BOT_TOKEN"] = token
-    pairs["DISCORD_ALLOWED_USERS"] = ",".join(str(u) for u in users)
+        env_pairs["DISCORD_BOT_TOKEN"] = token
 
-    # ---- 2. config.yaml: A2A read-only policy block ----
-    reject = a2a.get("reject") or ["terminal", "code_execution", "memory", "file", "skill_manage"]
-    a2a_block = (
-        "a2a_policy:\n"
-        f"  brick_id: {brick_id}\n"
-        f"  enforce_read_only: {str(a2a.get('enforce_read_only', True)).lower()}\n"
-        "  reject:\n" + "".join(f"    - {t}\n" for t in reject)
-    )
-
-    # ---- 3. config.yaml: model chain (local → fleet router) ----
+    # ---- config.yaml: REAL model/provider config (v12 providers schema) ----
+    config_override = {
+        "model": default_model,
+        "providers": {
+            "lmstudio": {
+                "name": "lmstudio",
+                "base_url": primary,
+                "api_mode": "chat_completions",
+                "default_model": default_model,
+            }
+        },
+    }
     chain = model.get("chain") or []
-    m_block = (
-        "brick_model:\n"
-        f"  primary: {model.get('primary', '')}\n"
-        f"  default_model: {model.get('default_model', '')}\n"
-        "  chain:\n" + "".join(f"    - {c}\n" for c in chain)
-    )
+    if len(chain) > 1:
+        # fallback_providers: list of {provider, model} tried when primary is exhausted
+        config_override["fallback_providers"] = [
+            {"provider": "deepseek", "model": "deepseek-v4-flash"}
+            for c in chain[1:] if isinstance(c, str)
+        ]
+
+    # ---- config.yaml: REAL A2A config (0.20+ adapter reads platforms.a2a.extra) ----
+    config_override["a2a_agents"] = {}          # peers added as mesh grows
+    config_override["platforms"] = {
+        "a2a": {
+            "extra": {
+                "enabled": True,
+                "port": A2A_PORT_DEFAULT,
+                "advertised_toolsets": peer_toolsets,  # read-only allow-list
+            }
+        }
+    }
+
+    return env_pairs, config_override
+
+
+def wire(dry_run=True, force=False):
+    ident = load_out("identity.json")
+    a2a = load_out("a2a-policy.json")
+    model = load_out("model.json")
+
+    env_pairs, config_override = build_wiring(ident, a2a, model)
+    brick_id = ident.get("brick_id")
+    person_id = ident.get("person_id")
 
     if dry_run:
         print(f"[dry] would wire brick '{brick_id}' (person {person_id})")
-        print(f"[dry]   .env: DISCORD_BOT_TOKEN={'<set>' if token else '<MISSING>'} "
-              f"DISCORD_ALLOWED_USERS={users}")
-        print(f"[dry]   config.yaml: a2a_policy + brick_model blocks")
+        print(f"[dry]   .env: DISCORD_BOT_TOKEN={'<set>' if env_pairs.get('DISCORD_BOT_TOKEN') else '<MISSING>'} "
+              f"DISCORD_ALLOWED_USERS={env_pairs['DISCORD_ALLOWED_USERS']} A2A_PORT={env_pairs['A2A_PORT']}")
+        print(f"[dry]   config.yaml: model={config_override['model']} "
+              f"providers.lmstudio={config_override['providers']['lmstudio']}")
+        print(f"[dry]   config.yaml: a2a_agents + platforms.a2a.extra"
+              f"(enabled, advertised_toolsets={config_override['platforms']['a2a']['extra']['advertised_toolsets']})")
         print("[dry] nothing written")
         return 0
 
-    # backup originals, then write
+    # backup originals, then write (config deep-merged, never key-duplicated)
     if CONFIG.exists():
         shutil.copy2(CONFIG, str(CONFIG) + BACKUP_SUFFIX)
     if ENV.exists():
         shutil.copy2(ENV, str(ENV) + BACKUP_SUFFIX)
-    write_env(ENV, pairs)
-    patch_yaml_block(CONFIG, "BRICK-A2A", a2a_block)
-    patch_yaml_block(CONFIG, "BRICK-MODEL", m_block)
-    os.chmod(CONFIG, 0o600)
+
+    existing = load_yaml(CONFIG)
+    merged = _deep_merge(existing, config_override)
+    write_yaml(CONFIG, merged)
+    write_env(ENV, env_pairs)
+
     print(f"wired brick '{brick_id}' -> {HERMES_DIR} (backups: {BACKUP_SUFFIX})")
     print("receipt:", {"brick_id": brick_id, "person_id": person_id,
-                       "a2a_reject": reject, "chain": chain,
+                       "model": config_override["model"],
+                       "a2a_port": env_pairs["A2A_PORT"],
                        "ts": datetime.datetime.utcnow().isoformat() + "Z"})
     return 0
+
 
 if __name__ == "__main__":
     dry = "--apply" not in sys.argv
