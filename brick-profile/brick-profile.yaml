@@ -24,7 +24,11 @@ a2a:
   - skill_manage
 heartbeat:
   interval_s: 300
-  registry: /root/.hermes/notes/heartbeat-registry.jsonl
+  # INSTALL-TIME path — must point at the brick's own home (e.g. WSL user spo:
+  # /home/spo/.hermes/notes/heartbeat-registry.jsonl). The verifier only checks
+  # that it's absolute; it will NOT fix a wrong home. Default below is the
+  # ovh fleet host's registry.
+  registry: /srv/bricks/registry/heartbeat-registry.jsonl
 min_alive:
   1_boots: hermes --version runs with profile applied
   2_identity: reports brick_id + person_id + wallet_ref matching ledger at boot
