@@ -335,11 +335,19 @@ class Orchestrator:
             return {"ok": False, "reason": msg}
         # V-11 (round-74): if dispatch injected knowledge, the receipt must
         # echo the context-hash — delivery proof, not comprehension proof.
+        # ROUND-75 SHARPENING: EMPTY retrieval is a VALID recorded outcome —
+        # the injection step always runs and always records its result
+        # (context-hash of the empty set is a real hash). Verification checks
+        # the step ran + result recorded, NOT that knowledge was present.
+        # A young store must not fail the work that creates knowledge.
         if self.vector_store is not None:
             dctx = receipt.get("injected_context", {}).get("context_hash")
             if not dctx:
                 return {"ok": False,
                         "reason": "injected_context hash missing (V-11)"}
+            if not isinstance(dctx, str) or len(dctx) < 8:
+                return {"ok": False,
+                        "reason": "injected_context hash malformed (V-11)"}
         return {"ok": True, "verified": True}
 
     def mint(self, card, receipt):
