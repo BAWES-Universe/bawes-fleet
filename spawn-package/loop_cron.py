@@ -59,8 +59,20 @@ def main():
             try: cards.append(json.loads(line))
             except Exception: pass
     open_cards = [c for c in cards if c.get("status") == "open" and c.get("card_id")]
-    delta["discovered"] = len(open_cards)
-    for card in open_cards[:1]:  # one card per tick — measured, not greedy
+    # skip anything already claimed or done (claimed/ + done/ + wallet + dispatches = 4-fold dedup)
+    claimed_ids = {p.name for p in (ROOT / "orchestrator" / "claimed").glob("*")} if (ROOT / "orchestrator" / "claimed").exists() else set()
+    done_ids = {p.name for p in (ROOT / "orchestrator" / "done").glob("*")} if (ROOT / "orchestrator" / "done").exists() else set()
+    wallet_ids = set()
+    wf = ROOT / "register" / "wallet.jsonl"
+    if wf.exists():
+        for line in open(wf):
+            try: wallet_ids.add(json.loads(line).get("card_id", ""))
+            except Exception: pass
+    fresh = [c for c in open_cards
+             if c["card_id"] not in claimed_ids and c["card_id"] not in done_ids
+             and c["card_id"] not in wallet_ids]
+    delta["discovered"] = len(fresh)
+    for card in fresh[:3]:  # dense: up to 3 cards per tick (round-88 acceleration)
         cid = card["card_id"]
         # four-fold dedup
         if (ROOT / "orchestrator" / "done" / cid).exists(): continue
@@ -69,8 +81,12 @@ def main():
         open_dir.mkdir(parents=True, exist_ok=True)
         (open_dir / cid).write_text(json.dumps(card))
         cl, _ = post(WORKER + "/claim", {"card_id": cid})
-        # dispatch via orchestrator -> grant -> worker
-        brick = {"brick_id": "worker-001"}
+        # match first (F6: brick must be a matched candidate)
+        cand, _ = post(ORCH + "/match", {"card": card})
+        cands = (cand.get("candidates") or [])
+        if not cands:
+            continue
+        brick = cands[0] if isinstance(cands[0], dict) else {"brick_id": cands[0]}
         d, _ = post(ORCH + "/dispatch", {"card": card, "brick": brick})
         rcpt = (d.get("response") or {}).get("receipt", {})
         if not rcpt.get("output_hash"):

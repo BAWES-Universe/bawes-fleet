@@ -5,14 +5,23 @@ Read-only GitHub API queries. Output = sorted JSON string -> sha256 = verifiable
 """
 import hashlib, json, sys, urllib.request
 
-# exposure paths from the round-12 audit (/tmp/plugn-yo3an-audit.md), public-only
-TARGETS = [
-    ("plugn", "environments/prod/common/config/main-local.php"),
-    ("plugn", "dashboard/README.md"),
-    ("yo3an-yii2", "common/certificates/key.pem"),
-    ("yo3an-yii2", "environments/prod/common/config/main-local.php"),
+# exposure paths from the round-12 audit (/tmp/plugn-yo3an-audit.md), public-only.
+# Round-88: expanded to the FULL BAWES-Universe org — every repo, high-risk paths.
+REPOS = [
+    "plugn", "plugn-ionic", "yo3an-yii2", "yo3an-ionic",
+    "studenthub", "studenthub-admin", "studenthub-staff", "studenthub-candidate", "studenthub-company",
+    "pogi", "pogi-admin", "pogi-jobs", "pogi-employer",
+    "tamr", "tamr-admin", "tamr-user", "tamr-staff",
+    "whitebook", "whitebook-mobile",
 ]
-OWNERS = {"plugn": "BAWES-Universe", "yo3an-yii2": "BAWES-Universe"}
+TARGETS = [
+    ("environments/prod/common/config/main-local.php"),
+    ("environments/dev/common/config/main-local.php"),
+    (".env"),
+    ("config/db.php"),
+    ("app/config/params-local.php"),
+]
+OWNERS = "BAWES-Universe"  # all 19 repos live under this org (round-88 verified)
 
 def check(owner: str, repo: str, path: str) -> dict:
     """Does the path exist in the public default branch? status via API."""
@@ -28,8 +37,9 @@ def check(owner: str, repo: str, path: str) -> dict:
 
 def run() -> str:
     results = []
-    for repo, path in TARGETS:
-        results.append(check(OWNERS.get(repo, "yo3an"), repo, path))
+    for repo in REPOS:
+        for path in TARGETS:
+            results.append(check(OWNERS, repo, path))
     out = json.dumps({"job": "plgn-credsan-001", "results": results}, sort_keys=True)
     return out
 

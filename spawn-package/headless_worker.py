@@ -126,8 +126,8 @@ class WorkerHandler(BaseHTTPRequestHandler):
             # deterministic known-answer probe: output hash is the receipt field
             if pid == "probe-verify-001":
                 out = hashlib.sha256(b"fleet-probe-output-001").hexdigest()
-            elif pid == "probe-credsan-001":
-                # REAL JOB (round-83): Plugn/Yo3an credential-exposure re-scan.
+            elif pid == "probe-credsan-001" or pid == "probe-credsan-002":
+                # REAL JOB (round-83/88): Plugn/Yo3an + full-org credential re-scan.
                 # Runs the actual scan against the public GitHub API and hashes
                 # the REAL output — non-earner recomputes by re-running the scan.
                 import subprocess, sys as _sys
