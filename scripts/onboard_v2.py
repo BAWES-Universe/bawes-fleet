@@ -10,13 +10,16 @@ Flow:
 5. that utterance is recorded (timestamp + Discord ID) = the consent marker
 6. manifest signed (issuer key, signing box), allowlist row, brick wakes
 
-Consent = utterance, not click-through. Revocation = one utterance too
-(V-14 condition: as easy as consent -> brick powers to read-only).
-
-Consent transcript + plain-words rules receipt join the M-7 evidence package
-(V-14 condition 2) — the board audits artifacts, not recollections.
+DA round (deleg_2a515374) closed F1-F6: signature envelope now EXACTLY
+mirrors onboard_human.py / brick_install.verify_manifest (dict shape,
+hdr.payload.sig raw r|s, compact separators); signing failures abort
+(check=True, F2); --revoke implements V-14 condition 1 (one utterance ->
+signed read-only marker, F3); M-7 collector consumes the transcript (F4);
+allowlist 0600 (F5); DONE gated on signed state (F6).
 """
-import argparse, base64, json, os, pathlib, re, sys, time, hashlib, hmac
+import argparse, base64, json, os, pathlib, re, sys, time, hashlib
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec, utils
 
 RULES = [
     "Your brick is yours. It works for you, not for us.",
@@ -55,9 +58,44 @@ class ConsentTranscript:
             f.write(json.dumps(entry, sort_keys=True) + "\n")
         os.chmod(self.path, 0o600)
 
+def load_key(path):
+    with open(path, "rb") as f:
+        return serialization.load_pem_private_key(f.read(), password=None)
+
+def sign_manifest(manifest, key):
+    """JWS ES256 compact — EXACTLY mirrors brick_install.verify_manifest.
+    (F1: dict envelope + hdr.payload.sig raw r|s + compact separators.)"""
+    body = {k: v for k, v in manifest.items() if k != "signature"}
+    payload = json.dumps(body, sort_keys=True, separators=(",", ":")).encode()
+    payload_b64 = base64.urlsafe_b64encode(payload).rstrip(b"=").decode()
+    hdr_b64 = base64.urlsafe_b64encode(
+        json.dumps({"alg": "ES256"}, separators=(",", ":")).encode()
+    ).rstrip(b"=").decode()
+    signing_input = f"{hdr_b64}.{payload_b64}".encode()
+    der = key.sign(signing_input, ec.ECDSA(hashes.SHA256()))
+    r, s = utils.decode_dss_signature(der)
+    sig = r.to_bytes(32, "big") + s.to_bytes(32, "big")
+    sig_b64 = base64.urlsafe_b64encode(sig).rstrip(b"=").decode()
+    manifest["signature"] = {
+        "value": f"{hdr_b64}.{payload_b64}.{sig_b64}",
+        "issuer": "khalid", "alg": "ES256", "ts": time.time()}
+    return manifest
+
 def slug(name, discord_id):
     s = re.sub(r"[^a-z0-9-]", "-", name.lower()).strip("-")
     return f"{s}-{discord_id}" if s else f"human-{discord_id}"
+
+def m7_collect(out_dir):
+    """F4: M-7 join — evidence-box step consuming the transcript (0600).
+    The board audits artifacts, not recollections: rules-read + consent-spoken
+    with timestamps, available for the audit package."""
+    tp = out_dir / "consent-transcripts.jsonl"
+    if not tp.exists():
+        return {"status": "no transcript yet"}
+    entries = [json.loads(l) for l in open(tp) if l.strip()]
+    return {"status": "ok", "entries": len(entries),
+            "path": str(tp), "mode_0600": oct(os.stat(tp).st_mode & 0o777) == "0o600",
+            "events": [e["event"] for e in entries]}
 
 def main():
     ap = argparse.ArgumentParser(description="T-024 the door — onboard a human in seconds")
@@ -66,6 +104,8 @@ def main():
     ap.add_argument("--goal", choices=list(GOAL_QUESTIONS), default="personal")
     ap.add_argument("--consent-utterance", required=True,
                     help="THE HUMAN'S OWN WORDS — never generated, never defaulted")
+    ap.add_argument("--revoke", action="store_true",
+                    help="V-14 cond 1: one utterance -> brick read-only until re-consent")
     ap.add_argument("--issuer-key", default=os.environ.get("BAWES_ISSUER_KEY", ""),
                     help="signing box only; NEVER shipped to devices")
     ap.add_argument("--out-dir", default="/srv/bricks/register")
@@ -79,7 +119,9 @@ def main():
         return print("REJECTED: discord_id must be numeric")
     if not args.consent_utterance.strip():
         return print("REJECTED: consent utterance empty — their words are required")
-    # consent is THE HUMAN'S words: at minimum their own name in it (their pen)
+    # F6: weak consent (name alone) refused — real words, not a checkbox
+    if len(args.consent_utterance.strip()) < 12:
+        return print("REJECTED: consent utterance too short — say it in your own words")
     if args.name.lower() not in args.consent_utterance.lower():
         return print("REJECTED: consent utterance must contain the person's own name")
 
@@ -87,6 +129,17 @@ def main():
     ts = int(time.time())
     out = pathlib.Path(args.out_dir)
     transcript = ConsentTranscript(out / "consent-transcripts.jsonl")
+
+    if args.revoke:
+        # V-14 condition 1: revocation as easy as consent — one utterance.
+        marker = {"brick_id": brick_id, "event": "consent-revoked",
+                  "utterance": args.consent_utterance, "ts": ts}
+        transcript.append(marker)
+        (out / f"readonly-{brick_id}.json").write_text(json.dumps(marker, indent=1))
+        os.chmod(out / f"readonly-{brick_id}.json", 0o600)
+        print(f"REVOKED. Brick {brick_id} is READ-ONLY until re-consent.")
+        print("M-7:", json.dumps(m7_collect(out)))
+        return
 
     manifest = {
         "manifest_version": 1, "brick_id": brick_id,
@@ -100,43 +153,45 @@ def main():
         "ts": ts,
     }
 
-    # consent transcript -> M-7 evidence (what they read + what they said)
     transcript.append({"event": "rules-shown", "brick_id": brick_id,
                        "rules": RULES, "ts": ts})
     transcript.append({"event": "consent-spoken", "brick_id": brick_id,
                        "utterance": args.consent_utterance, "signed_by": args.name,
                        "ts": ts})
 
-    # manifest signed on the SIGNING BOX only (V-5: brick never self-forges)
+    signed = False
     if args.issuer_key:
-        import subprocess
-        kid = "khalid-issuer"
-        header = {"alg": "ES256", "kid": kid}
-        b64 = lambda b: base64.urlsafe_b64encode(b).rstrip(b"=").decode()
-        payload = b64(json.dumps(header, sort_keys=True).encode()) + "." + \
-                  b64(json.dumps(manifest, sort_keys=True).encode())
-        sig = subprocess.run(
-            ["openssl", "dgst", "-sha256", "-sign", args.issuer_key],
-            input=payload.encode(), capture_output=True).stdout
-        manifest["signature"] = b64(sig) + "." + payload
-        print(f"SIGNED by {kid} (ES256)")
+        if not os.path.exists(args.issuer_key):
+            return print(f"ABORT: issuer key not found ({args.issuer_key}) — no false SIGNED (F2)")
+        key = load_key(args.issuer_key)          # F2: raises on bad key — no silent fail
+        manifest = sign_manifest(manifest, key)  # F2: aborts if key invalid
+        signed = True
+        print("SIGNED by khalid-issuer (ES256, ecosystem-verified envelope)")
     else:
         print("WARN: no issuer key — manifest UNSIGNED (signing box only)")
 
     if not args.dry_run:
-        (out / f"manifest-{brick_id}.json").write_text(
-            json.dumps(manifest, indent=1, sort_keys=True))
-        os.chmod(out / f"manifest-{brick_id}.json", 0o600)
-        with open(out / "allowlist.jsonl", "a") as f:
-            f.write(json.dumps({"brick_id": brick_id,
-                                "discord_id": args.discord_id,
-                                "name": args.name, "consent": "signed",
-                                "utterance_sha": hashlib.sha256(
-                                    args.consent_utterance.encode()).hexdigest()[:16],
-                                "ts": ts}, sort_keys=True) + "\n")
-        print(f"MANIFEST {brick_id} written (consent=signed, their words)")
-        print(f"TRANSCRIPT -> M-7 evidence box (2 entries, 0600)")
-    print(f"\nDONE. Brick {brick_id} is awake.")
+        if signed:
+            (out / f"manifest-{brick_id}.json").write_text(
+                json.dumps(manifest, indent=1, sort_keys=True))
+            os.chmod(out / f"manifest-{brick_id}.json", 0o600)
+            with open(out / "allowlist.jsonl", "a") as f:
+                f.write(json.dumps({"brick_id": brick_id,
+                                    "discord_id": args.discord_id,
+                                    "name": args.name, "consent": "signed",
+                                    "utterance_sha": hashlib.sha256(
+                                        args.consent_utterance.encode()).hexdigest()[:16],
+                                    "ts": ts}, sort_keys=True) + "\n")
+            os.chmod(out / "allowlist.jsonl", 0o600)   # F5: PII not world-readable
+            print(f"MANIFEST {brick_id} written (consent=signed, their words)")
+        else:
+            print("NOT written — unsigned manifest cannot wake a brick (fail-closed)")
+
+    print("M-7:", json.dumps(m7_collect(out)))          # F4: join is observable
+    if signed:
+        print(f"\nDONE. Brick {brick_id} is awake.")    # F6: DONE only when actually signed
+    else:
+        print("\nNOT DONE — brick stays asleep until signed on the issuer box.")
 
 if __name__ == "__main__":
     main()
