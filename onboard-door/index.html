@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BAWES — Get your brick</title>
+<style>
+body{font-family:system-ui,sans-serif;background:#0d1117;color:#e6edf3;max-width:560px;margin:0 auto;padding:24px;line-height:1.6}
+h1{font-size:22px} .step{background:#161b22;border:1px solid #21262d;border-radius:12px;padding:16px;margin:12px 0}
+.num{display:inline-block;background:#238636;color:#fff;border-radius:50%;width:22px;height:22px;text-align:center;line-height:22px;font-size:13px;margin-right:8px}
+textarea{width:100%;box-sizing:border-box;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:8px;padding:10px;font-size:15px;min-height:80px}
+button{width:100%;padding:14px;font-size:16px;font-weight:600;background:#238636;color:#fff;border:0;border-radius:8px;margin-top:10px;cursor:pointer}
+button:disabled{opacity:.5} .ok{color:#3fb950;font-weight:600} .err{color:#f85149}
+small{color:#8b949e} .rule{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:10px 14px;margin:8px 0}
+</style></head><body>
+<h1>🪄 Get your brick</h1>
+<p>A brick is your own little AI that works for you — yours, private, honest. Getting one takes <b>about a minute</b>. No installs, no technical stuff.</p>
+
+<div class="step"><span class="num">1</span><b>What do you want to do?</b><br>
+<textarea id="goal" placeholder="e.g. learn things, earn bananas, build something, keep me company..."></textarea></div>
+
+<div class="step"><span class="num">2</span><b>Read the neighborhood agreement</b>
+<div class="rule">🏠 Your brick is yours — it works for you, not for us.</div>
+<div class="rule">🔒 Your stuff stays yours — nothing leaves without you saying so.</div>
+<div class="rule">🤝 Sharing is always your choice, off by default.</div>
+<div class="rule">🍌 It earns honestly — bananas only from verified work.</div>
+<div class="rule">🧾 Everything is checked by someone who doesn't benefit — no cheating.</div>
+<div class="rule">🛑 You're in control — you can stop it anytime.</div>
+</div>
+
+<div class="step"><span class="num">3</span><b>Say yes in your own words</b><br>
+<textarea id="consent" placeholder="e.g. I agree, this sounds good to me — let's do it"></textarea><br>
+<button id="go" onclick="submit()">Get my brick</button>
+<p id="msg"></p></div>
+
+<small>Your words are recorded with a timestamp as your consent — that's what makes it real. Nothing activates until you say it.</small>
+
+<script>
+async function submit(){
+  const goal=document.getElementById('goal').value.trim();
+  const consent=document.getElementById('consent').value.trim();
+  const msg=document.getElementById('msg');
+  if(!goal){msg.innerHTML='<span class="err">Tell us what you want to do (step 1)</span>';return}
+  if(!consent){msg.innerHTML='<span class="err">Say yes in your own words (step 3)</span>';return}
+  const btn=document.getElementById('go');btn.disabled=true;msg.innerHTML='working...';
+  try{
+    const r=await fetch('/onboard',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({goal,consent})});
+    const d=await r.json();
+    if(d.ok){msg.innerHTML='<span class="ok">✅ Your brick is waking up, '+d.name+'. It will message you here shortly.</span>'}
+    else{msg.innerHTML='<span class="err">'+d.error+'</span>';btn.disabled=false}
+  }catch(e){msg.innerHTML='<span class="err">Connection error — try again</span>';btn.disabled=false}
+}
+</script></body></html>
