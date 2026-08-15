@@ -1,0 +1,44 @@
+# slim-prompt.yaml — LOCAL BRICK PROFILE (T-023 / latency fix)
+# Why: Mishari's local 4B was ingesting ~17K prompt tokens (full cloud agent
+# shell) -> ~200s prefill -> 3-4 min replies. Fix: load ONLY the brick's real
+# surface. Fewer tool schemas = smaller system prompt = seconds, not minutes.
+#
+# Apply: drop this into the brick's config (Hermes: config.yaml tools/ section,
+# or the brick profile the orchestrator ships). The rule: LOCAL bricks get the
+# slim surface; cloud bricks keep the full agent. Local = fast AND private.
+
+# --- SURFACE: what a local brick actually does ---
+enabled_toolsets:
+  - identity          # who am I, my brick, my lane (tiny)
+  - session_search    # recall my own history (tiny schema)
+  # deliberately ABSENT vs cloud profile:
+  #   web_search / browser  -> heavy schemas, use cloud lane for that (paid, per-utterance)
+  #   terminal / file       -> big schemas; device bricks don't need them
+  #   delegation / subagents -> heaviest schemas; cloud lane only
+
+# --- PROMPT TRIMMING ---
+system_prompt_mode: slim          # no full tool inventory dump
+tool_descriptions: minimal        # name + one line each, no long JSON examples
+max_tool_examples: 0              # cloud profile keeps 1-2; local keeps none
+
+# --- RUNTIME ---
+model: qwen3.8-4b-distilled       # local model (unchanged)
+temperature: 0.3                  # deterministic brick voice
+max_tokens: 2048                  # cap generation (the 24s part of the 4min)
+
+# --- ECONOMY ---
+# local = FREE lane by default; cloud-fast = paid upgrade (T-026), per-utterance
+default_lane: local
+upgrade_prompt: always-ask        # never silent always-cloud (round-76 R5)
+
+# --- PRIVACY (unchanged, V-8) ---
+knowledge_sharing: off
+personal_lane: local-only
+telemetry: heartbeat-only
+retention_days: 30
+
+# --- EXPECTED EFFECT (to verify, not assume) ---
+# metric: local time-to-first-response
+# baseline: ~240s (17K-token prefill on 4B)
+# target:  <10s
+# verification: receipted before/after run, same task, same model
