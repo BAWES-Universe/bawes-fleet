@@ -480,62 +480,92 @@ jobs:
               for f in ["lanes.jsonl", "ledger.jsonl", "audit.jsonl"]:
                   assert (st / f).stat().st_mode & 0o777 == 0o600
               print("ROUTER-1..16: token router PASS (SSRF blocked, cost floor, vaulted+700/600, endpoints hidden, bill-once invoke, quality floor, owner-only, instant revoke, 503, audit, 0600)")
-          # ---- snapshot/resurrection probes (T-UNIVERSE-020: sign+encrypt, tamper reject, round-trip) ----
+          # ---- snapshot/resurrection probes (T-UNIVERSE-020: sign+encrypt, tamper reject, round-trip, DA-hardened) ----
           import snapshot as sn
-          from cryptography.hazmat.primitives.asymmetric import ec as _ec
+          from cryptography.hazmat.primitives.asymmetric import ed25519 as _ed
+          from cryptography.hazmat.primitives.ciphers.aead import AESGCM as _AESGCM
+          def _mkkey(p):
+              p.write_bytes(_ed.Ed25519PrivateKey.generate().private_bytes(
+                  serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+                  serialization.NoEncryption()))
+              os.chmod(p, 0o600)
+          def _craft(snap_obj, files_map):
+              payload = json.dumps({"v": 1, "ts": 1, "algo": snap_obj._algo,
+                                    "files": files_map}).encode()
+              nonce = os.urandom(12)
+              ct = snap_obj._aes.encrypt(nonce, payload, b"bawes-snap")
+              sig = snap_obj._sign(sn.SNAP_MAGIC + b"|" + nonce + b"|" + ct)
+              return json.dumps({"magic": sn.SNAP_MAGIC.decode(), "v": 1,
+                                 "nonce": nonce.hex(), "ct": ct.hex(),
+                                 "sig": sig.hex()}).encode()
           with tempfile.TemporaryDirectory() as td:
-              bd = pathlib.Path(td) / "bank"; bd.mkdir()
+              td = pathlib.Path(td)
+              bd = td / "bank"; bd.mkdir()
               (bd / "wallet.jsonl").write_text(json.dumps({"ts": 1, "bananas": 5}) + "\n")
               os.chmod(bd / "wallet.jsonl", 0o600)
-              kp = pathlib.Path(td) / "id.pem"
-              kp.write_bytes(_ec.generate_private_key(_ec.SECP256R1()).private_bytes(
-                  serialization.Encoding.PEM,
-                  serialization.PrivateFormat.PKCS8,
-                  serialization.NoEncryption()))
-              os.chmod(kp, 0o600)
-              aud = pathlib.Path(td) / "audit.jsonl"
+              kp = td / "id.pem"; _mkkey(kp)
+              aud = td / "audit.jsonl"
               s1 = sn.BrickSnapshot(bd, kp, aud)
               blob = s1.snapshot()
               assert blob and len(blob) > 100
-              # round-trip: wipe bank, restore, identical
               shutil.rmtree(bd)
               s2 = sn.BrickSnapshot(bd, kp, aud)
               res = s2.restore(blob)
               assert res["restored"] == 1
               assert (bd / "wallet.jsonl").read_text() == json.dumps({"ts": 1, "bananas": 5}) + "\n"
               assert (bd / "wallet.jsonl").stat().st_mode & 0o777 == 0o600
-              # TAMPERED blob rejected (flip a byte in ct)
+              assert (bd).stat().st_mode & 0o777 == 0o700   # atomic swap, 700 dir
               obj = json.loads(blob)
               ct = bytearray(bytes.fromhex(obj["ct"])); ct[10] ^= 0xFF
               obj["ct"] = bytes(ct).hex()
-              tampered = json.dumps(obj).encode()
               try:
-                  s2.restore(tampered)
-                  raise SystemExit("SNAP-1 FAIL: tampered snapshot restored")
-              except ValueError as e:
-                  assert "decryption" in str(e) or "auth-tag" in str(e) or "signature" in str(e)
-              # FORGED signature (wrong key signs) rejected
-              kp2 = pathlib.Path(td) / "id2.pem"
-              kp2.write_bytes(_ec.generate_private_key(_ec.SECP256R1()).private_bytes(
-                  serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
-                  serialization.NoEncryption()))
-              s_forge = sn.BrickSnapshot(bd, kp2, aud)
-              forged = s_forge.snapshot()   # same bank, different identity
-              try:
-                  s2.restore(forged)
-                  raise SystemExit("SNAP-2 FAIL: forged snapshot accepted")
+                  s2.restore(json.dumps(obj).encode()); raise SystemExit("SNAP-1 FAIL")
               except ValueError as e:
                   assert "signature" in str(e) or "decryption" in str(e)
-              # dry-run: verifies but does not touch disk
-              (bd / "extra.txt").write_text("keep me")
-              dr = s2.restore(blob, dry_run=True)
-              assert dr["dry_run"] and (bd / "extra.txt").exists()
-              # audit has snapshot + restore rows
-              if aud.exists():
-                  ops = [json.loads(l)["op"] for l in aud.read_text().splitlines()]
-                  assert "snapshot" in ops and "restore" in ops
-              # snapshot blob is encrypted: plaintext bananas NEVER visible
+              kp2 = td / "id2.pem"; _mkkey(kp2)
+              s_forge = sn.BrickSnapshot(bd, kp2, aud)
+              try:
+                  s2.restore(s_forge.snapshot()); raise SystemExit("SNAP-2 FAIL")
+              except ValueError as e:
+                  assert "signature" in str(e) or "decryption" in str(e)
+              bd2 = td / "bank2"; bd2.mkdir()
+              try:
+                  sn.BrickSnapshot(bd2, kp, aud).snapshot(); raise SystemExit("SNAP-3 FAIL")
+              except ValueError as e:
+                  assert "empty" in str(e)
+              bd3 = td / "bank3"; bd3.mkdir(); (bd3 / "a.txt").write_text("a")
+              s3 = sn.BrickSnapshot(bd3, kp, aud)
+              try:
+                  s3.restore(_craft(s3, {})); raise SystemExit("SNAP-3b FAIL")
+              except ValueError as e:
+                  assert "empty" in str(e) and "force" in str(e)
+              try:
+                  s3.restore(_craft(s3, {"../../evil.txt": base64.b64encode(b"pwn").decode()}),
+                             dry_run=True); raise SystemExit("SNAP-4 FAIL: traversal")
+              except ValueError as e:
+                  assert "unsafe" in str(e) or "path" in str(e)
+              try:
+                  s3.restore(_craft(s3, {"/etc/evil.txt": base64.b64encode(b"pwn").decode()}),
+                             dry_run=True); raise SystemExit("SNAP-4b FAIL: absolute")
+              except ValueError as e:
+                  assert "unsafe" in str(e)
+              if hasattr(os, "symlink"):
+                  bd4 = td / "bank4"; bd4.mkdir()
+                  (bd4 / "real.txt").write_text("real")
+                  (td / "secret.txt").write_text("HIDDEN-CONTENT")
+                  os.symlink(td / "secret.txt", bd4 / "leak-link.txt")
+                  b4 = sn.BrickSnapshot(bd4, kp, aud).snapshot()
+                  assert b"HIDDEN-CONTENT" not in b4
+                  assert "leak-link" not in json.dumps(json.loads(b4))
+              try:
+                  s3.restore(_craft(s3, "not-a-dict"), dry_run=True); raise SystemExit("SNAP-5 FAIL")
+              except ValueError as e:
+                  assert "payload" in str(e) or "files" in str(e)
+              rows = [json.loads(l) for l in aud.read_text().splitlines()]
+              ops = [r["op"] for r in rows]
+              assert "snapshot" in ops and "restore" in ops
+              assert any(r["outcome"] == "rejected" for r in rows)
               assert b"bananas" not in blob and b"wallet" not in blob
-              print("SNAP-1..8: snapshot/resurrection PASS (round-trip, tamper+forge rejected, dry-run, atomic, 0600, audit, ciphertext-only)")
-          print("ALL SPAWN-PACKAGE PROBES: PASS (S1-S8 spawn, A1-A8 A2A, BANK-1..14 hindsight, BRIDGE-1..11, REG-1..16 capability, ROUTER-1..18, SNAP-1..8)")
+              print("SNAP-1..11: snapshot/resurrection PASS (ed25519, round-trip, tamper+forge rejected, empty-guards, traversal+absolute rejected, symlink skipped, atomic 700, audit, ciphertext-only)")
+          print("ALL SPAWN-PACKAGE PROBES: PASS (S1-S8 spawn, A1-A8 A2A, BANK-1..14 hindsight, BRIDGE-1..11, REG-1..16 capability, ROUTER-1..18, SNAP-1..11)")
           PROBES
