@@ -162,6 +162,22 @@ def build_wiring(ident, a2a, model):
     config_override["platform_toolsets"] = {
         "a2a": peer_toolsets,
     }
+    # Hermes 0.20 auto-adds toolsets on top of an explicit platform list:
+    #  - "bfl" via _RECENTLY_SHIPPED_TOOLSETS (bfl_flux3_* video-gen) —
+    #    suppressed A2A-specifically via known_builtin_toolsets.a2a, so
+    #    Discord/CLI keep bfl.
+    #  - "kanban" via the non-configurable toolset recovery block (reads no
+    #    per-platform config — only agent.disabled_toolsets strips it, and
+    #    that is global). kanban is state-mutating (kanban_create/complete/
+    #    comment/block), so global-disable is the fail-closed default.
+    config_override["known_builtin_toolsets"] = {
+        "a2a": ["bfl"],
+    }
+    disabled = config_override.setdefault("agent", {}).setdefault(
+        "disabled_toolsets", [])
+    for ts in ("kanban",):
+        if ts not in disabled:
+            disabled.append(ts)
 
     return env_pairs, config_override
 

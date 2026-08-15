@@ -895,21 +895,61 @@ jobs:
                   import hermes_cli.config as hcfg4
                   cfg4 = hcfg4.load_config() or {}
                   from hermes_cli.tools_config import _get_platform_tools
+                  # EXACT surface — no auto-added bfl/kanban:
                   enabled = set(_get_platform_tools(cfg4, "a2a"))
                   print("      a2a enabled_toolsets:", sorted(enabled))
-                  assert {"web", "vision", "session_search"} <= enabled, enabled
-                  forbidden = {"terminal", "code_execution", "memory", "file",
-                               "skill_manage"}
-                  blocked = forbidden & enabled
-                  assert not blocked, f"A2A inbound can reach forbidden tools: {blocked}"
+                  assert enabled == {"web", "vision", "session_search"}, \
+                      f"a2a surface not exact: {sorted(enabled)}"
               finally:
                   if old_token is None: os.environ.pop("BRICK_DISCORD_TOKEN", None)
                   else: os.environ["BRICK_DISCORD_TOKEN"] = old_token
                   os.environ.pop("HERMES_HOME", None)
 
-          print("BPROBE-1..11: Discord + model + identity-separation + REAL-HERMES-CONSUMER + "
-                "A2A-READ-ONLY-ENFORCEMENT PASS (UA sent, model probes, "
+          # 12. A2A-SPECIFIC: the bfl suppression must NOT leak to Discord/CLI —
+          #     known_builtin_toolsets.a2a is scoped to the a2a platform.
+          with tempfile.TemporaryDirectory() as td:
+              scratch_root = _pl.Path(td)
+              bp.ROOT = scratch_root
+              outdir = scratch_root / "out"; outdir.mkdir()
+              bp.apply_profile(
+                  {"brick_id": "mishari-device-001", "person_id": "231861",
+                   "discord_user_id": "231861753082937346", "wallet_ref": "w",
+                   "a2a": {"peer_toolsets": ["web", "vision", "session_search"],
+                           "reject": ["terminal", "code_execution", "memory",
+                                      "file", "skill_manage"],
+                           "enforce_read_only": True},
+                   "model": {"primary": "http://172.20.64.1:1234/v1",
+                             "default_model": "qwen/qwen3-4b-2507"}},
+                  {"manifest": {"model_chain": ["local", "deepseek-v4-flash"]}})
+              scratch = _pl.Path(td) / "brick-profile"; scratch.mkdir()
+              _sh.copytree(outdir, scratch / "out")
+              import gateway_wire as gw5
+              gw5.OUT = scratch / "out"
+              home = _pl.Path(td) / "hermes-home"; home.mkdir()
+              gw5.HERMES_DIR = home; gw5.CONFIG = home / "config.yaml"; gw5.ENV = home / ".env"
+              old_token = os.environ.get("BRICK_DISCORD_TOKEN")
+              os.environ["BRICK_DISCORD_TOKEN"] = "tok-1234567890"
+              try:
+                  assert gw5.wire(dry_run=False, force=True) == 0
+                  os.environ["HERMES_HOME"] = str(home)
+                  import hermes_cli.config as hcfg5
+                  cfg5 = hcfg5.load_config() or {}
+                  from hermes_cli.tools_config import _get_platform_tools
+                  # a2a is exact; discord keeps bfl (suppression is a2a-scoped)
+                  a2a_set = set(_get_platform_tools(cfg5, "a2a"))
+                  assert a2a_set == {"web", "vision", "session_search"}, a2a_set
+                  discord_set = set(_get_platform_tools(cfg5, "discord"))
+                  print("      discord enabled_toolsets (bfl kept):",
+                        "bfl" in discord_set, "| kanban (global off):", "kanban" in discord_set)
+                  assert "bfl" in discord_set, "bfl suppression leaked to discord"
+              finally:
+                  if old_token is None: os.environ.pop("BRICK_DISCORD_TOKEN", None)
+                  else: os.environ["BRICK_DISCORD_TOKEN"] = old_token
+                  os.environ.pop("HERMES_HOME", None)
+
+          print("BPROBE-1..12: Discord + model + identity-separation + REAL-HERMES-CONSUMER + "
+                "A2A-EXACT-SURFACE PASS (UA sent, model probes, "
                 "person_id != discord_user_id, ALLOWED_USERS=discord id, "
                 "missing-id fail-closed, hermes load_config resolves lmstudio + a2a, "
-                "platform_toolsets.a2a blocks terminal/code_execution/memory/file/skill_manage)")
+                "a2a surface == web/vision/session_search exactly, bfl suppression a2a-scoped)")
           BPROBES
