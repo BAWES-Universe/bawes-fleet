@@ -369,8 +369,9 @@ class Orchestrator:
                    and r.get("brick_id") == brick_id for r in ledger):
                 return {"ok": False, "error": "card already minted (F1 dedup)"}
             bananas = self.rate_card.get(probe_id) or self.rate_card.get("default", 1)
-            row = {"card_id": card_id, "probe_id": probe_id,
-                   "brick_id": brick_id, "dispatch_id": receipt["dispatch_id"],
+            row = {"kind": "earn", "card_id": card_id, "probe_id": probe_id,
+                   "brick_id": brick_id, "person_id": brick_id,
+                   "dispatch_id": receipt["dispatch_id"],
                    "bananas": bananas, "ts": _now()}
             _log(self.audit, "mint",
                  f"{card_id} {bananas} bananas before-mutation")
