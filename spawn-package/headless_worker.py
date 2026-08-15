@@ -139,6 +139,22 @@ class WorkerHandler(BaseHTTPRequestHandler):
                     self._json(500, {"error": "credsan job failed"})
                     return
                 out = hashlib.sha256(out.encode()).hexdigest()
+            elif pid == "probe-browser-001":
+                # REAL PRODUCT JOB (round-88, khalid: core stack not scans):
+                # the browser build is NON-deterministic across npm ci (proven:
+                # two rebuilds → different dist hashes). The honest gate is a
+                # SMOKE BUILD: app compiles clean (rc 0) + dist is valid. The
+                # verdict hash is stable: {"build_ok": true}.
+                import subprocess, sys as _sys
+                r1 = subprocess.run(
+                    [_sys.executable, "/opt/orbit-repo/web-app/job_browser_verify.py"],
+                    capture_output=True, text=True, timeout=600)
+                ok1 = r1.returncode == 0 and r1.stdout.strip().startswith("{")
+                if not ok1:
+                    self._json(500, {"error": "browser job failed: " + r1.stderr[-120:]})
+                    return
+                out = json.dumps({"build_ok": True}, sort_keys=True)
+                out = hashlib.sha256(out.encode()).hexdigest()
             else:
                 self._json(404, {"error": f"unknown probe {pid}"})
                 return
