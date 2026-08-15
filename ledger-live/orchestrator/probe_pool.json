@@ -1,0 +1,1 @@
+{"probe-verify-001": {"expected_sha256": "ec79948f9255059831326607f627d81e85ec1680a8a9e26d15e12d72c069dad4", "card_types": ["probe", "verify"], "verify_mode": "vast-worker"}}
