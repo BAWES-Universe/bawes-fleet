@@ -156,8 +156,17 @@ def build_wiring(ident, a2a, model):
         env_pairs["DISCORD_BOT_TOKEN"] = token
 
     # ---- config.yaml: REAL model/provider config (v12 providers schema) ----
+    # model: is the RUNTIME SELECTION — the gateway's provider resolution
+    # (hermes_cli/runtime_provider.resolve_requested_provider + auth.resolve_provider)
+    # reads model.provider / model.default / model.base_url. A bare string
+    # (model: <id>) leaves provider unselected and fails at auth time with
+    # "No inference provider configured" (the live Discord failure).
     config_override = {
-        "model": default_model,
+        "model": {
+            "provider": "lmstudio",
+            "default": default_model,
+            "base_url": primary,
+        },
         "providers": {
             "lmstudio": {
                 "name": "lmstudio",
@@ -167,9 +176,13 @@ def build_wiring(ident, a2a, model):
             }
         },
     }
+    # DeepSeek fallback: only declared when its credentials/router wiring
+    # actually exists. Without DEEPSEEK_API_KEY (or a router URL), a declared
+    # fallback is a lie — auth would fail the same way the primary did. No
+    # credential => no fallback entry.
     chain = model.get("chain") or []
-    if len(chain) > 1:
-        # fallback_providers: list of {provider, model} tried when primary is exhausted
+    deepseek_key = os.environ.get("DEEPSEEK_API_KEY", "").strip()
+    if len(chain) > 1 and deepseek_key:
         config_override["fallback_providers"] = [
             {"provider": "deepseek", "model": "deepseek-v4-flash"}
             for c in chain[1:] if isinstance(c, str)
@@ -228,8 +241,10 @@ def wire(dry_run=True, force=False):
         print(f"[dry] would wire brick '{brick_id}' (person {person_id})")
         print(f"[dry]   .env: DISCORD_BOT_TOKEN={'<set>' if env_pairs.get('DISCORD_BOT_TOKEN') else '<MISSING>'} "
               f"DISCORD_ALLOWED_USERS={env_pairs['DISCORD_ALLOWED_USERS']} A2A_PORT={env_pairs['A2A_PORT']}")
-        print(f"[dry]   config.yaml: model={config_override['model']} "
-              f"providers.lmstudio={config_override['providers']['lmstudio']}")
+        print(f"[dry]   config.yaml: model={config_override['model']}")
+        print(f"[dry]   config.yaml: providers.lmstudio={config_override['providers']['lmstudio']}")
+        fbp = config_override.get('fallback_providers')
+        print(f"[dry]   config.yaml: fallback_providers={'<set>' if fbp else '<none — no DEEPSEEK_API_KEY>'}")
         print(f"[dry]   config.yaml: a2a_agents + platforms.a2a.extra"
               f"(enabled, advertised_toolsets={config_override['platforms']['a2a']['extra']['advertised_toolsets']})")
         print(f"[dry]   config.yaml: platform_toolsets.a2a={config_override['platform_toolsets']['a2a']} "
