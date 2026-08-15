@@ -17,3 +17,7 @@
 {"ts": "2026-08-15T20:30:34.051632Z", "op": "claim", "detail": "t017-engine-verify-002 claimer=worker-001 before-mutation", "outcome": "ok"}
 {"ts": "2026-08-15T20:30:34.056752Z", "op": "dispatch", "detail": "t017-engine-verify-002 brick=worker-001 did=2e0da4096ab43857 outcome=ok", "outcome": "ok"}
 {"ts": "2026-08-15T20:30:34.059369Z", "op": "mint", "detail": "t017-engine-verify-002 1 bananas before-mutation", "outcome": "ok"}
+{"ts": "2026-08-15T20:54:03.170318Z", "op": "claim", "detail": "plgn-credsan-001 claimer=worker-001 before-mutation", "outcome": "ok"}
+{"ts": "2026-08-15T20:54:46.333662Z", "op": "claim", "detail": "plgn-credsan-001 claimer=worker-001 before-mutation", "outcome": "ok"}
+{"ts": "2026-08-15T20:54:46.452643Z", "op": "dispatch", "detail": "plgn-credsan-001 brick=worker-001 did=994ae92e390983a3 outcome=ok", "outcome": "ok"}
+{"ts": "2026-08-15T20:54:46.455805Z", "op": "mint", "detail": "plgn-credsan-001 1 bananas before-mutation", "outcome": "ok"}

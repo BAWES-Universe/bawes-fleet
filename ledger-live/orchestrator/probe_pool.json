@@ -1,1 +1,1 @@
-{"probe-verify-001": {"expected_sha256": "ec79948f9255059831326607f627d81e85ec1680a8a9e26d15e12d72c069dad4", "card_types": ["probe", "verify"], "verify_mode": "vast-worker"}}
+{"probe-verify-001": {"expected_sha256": "ec79948f9255059831326607f627d81e85ec1680a8a9e26d15e12d72c069dad4", "card_types": ["probe", "verify"], "verify_mode": "vast-worker"}, "probe-credsan-001": {"expected_sha256": "4777a10f73b2e60ddcdf5f7d2bdab89a0f2370ba172da7ab72f54731c2d05830", "card_types": ["verify"], "verify_mode": "recompute"}}
