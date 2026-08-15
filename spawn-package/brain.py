@@ -4,7 +4,7 @@ the deepseek lane reasons, the receipt bills once. Usage:
   python3 brain.py "ask the brain anything"
 Prints the answer. $0.002/call, vaulted key, never leaves the router.
 """
-import json, subprocess, sys, urllib.request
+import json, os, subprocess, sys, urllib.request
 
 ROUTER = "http://127.0.0.1:3742"
 TOKEN_PATH = "/srv/bricks/router/tokens/ovh-server-001.token"
@@ -21,7 +21,27 @@ def _post(path, body, t=90):
     except Exception as e:
         return {"error": str(e)[:200]}
 
+def _retrieve(question, k=5):
+    """Search the fleet vector store — the AGI's memory (round-88: the AGI
+    was stateless; every call now carries fleet knowledge)."""
+    try:
+        import sys as _s
+        _s.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from fleet_vector_store import VectorStore
+        store = VectorStore(os.environ.get(
+            "VECTOR_STORE", "/srv/bricks/orchestrator/vector-store.json"))
+        return store.search(question, k=k)
+    except Exception as e:
+        return [{"topic": "retrieval", "text": f"[unavailable: {str(e)[:60]}]"}]
+
 def ask(question, max_tokens=400):
+    # RETRIEVAL FIRST — the AGI reasons WITH its memory, not from scratch (round-88)
+    hits = _retrieve(question)
+    memory = "\n".join(f"- ({h.get('topic','?')}) {h.get('text','')[:200]}" for h in hits)
+    sys_prompt = ("You are the BAWES fleet brain. Your verified memory follows. "
+                  "Use it; never relearn from scratch. Answer as the fleet's "
+                  "reasoning layer — decisive, honest, numbers-first.\n\n"
+                  f"FLEET MEMORY (retrieved):\n{memory}")
     route = _post("/route", {"quality": "routine"}, t=20)
     rec = route.get("route_receipt")
     if not rec:
@@ -29,7 +49,8 @@ def ask(question, max_tokens=400):
     inv = _post("/invoke", {
         "route_receipt": rec, "lane_id": "deepseek-api",
         "payload": {"model": MODEL, "max_tokens": max_tokens,
-                    "messages": [{"role": "user", "content": question}]},
+                    "messages": [{"role": "system", "content": sys_prompt},
+                                 {"role": "user", "content": question}]},
     }, t=90)
     try:
         return json.loads(inv["response"])["choices"][0]["message"]["content"]
