@@ -11,8 +11,15 @@ import json, os, pathlib, sys, time, urllib.request, urllib.error
 ORCH = "http://127.0.0.1:3743"   # dispatch / verify / match / roi (orchestrator identity)
 WORKER = "http://127.0.0.1:3744"  # claim / mint (worker-001 identity, F7 no-self-earn)
 ROOT = pathlib.Path("/srv/bricks")
-TOKEN = [l.split("=",1)[1].strip() for l in open(ROOT / "orchestrator/.env") if l.startswith("ORCH_TOKEN=")][0] if (ROOT/"orchestrator/.env").exists() else "0LOiQQ_J8wt6__V1NHtVPCwT0ps4K3Ot"
-WORKER_GRANT = "4195ff86b7e0fd662b9798a83dc0d96d"
+# credentials NEVER in git — read from the box's private env only (security round-86)
+TOKEN = ""
+for l in open(ROOT / "orchestrator/.env") if (ROOT/"orchestrator/.env").exists() else []:
+    if l.startswith("ORCH_TOKEN="):
+        TOKEN = l.split("=",1)[1].strip()
+        break
+if not TOKEN:
+    import os
+    TOKEN = os.environ.get("ORCH_TOKEN", "")
 
 def post(port_path, body, t=60):
     req = urllib.request.Request(port_path, data=json.dumps(body).encode(),
