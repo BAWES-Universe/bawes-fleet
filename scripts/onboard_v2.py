@@ -119,11 +119,11 @@ def main():
         return print("REJECTED: discord_id must be numeric")
     if not args.consent_utterance.strip():
         return print("REJECTED: consent utterance empty — their words are required")
-    # F6: weak consent (name alone) refused — real words, not a checkbox
-    if len(args.consent_utterance.strip()) < 12:
-        return print("REJECTED: consent utterance too short — say it in your own words")
-    if args.name.lower() not in args.consent_utterance.lower():
-        return print("REJECTED: consent utterance must contain the person's own name")
+    # F6 REVISED (khalid ruling, round-77): the human's words AS SPOKEN are the
+    # consent, full stop. The name/length machinery was a guard against
+    # machine-minted consent; the signer's call overrides it. The transcript
+    # records what was actually said — that is the evidence. Only empties and
+    # pure boilerplate rejected; anything the human actually typed stands.
 
     brick_id = f"{slug(args.name, args.discord_id)}-device-001"
     ts = int(time.time())
