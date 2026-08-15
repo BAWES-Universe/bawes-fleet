@@ -484,10 +484,18 @@ jobs:
           import snapshot as sn
           from cryptography.hazmat.primitives.asymmetric import ed25519 as _ed
           from cryptography.hazmat.primitives.ciphers.aead import AESGCM as _AESGCM
-          def _mkkey(p):
-              p.write_bytes(_ed.Ed25519PrivateKey.generate().private_bytes(
-                  serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
-                  serialization.NoEncryption()))
+          import subprocess as _sp
+          def _mkkey(p, ssh_format=True):
+              if ssh_format:
+                  # F2-R: REAL fleet key — ssh-keygen OpenSSH format
+                  r = _sp.run(["ssh-keygen", "-t", "ed25519", "-N", "", "-f", str(p)],
+                              capture_output=True, text=True)
+                  assert r.returncode == 0, r.stderr
+                  (pathlib.Path(str(p) + ".pub")).unlink()
+              else:
+                  p.write_bytes(_ed.Ed25519PrivateKey.generate().private_bytes(
+                      serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+                      serialization.NoEncryption()))
               os.chmod(p, 0o600)
           def _craft(snap_obj, files_map):
               payload = json.dumps({"v": 1, "ts": 1, "algo": snap_obj._algo,
@@ -566,6 +574,30 @@ jobs:
               assert "snapshot" in ops and "restore" in ops
               assert any(r["outcome"] == "rejected" for r in rows)
               assert b"bananas" not in blob and b"wallet" not in blob
-              print("SNAP-1..11: snapshot/resurrection PASS (ed25519, round-trip, tamper+forge rejected, empty-guards, traversal+absolute rejected, symlink skipped, atomic 700, audit, ciphertext-only)")
-          print("ALL SPAWN-PACKAGE PROBES: PASS (S1-S8 spawn, A1-A8 A2A, BANK-1..14 hindsight, BRIDGE-1..11, REG-1..16 capability, ROUTER-1..18, SNAP-1..11)")
+              # F4-R: rename-2 crash -> original rolled back, bank present, no residue
+              bd5 = td / "bank5"; bd5.mkdir(); (bd5 / "orig.txt").write_text("original")
+              s5 = sn.BrickSnapshot(bd5, kp, aud)
+              good5 = s5.snapshot()
+              _real_rename = os.rename
+              calls = {"n": 0}
+              def _flaky_rename(a, b):
+                  calls["n"] += 1
+                  if calls["n"] == 2:
+                      raise OSError("simulated crash at rename-2")
+                  return _real_rename(a, b)
+              os.rename = _flaky_rename
+              try:
+                  try:
+                      s5.restore(good5); raise SystemExit("SNAP-6 FAIL")
+                  except ValueError as e:
+                      assert "preserved" in str(e)
+                  assert (bd5 / "orig.txt").exists()
+                  assert not (td / "bank5.old").exists()
+                  assert not [p for p in td.iterdir() if ".snap-restore-" in p.name]
+              finally:
+                  os.rename = _real_rename
+              kp_pem = td / "id-pem"; _mkkey(kp_pem, ssh_format=False)
+              assert sn.BrickSnapshot(bd5, kp_pem, aud).snapshot()
+              print("SNAP-1..13: snapshot/resurrection PASS (ssh-keygen+PKCS8 keys, round-trip, tamper+forge rejected, empty-guards, traversal+absolute rejected, symlink skipped, crash-rollback, atomic 700, audit, ciphertext-only)")
+          print("ALL SPAWN-PACKAGE PROBES: PASS (S1-S8 spawn, A1-A8 A2A, BANK-1..14 hindsight, BRIDGE-1..11, REG-1..16 capability, ROUTER-1..18, SNAP-1..13)")
           PROBES

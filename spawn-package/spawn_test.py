@@ -39,7 +39,7 @@ def verify_signature(m: dict) -> str:
     """Real JWS ES256 verify over canonical payload, pinned key (mirror of brick_install L49-84)."""
     from cryptography.hazmat.primitives import hashes, serialization
     from cryptography.hazmat.primitives.asymmetric import ec, utils
-    ISSUER_KEYS = {"ci-test": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEahCRTnb6+M4tp988q9lS1I+KmgQF\nGl8p97+QtyUwqiNfCsGXjSNMDHHDmXOkSOLG/OQV+V9ncUI3+ShYrgPsSw==\n-----END PUBLIC KEY-----"}
+    ISSUER_KEYS = {"ci-test": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEFE7f7sHjsHnCKgaaw5OeZzfxjUET\nBTzsW00h50u3vhquTXo3nBbK9goVPGctQj3QjIFrHvBMMcv0eosk2H9nMw==\n-----END PUBLIC KEY-----"}
     try:
         sig = m.get("signature", {})
         issuer, val = sig.get("issuer", ""), sig.get("value", "")

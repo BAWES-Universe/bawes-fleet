@@ -54,8 +54,13 @@ class BrickSnapshot:
         self._load_key()
 
     def _load_key(self):
-        with open(self.identity_key_path, "rb") as f:
-            key = serialization.load_pem_private_key(f.read(), password=None)
+        raw = open(self.identity_key_path, "rb").read()
+        key = None
+        # F2-R: real fleet keys are ssh-keygen OpenSSH format — try that FIRST
+        try:
+            key = serialization.load_ssh_private_key(raw, password=None)
+        except (ValueError, TypeError):
+            key = serialization.load_pem_private_key(raw, password=None)
         if isinstance(key, ed25519.Ed25519PrivateKey):
             self._algo = ALGO_ED25519
             self._priv = key
@@ -160,10 +165,14 @@ class BrickSnapshot:
         except ValueError as e:
             self._log("restore", {"reason": str(e)}, outcome="rejected")
             raise
-        # F3: 0-file restore onto a NON-EMPTY bank = amnesia wipe — refuse
+        # F3: 0-file restore onto a NON-EMPTY bank = amnesia wipe — refuse.
+        # F4-R: also count bank.old (a crash at rename-2 preserves the original
+        # there — the guard must not let an empty restore destroy it).
+        def _file_count(p):
+            return len([x for x in (p.rglob("*") if p.exists() else []) if x.is_file()])
         if not safe:
-            existing = [p for p in (self.bank_dir.rglob("*") if self.bank_dir.exists() else [])
-                        if p.is_file()]
+            existing = _file_count(self.bank_dir) + _file_count(
+                self.bank_dir.with_name(self.bank_dir.name + ".old"))
             if existing and not force:
                 self._log("restore", {"reason": "empty snapshot onto non-empty bank"},
                           outcome="rejected")
@@ -188,11 +197,23 @@ class BrickSnapshot:
                 if old.exists():
                     shutil.rmtree(old, ignore_errors=True)
                 os.rename(str(self.bank_dir), str(old))
-            os.rename(str(tmp), str(self.bank_dir))
+            try:
+                os.rename(str(tmp), str(self.bank_dir))
+            except Exception:
+                # F4-R: rename-2 failed — roll the ORIGINAL back, never leave
+                # the bank missing or the original stranded
+                if old.exists() and not self.bank_dir.exists():
+                    os.rename(str(old), str(self.bank_dir))
+                shutil.rmtree(tmp, ignore_errors=True)
+                raise
             shutil.rmtree(old, ignore_errors=True)
         except Exception as e:
+            try:
+                shutil.rmtree(tmp, ignore_errors=True)   # F4-R2: never leak decrypted residue
+            except Exception:
+                pass
             self._log("restore", {"reason": f"wipe: {e}"}, outcome="error")
-            raise ValueError(f"restore failed, original bank untouched: {e}")
+            raise ValueError(f"restore failed (original data preserved): {e}")
         self._log("restore", {"files": len(safe)})
         return {"restored": len(safe)}
 
