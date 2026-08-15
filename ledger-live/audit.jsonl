@@ -1,0 +1,5 @@
+{"ts": "2026-08-15T10:51:40.744592Z", "op": "claim", "detail": "first-paid-task-001 claimer=worker-001 before-mutation", "outcome": "ok"}
+{"ts": "2026-08-15T10:52:31.890797Z", "op": "dispatch", "detail": "first-paid-task-001 brick=worker-001 did=39c34f0f9f08add0 outcome=ok", "outcome": "ok"}
+{"ts": "2026-08-15T10:52:31.893429Z", "op": "mint", "detail": "first-paid-task-001 1 bananas before-mutation", "outcome": "ok"}
+{"ts": "2026-08-15T16:08:44.093429Z", "op": "dispatch", "detail": "v20-ovh-001 brick=worker-001 did=44a217b1b0e2ea95 outcome=ok", "outcome": "ok"}
+{"ts": "2026-08-15T16:08:44.097491Z", "op": "dispatch", "detail": "v20-ovh-001 brick=worker-001 did=f167fd7c02e10669 outcome=ok", "outcome": "ok"}
