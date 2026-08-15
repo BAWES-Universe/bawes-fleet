@@ -393,6 +393,10 @@ class Orchestrator:
         costs, _ = _read(self.bank_dir / "ledger-cost-rows.log")
         roi = {}
         for w in wallet:
+            # earned = MINT rows only (card-bearing or kind=earn). Credits,
+            # gifts, seeds are NOT earnings (round-45/79: credit != earn).
+            if not (w.get("kind") == "earn" or "card_id" in w):
+                continue
             b = w.get("brick_id", "?")
             d = roi.setdefault(b, {"earned_bananas": 0, "cost_rows": 0, "roi": 0})
             d["earned_bananas"] += w.get("bananas", 0)

@@ -67,7 +67,8 @@ def discover(reg_dir: pathlib.Path, orch_dir: pathlib.Path, cap_file: pathlib.Pa
         "live_bricks": len(live_bricks),
         "verified_claims": len(verified_claims),
         "brain_topics": len(store_topics),
-        "wallet_earn_rows": sum(1 for w in wallet if w.get("kind") == "earn"),
+        "wallet_earn_rows": sum(1 for w in wallet
+                                if w.get("kind") == "earn" or "card_id" in w),
         "open_cards": len(open_cards),
         "cards": cards,
         "note": "empty cards = honest no-demand, never fabricated (scar doctrine)",
