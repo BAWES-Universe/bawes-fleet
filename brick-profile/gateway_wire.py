@@ -57,13 +57,46 @@ def write_env(env_path, pairs):
 
 
 def _deep_merge(base, override):
-    """Recursive dict merge (override wins; lists replace)."""
-    for k, v in override.items():
-        if isinstance(v, dict) and isinstance(base.get(k), dict):
-            _deep_merge(base[k], v)
-        else:
-            base[k] = v
-    return base
+    """Recursive dict merge; override wins — EXCEPT list-valued keys that must
+    UNION (preserving existing Hermes settings is mandatory there).
+
+    Union paths (dotted): agent.disabled_toolsets, known_builtin_toolsets.<any
+    platform>, fallback_providers. Everything else: override wins (scalars,
+    dicts merge deep, lists replace — e.g. platform_toolsets.a2a is the
+    enforcement allow-list and MUST be exactly the signed profile's list,
+    never widened).
+    """
+    # exact dotted path, or prefix (e.g. "known_builtin_toolsets." matches any
+    # platform sub-key)
+    _UNION_LIST_PREFIXES = ("known_builtin_toolsets.",)
+    _UNION_LIST_EXACT = ("agent.disabled_toolsets", "fallback_providers")
+
+    def _path(prefix, key):
+        return f"{prefix}.{key}" if prefix else key
+
+    def _should_union(p):
+        return p in _UNION_LIST_EXACT or any(p.startswith(pre) for pre in _UNION_LIST_PREFIXES)
+
+    def _merge(dst, src, prefix=""):
+        for k, v in src.items():
+            p = _path(prefix, k)
+            if isinstance(v, dict) and isinstance(dst.get(k), dict):
+                _merge(dst[k], v, p)
+            elif isinstance(v, list) and isinstance(dst.get(k), list) and _should_union(p):
+                # union preserving order and existing entries (dedupe by str)
+                merged = []
+                seen = set()
+                for item in list(dst.get(k)) + v:
+                    sig = str(item)
+                    if sig not in seen:
+                        seen.add(sig)
+                        merged.append(item)
+                dst[k] = merged
+            else:
+                dst[k] = v
+        return dst
+
+    return _merge(base, override)
 
 
 def load_yaml(path):

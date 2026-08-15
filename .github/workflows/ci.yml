@@ -655,13 +655,23 @@ jobs:
           assert "b-b" in _roi and "?" not in _roi
           print("ORCH-1..10: orchestrator PASS (claim, match-rank, AA-gate, grant-only wire auth, exact trace, mint-dedup, done/, no self-earn, ROI attribution, 0600)")
           PROBES
-      - name: Brick profile — Discord probe UA + fail-closed regression
+      - name: Brick profile — Discord probe UA + fail-closed regression (Hermes 0.20.1)
         run: |
-          pip install -q pyyaml hermes-agent
+          pip install -q pyyaml cryptography
+          # AUTHORITATIVE: use the EXACT Hermes version Mishari runs
+          # (0.20.1 = tag v2026.8.13, commit f80f453). PyPI ships 0.19,
+          # which has no A2A plugin and a different toolset resolver —
+          # never proof for 0.20.1 behavior. Pin the tag, not "latest".
+          git clone --depth 1 --branch v2026.8.13 \
+            https://github.com/NousResearch/hermes-agent /tmp/hermes-0201
           python3 - <<'BPROBES'
           import json, os, sys, threading, time, urllib.request, urllib.error
           from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
           sys.path.insert(0, "brick-profile")
+          # exact 0.20.1 source (must win over any PyPI hermes-agent)
+          sys.path.insert(0, "/tmp/hermes-0201")
+          import hermes_cli
+          assert hermes_cli.__file__.startswith("/tmp/hermes-0201"), hermes_cli.__file__
           import brick_profile as bp
 
           # Mock Discord: requires a valid DiscordBot User-Agent on EVERY request.
@@ -905,8 +915,11 @@ jobs:
                   else: os.environ["BRICK_DISCORD_TOKEN"] = old_token
                   os.environ.pop("HERMES_HOME", None)
 
-          # 12. A2A-SPECIFIC: the bfl suppression must NOT leak to Discord/CLI —
-          #     known_builtin_toolsets.a2a is scoped to the a2a platform.
+          # 12. A2A-SPECIFIC + PRESERVATION: the bfl suppression must NOT leak
+          #     to Discord/CLI — known_builtin_toolsets.a2a is scoped to a2a.
+          #     Version-aware invariant: wiring changes discord's surface ONLY
+          #     by the documented global kanban disable; everything else the
+          #     user had on discord (incl. bfl on 0.20.x) is untouched.
           with tempfile.TemporaryDirectory() as td:
               scratch_root = _pl.Path(td)
               bp.ROOT = scratch_root
@@ -930,26 +943,51 @@ jobs:
               old_token = os.environ.get("BRICK_DISCORD_TOKEN")
               os.environ["BRICK_DISCORD_TOKEN"] = "tok-1234567890"
               try:
-                  assert gw5.wire(dry_run=False, force=True) == 0
+                  # baseline: user's pre-existing config with disabled_toolsets
+                  (home / "config.yaml").write_text(
+                      "agent:\n  disabled_toolsets: [memory, x_search]\n"
+                      "known_builtin_toolsets:\n  cli: [spotify]\n  a2a: [video]\n"
+                      "fallback_providers:\n  - provider: anthropic\n    model: claude-sonnet\n"
+                      "platforms:\n  discord:\n    enabled: true\n")
+                  # baseline discord surface (pre-wiring)
                   os.environ["HERMES_HOME"] = str(home)
-                  import hermes_cli.config as hcfg5
-                  cfg5 = hcfg5.load_config() or {}
+                  import hermes_cli.config as hcfg5b
                   from hermes_cli.tools_config import _get_platform_tools
-                  # a2a is exact; discord keeps bfl (suppression is a2a-scoped)
+                  baseline_discord = set(_get_platform_tools(hcfg5b.load_config() or {}, "discord"))
+                  assert gw5.wire(dry_run=False, force=True) == 0
+                  cfg5 = hcfg5b.load_config() or {}
+                  # a2a is exact
                   a2a_set = set(_get_platform_tools(cfg5, "a2a"))
                   assert a2a_set == {"web", "vision", "session_search"}, a2a_set
+                  # discord: unchanged EXCEPT global kanban disable
                   discord_set = set(_get_platform_tools(cfg5, "discord"))
-                  print("      discord enabled_toolsets (bfl kept):",
-                        "bfl" in discord_set, "| kanban (global off):", "kanban" in discord_set)
-                  assert "bfl" in discord_set, "bfl suppression leaked to discord"
+                  expected = baseline_discord - {"kanban"}
+                  print("      discord baseline:", sorted(baseline_discord))
+                  print("      discord wired:   ", sorted(discord_set))
+                  assert discord_set == expected, \
+                      f"discord surface changed beyond kanban disable: " \
+                      f"baseline={sorted(baseline_discord)} wired={sorted(discord_set)}"
+                  # preservation: existing disabled_toolsets unioned, not replaced
+                  disabled = (cfg5.get("agent") or {}).get("disabled_toolsets") or []
+                  assert "memory" in disabled and "x_search" in disabled, disabled
+                  assert "kanban" in disabled, disabled
+                  # known_builtin_toolsets preserved per platform (union)
+                  kbt = cfg5.get("known_builtin_toolsets") or {}
+                  assert "spotify" in (kbt.get("cli") or []), kbt
+                  assert "video" in (kbt.get("a2a") or []) and "bfl" in (kbt.get("a2a") or []), kbt
+                  # fallback_providers preserved (union)
+                  fb = cfg5.get("fallback_providers") or []
+                  fb_models = {f.get("model") for f in fb}
+                  assert "claude-sonnet" in fb_models and "deepseek-v4-flash" in fb_models, fb
               finally:
                   if old_token is None: os.environ.pop("BRICK_DISCORD_TOKEN", None)
                   else: os.environ["BRICK_DISCORD_TOKEN"] = old_token
                   os.environ.pop("HERMES_HOME", None)
 
-          print("BPROBE-1..12: Discord + model + identity-separation + REAL-HERMES-CONSUMER + "
-                "A2A-EXACT-SURFACE PASS (UA sent, model probes, "
+          print("BPROBE-1..12: Discord + model + identity-separation + REAL-HERMES-0.20.1-CONSUMER + "
+                "A2A-EXACT-SURFACE + PRESERVATION PASS (UA sent, model probes, "
                 "person_id != discord_user_id, ALLOWED_USERS=discord id, "
-                "missing-id fail-closed, hermes load_config resolves lmstudio + a2a, "
-                "a2a surface == web/vision/session_search exactly, bfl suppression a2a-scoped)")
+                "missing-id fail-closed, a2a surface == web/vision/session_search exactly, "
+                "discord unchanged except global kanban disable, existing "
+                "disabled_toolsets/known_builtin_toolsets/fallback_providers preserved)")
           BPROBES
