@@ -56,12 +56,18 @@ def real_verify_signature(ident):
     ok = bid == cfg.get("brick_id") and pid == str(cfg.get("person_id"))
     return ok, f"identity.json cross-check ({bid}/{pid})"
 
-def probe_discord(token, channel):
-    """Real Discord API check (DA finding 3: channel must actually respond)."""
+def probe_discord(token, channel, base_url="https://discord.com/api/v10"):
+    """Real Discord API check (DA finding 3: channel must actually respond).
+    Discord REQUIRES a valid User-Agent on every request — a missing/blank UA
+    is rejected with 403 before auth is even evaluated (urllib's default
+    'Python-urllib' UA is refused). Send a DiscordBot UA + bearer auth."""
     try:
         req = urllib.request.Request(
-            f"https://discord.com/api/v10/channels/{channel}",
-            headers={"Authorization": f"Bot {token}"})
+            f"{base_url}/channels/{channel}",
+            headers={
+                "Authorization": f"Bot {token}",
+                "User-Agent": "DiscordBot (https://github.com/BAWES-Universe/bawes-fleet, 1.0)",
+            })
         r = urllib.request.urlopen(req, timeout=15)
         d = json.load(r)
         return r.status == 200 and d.get("id") == str(channel), d.get("name", "")
