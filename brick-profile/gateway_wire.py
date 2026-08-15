@@ -102,6 +102,14 @@ def build_wiring(ident, a2a, model):
 
     token = os.environ.get("BRICK_DISCORD_TOKEN", "")
     peer_toolsets = a2a.get("peer_toolsets") or ["web", "vision", "session_search"]
+    reject = a2a.get("reject") or ["terminal", "code_execution", "memory", "file", "skill_manage"]
+
+    # Sanity: the allow-list must never include a rejected toolset. If the
+    # signed profile contradicts itself, fail closed rather than wire it.
+    overlap = set(peer_toolsets) & set(reject)
+    if overlap:
+        fail(f"a2a-policy.json contradiction: {sorted(overlap)} in both "
+             "peer_toolsets and reject")
 
     # ---- .env: Discord + A2A transport ---- 
     env_pairs = {
@@ -141,9 +149,18 @@ def build_wiring(ident, a2a, model):
             "extra": {
                 "enabled": True,
                 "port": A2A_PORT_DEFAULT,
-                "advertised_toolsets": peer_toolsets,  # read-only allow-list
+                "advertised_toolsets": peer_toolsets,  # agent-card claim (informational)
             }
         }
+    }
+    # REAL ENFORCEMENT: platform_toolsets.a2a is what the gateway resolves at
+    # session build (gateway/run.py _get_platform_tools(platform_key)) to set
+    # the inbound session's enabled_toolsets. Everything NOT in this list —
+    # terminal, code_execution, memory, file, skill_manage, ... — is
+    # unreachable by an inbound A2A request, because the session is built
+    # with exactly these toolsets and nothing else.
+    config_override["platform_toolsets"] = {
+        "a2a": peer_toolsets,
     }
 
     return env_pairs, config_override
@@ -166,6 +183,8 @@ def wire(dry_run=True, force=False):
               f"providers.lmstudio={config_override['providers']['lmstudio']}")
         print(f"[dry]   config.yaml: a2a_agents + platforms.a2a.extra"
               f"(enabled, advertised_toolsets={config_override['platforms']['a2a']['extra']['advertised_toolsets']})")
+        print(f"[dry]   config.yaml: platform_toolsets.a2a={config_override['platform_toolsets']['a2a']} "
+              f"(ENFORCED — the inbound session's enabled_toolsets)")
         print("[dry] nothing written")
         return 0
 
