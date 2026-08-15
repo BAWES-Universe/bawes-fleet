@@ -186,6 +186,11 @@ def main():
     ap = argparse.ArgumentParser(description="brick-install v1 — manifest -> live brick")
     ap.add_argument("manifest", help="path to the signed brick manifest (JSON)")
     ap.add_argument("--root", default=BRICK_ROOT, help="brick root dir")
+    ap.add_argument("--sign-consent", metavar="NAME", default="",
+                    help="HUMAN-DRIVEN sign step: the person types their own name; "
+                         "the consent marker flips to signed and the manifest is "
+                         "re-signed with the issuer key (DA F1). Install refuses "
+                         "to run before this step.")
     args = ap.parse_args()
     global ROOT
     ROOT = args.root
@@ -194,6 +199,61 @@ def main():
         m = json.load(f)
     verify_manifest(m)
     log(f"manifest verified: {m.get('brick_id')} (signed, v{m.get('manifest_version')})")
+
+    # DA F1 (CRIT): HUMAN-DRIVEN consent sign step. The person's own name is
+    # required; the marker flips pending->signed; the manifest is RE-SIGNED so
+    # the pinned-key check still passes. This is the human's pen, not machinery.
+    if args.sign_consent:
+        name = args.sign_consent.strip()
+        if not name or len(name) < 2:
+            raise SystemExit("REJECTED: sign-consent needs the person's real name (2+ chars)")
+        if not re.fullmatch(r"[A-Za-z0-9 _.'-]+", name):
+            raise SystemExit("REJECTED: invalid characters in sign-consent name")
+        m.setdefault("consent", {})["status"] = "signed"
+        m["consent"]["signed_by"] = name
+        m["consent"]["ts"] = time.time()
+        # re-sign: the issuer key lives beside this script's repo? No — it must
+        # NOT ship to devices. Fail closed: consent can only be re-signed where
+        # the issuer key is available (khalid's signing box or relay).
+        keypath = os.environ.get("BAWES_ISSUER_KEY", "")
+        if not keypath or not os.path.exists(keypath):
+            raise SystemExit(
+                "REJECTED: issuer key not available — consent re-signing happens on "
+                "the signing box (BAWES_ISSUER_KEY env), never on the device. "
+                "Send the signed manifest to khalid for the consent re-sign.")
+        from cryptography.hazmat.primitives import serialization
+        with open(keypath, "rb") as kf:
+            key = serialization.load_pem_private_key(kf.read(), password=None)
+        body = {k: v for k, v in m.items() if k != "signature"}
+        payload = json.dumps(body, sort_keys=True, separators=(",", ":")).encode()
+        payload_b64 = base64.urlsafe_b64encode(payload).rstrip(b"=").decode()
+        hdr_b64 = base64.urlsafe_b64encode(
+            json.dumps({"alg": "ES256"}).encode()).rstrip(b"=").decode()
+        from cryptography.hazmat.primitives import hashes
+        from cryptography.hazmat.primitives.asymmetric import ec, utils
+        der = key.sign(f"{hdr_b64}.{payload_b64}".encode(), ec.ECDSA(hashes.SHA256()))
+        r, s = utils.decode_dss_signature(der)
+        sig = r.to_bytes(32, "big") + s.to_bytes(32, "big")
+        m["signature"] = {"value": f"{hdr_b64}.{payload_b64}."
+                                   f"{base64.urlsafe_b64encode(sig).rstrip(b'=').decode()}",
+                          "issuer": "khalid", "alg": "ES256", "ts": time.time()}
+        with open(args.manifest, "w") as f:
+            json.dump(m, f, indent=1)
+        verify_manifest(m)  # self-check: still verifies against pinned key
+        log(f"consent SIGNED by {name} + manifest re-signed (still verifies). "
+            f"Now run install WITHOUT --sign-consent.")
+        return
+
+    # DA F1: consent gate — the 16-rule sign is a REAL mechanism, fail-closed.
+    consent = m.get("consent") or {}
+    if consent.get("status") != "signed":
+        raise SystemExit(
+            "REJECTED: consent not signed (16 rules) — the person must sign their "
+            "own consent BEFORE install (--sign-consent 'Their Name' on the signing "
+            "box). This brick does not activate on machinery alone (Zeus V-5).")
+    if not consent.get("signed_by") or not consent.get("ts"):
+        raise SystemExit("REJECTED: consent marker incomplete (signed_by/ts missing)")
+    log(f"consent: SIGNED by {consent['signed_by']}")
 
     # round-33 finding 7 (no-overwrite, rule 2): refuse to install over a live brick
     if os.path.exists(f"{ROOT}/identity.json"):

@@ -7,7 +7,7 @@ CONSENT HARD RULE (Zeus round-66 V-5): the human's 16-rule sign is NEVER
 automated or skipped. This tool prints the install command and the rules;
 the brick activates only after the human's real sign. The 30s is machinery,
 the person's own pen is their boundary."""
-import argparse, base64, hashlib, json, os, pathlib, secrets, sys, time
+import argparse, base64, hashlib, json, os, pathlib, re, secrets, sys, time
 
 KEYPAIR = "/root/.hermes/keys/khalid-issuer-private.pem"
 MANIFESTS = "/tmp/bawes-fleet/brick-packages"
@@ -53,6 +53,23 @@ def main():
     ap.add_argument("--out", default=MANIFESTS)
     args = ap.parse_args()
 
+    # DA F4: hostile name/slug validation — reject before anything is written
+    if not re.fullmatch(r"[A-Za-z0-9 _.'-]+", args.name):
+        raise SystemExit(f"REJECTED: name contains invalid characters: {args.name!r}")
+    if "/" in args.name or ";" in args.name or "`" in args.name or "$" in args.name:
+        raise SystemExit(f"REJECTED: name contains shell-metacharacters: {args.name!r}")
+
+    # DA F5: discord_id dedup — one brick per human, ever
+    if os.path.exists(args.allowlist):
+        with open(args.allowlist) as f:
+            for line in f:
+                if line.strip():
+                    row = json.loads(line)
+                    if str(row.get("discord_id")) == str(args.discord_id):
+                        raise SystemExit(
+                            f"REJECTED: discord_id {args.discord_id} already onboarded "
+                            f"as {row.get('brick_id')} — one brick per human (DA F5)")
+
     pid = args.person_id or args.discord_id
     brick_id = f"{args.name.lower().replace(' ', '-')}-device-001"
     slug = f"{args.name.lower().replace(' ', '-')}"
@@ -71,6 +88,7 @@ def main():
         "seeded_knowledge": [],
         "backlog": [],
         "wallet_ref": f"banana-bank/wallet-{brick_id}.jsonl",
+        "consent": {"status": "pending-16-rules", "signed_by": "", "ts": 0},
         "resource_links": [{"name": "queue",
                             "url": "git@github.com:BAWES-Universe/orbit-browser.git",
                             "branch": "queue", "readonly": True}],
@@ -94,15 +112,20 @@ def main():
            "name": args.name, "ts": time.time(), "consent": "pending-16-rules"}
     with open(args.allowlist, "a") as f:
         f.write(json.dumps(row) + "\n")
+    os.chmod(args.allowlist, 0o600)  # DA F6: names+Discord IDs at rest
     log(f"allowlist -> {args.allowlist}")
 
     # 4. the ONE install command (human runs it; brick activates AFTER their sign)
+    # DA F3: command must match the installer's real CLI (positional manifest).
     cmd = (f"git clone {INSTALL_REPO} && cd bawes-fleet && "
-           f"python3 scripts/brick_install.py --manifest brick-packages/manifest-{brick_id}.json "
-           f"--confirm")
+           f"python3 scripts/brick_install.py brick-packages/manifest-{brick_id}.json "
+           f"--root ~/.bawes/{brick_id}")
     log("=" * 56)
     log(f"BRICK READY: {brick_id}")
-    log(f"INSTALL COMMAND (run on YOUR device):")
+    log(f"SIGN STEP (run on YOUR device — your name, your pen):")
+    log(f"python3 scripts/brick_install.py brick-packages/manifest-{brick_id}.json "
+        f"--sign-consent 'Your Full Name'")
+    log(f"THEN INSTALL:")
     log(cmd)
     log("=" * 56)
     log("REMEMBER: read the 16 rules, sign them yourself, THEN run the command.")
