@@ -480,5 +480,62 @@ jobs:
               for f in ["lanes.jsonl", "ledger.jsonl", "audit.jsonl"]:
                   assert (st / f).stat().st_mode & 0o777 == 0o600
               print("ROUTER-1..16: token router PASS (SSRF blocked, cost floor, vaulted+700/600, endpoints hidden, bill-once invoke, quality floor, owner-only, instant revoke, 503, audit, 0600)")
-          print("ALL SPAWN-PACKAGE PROBES: PASS (S1-S8 spawn, A1-A8 A2A, BANK-1..14 hindsight, BRIDGE-1..11, REG-1..16 capability, ROUTER-1..16)")
+          # ---- snapshot/resurrection probes (T-UNIVERSE-020: sign+encrypt, tamper reject, round-trip) ----
+          import snapshot as sn
+          from cryptography.hazmat.primitives.asymmetric import ec as _ec
+          with tempfile.TemporaryDirectory() as td:
+              bd = pathlib.Path(td) / "bank"; bd.mkdir()
+              (bd / "wallet.jsonl").write_text(json.dumps({"ts": 1, "bananas": 5}) + "\n")
+              os.chmod(bd / "wallet.jsonl", 0o600)
+              kp = pathlib.Path(td) / "id.pem"
+              kp.write_bytes(_ec.generate_private_key(_ec.SECP256R1()).private_bytes(
+                  serialization.Encoding.PEM,
+                  serialization.PrivateFormat.PKCS8,
+                  serialization.NoEncryption()))
+              os.chmod(kp, 0o600)
+              aud = pathlib.Path(td) / "audit.jsonl"
+              s1 = sn.BrickSnapshot(bd, kp, aud)
+              blob = s1.snapshot()
+              assert blob and len(blob) > 100
+              # round-trip: wipe bank, restore, identical
+              shutil.rmtree(bd)
+              s2 = sn.BrickSnapshot(bd, kp, aud)
+              res = s2.restore(blob)
+              assert res["restored"] == 1
+              assert (bd / "wallet.jsonl").read_text() == json.dumps({"ts": 1, "bananas": 5}) + "\n"
+              assert (bd / "wallet.jsonl").stat().st_mode & 0o777 == 0o600
+              # TAMPERED blob rejected (flip a byte in ct)
+              obj = json.loads(blob)
+              ct = bytearray(bytes.fromhex(obj["ct"])); ct[10] ^= 0xFF
+              obj["ct"] = bytes(ct).hex()
+              tampered = json.dumps(obj).encode()
+              try:
+                  s2.restore(tampered)
+                  raise SystemExit("SNAP-1 FAIL: tampered snapshot restored")
+              except ValueError as e:
+                  assert "decryption" in str(e) or "auth-tag" in str(e) or "signature" in str(e)
+              # FORGED signature (wrong key signs) rejected
+              kp2 = pathlib.Path(td) / "id2.pem"
+              kp2.write_bytes(_ec.generate_private_key(_ec.SECP256R1()).private_bytes(
+                  serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+                  serialization.NoEncryption()))
+              s_forge = sn.BrickSnapshot(bd, kp2, aud)
+              forged = s_forge.snapshot()   # same bank, different identity
+              try:
+                  s2.restore(forged)
+                  raise SystemExit("SNAP-2 FAIL: forged snapshot accepted")
+              except ValueError as e:
+                  assert "signature" in str(e) or "decryption" in str(e)
+              # dry-run: verifies but does not touch disk
+              (bd / "extra.txt").write_text("keep me")
+              dr = s2.restore(blob, dry_run=True)
+              assert dr["dry_run"] and (bd / "extra.txt").exists()
+              # audit has snapshot + restore rows
+              if aud.exists():
+                  ops = [json.loads(l)["op"] for l in aud.read_text().splitlines()]
+                  assert "snapshot" in ops and "restore" in ops
+              # snapshot blob is encrypted: plaintext bananas NEVER visible
+              assert b"bananas" not in blob and b"wallet" not in blob
+              print("SNAP-1..8: snapshot/resurrection PASS (round-trip, tamper+forge rejected, dry-run, atomic, 0600, audit, ciphertext-only)")
+          print("ALL SPAWN-PACKAGE PROBES: PASS (S1-S8 spawn, A1-A8 A2A, BANK-1..14 hindsight, BRIDGE-1..11, REG-1..16 capability, ROUTER-1..18, SNAP-1..8)")
           PROBES
