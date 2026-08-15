@@ -659,7 +659,7 @@ jobs:
         run: |
           pip install -q pyyaml
           python3 - <<'BPROBES'
-          import json, sys, threading, time, urllib.request, urllib.error
+          import json, os, sys, threading, time, urllib.request, urllib.error
           from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
           sys.path.insert(0, "brick-profile")
           import brick_profile as bp
@@ -747,5 +747,66 @@ jobs:
           assert not mok2 and "NOT found" in mdetail2, (mok2, mdetail2)
           msrv2.shutdown()
 
-          print("BPROBE-1..7: Discord probe + model probe PASS (UA sent, 200 verified, 401/403/empty fail closed, model hit, unreachable+missing fail closed)")
+          # 8. IDENTITY SEPARATION: apply -> identity.json -> wire() must keep
+          #    person_id and discord_user_id distinct; DISCORD_ALLOWED_USERS gets
+          #    the Discord ID, never the person_id.
+          import tempfile, pathlib as _pl
+          with tempfile.TemporaryDirectory() as td:
+              scratch_root = _pl.Path(td)
+              bp.ROOT = scratch_root            # apply writes into scratch, not the repo
+              outdir = scratch_root / "out"; outdir.mkdir()
+              # apply writes identity.json with BOTH fields (person 231861, discord 231861753082937346)
+              bp.apply_profile({"brick_id": "mishari-device-001", "person_id": "231861",
+                                "discord_user_id": "231861753082937346", "wallet_ref": "w",
+                                "a2a": {"peer_toolsets": ["web"], "reject": ["terminal"],
+                                        "enforce_read_only": True},
+                                "model": {"primary": "http://127.0.0.1:1", "default_model": "m"}},
+                               {"manifest": {"model_chain": ["local"]}})
+              import shutil as _sh
+              scratch = _pl.Path(td) / "brick-profile"; scratch.mkdir()
+              _sh.copytree(outdir, scratch / "out")
+              import gateway_wire as gw
+              gw.OUT = scratch / "out"
+              home = _pl.Path(td) / "hermes-home"; home.mkdir()
+              gw.HERMES_DIR = home; gw.CONFIG = home / "config.yaml"; gw.ENV = home / ".env"
+              old_token = os.environ.get("BRICK_DISCORD_TOKEN")
+              os.environ["BRICK_DISCORD_TOKEN"] = "tok-1234567890"
+              try:
+                  rc = gw.wire(dry_run=False, force=True)
+                  assert rc == 0, rc
+                  env_text = gw.ENV.read_text()
+                  assert "DISCORD_ALLOWED_USERS=231861753082937346" in env_text, env_text
+                  assert "231861753082937346" in env_text and "PERSON_ID=231861" in env_text
+                  # separation: the person_id value must NOT appear as an allowed user
+                  assert "ALLOWED_USERS=231861\n" not in env_text and \
+                         "ALLOWED_USERS=231861 " not in env_text, env_text
+                  cfg_text = gw.CONFIG.read_text()
+                  assert "BRICK-A2A" in cfg_text and "BRICK-MODEL" in cfg_text
+              finally:
+                  if old_token is None: os.environ.pop("BRICK_DISCORD_TOKEN", None)
+                  else: os.environ["BRICK_DISCORD_TOKEN"] = old_token
+
+          # 9. FAIL-CLOSED: missing discord_user_id -> wire() refuses (never infers)
+          import io, contextlib
+          with tempfile.TemporaryDirectory() as td:
+              outdir = _pl.Path(td) / "out"; outdir.mkdir()
+              (outdir / "identity.json").write_text(json.dumps(
+                  {"brick_id": "x", "person_id": "231861", "wallet_ref": "w"}))  # NO discord_user_id
+              (outdir / "a2a-policy.json").write_text(json.dumps({"reject": ["terminal"]}))
+              (outdir / "model.json").write_text(json.dumps({"primary": "http://127.0.0.1:1"}))
+              import gateway_wire as gw2
+              gw2.OUT = outdir
+              captured = io.StringIO()
+              try:
+                  with contextlib.redirect_stdout(captured):
+                      gw2.wire(dry_run=True)
+                  raise SystemExit("WIRE-9 FAIL: missing discord_user_id accepted (inferred)")
+              except SystemExit as e:
+                  if str(e) == "WIRE-9 FAIL":
+                      raise
+                  assert "discord_user_id" in captured.getvalue(), \
+                      "expected fail message, got: " + captured.getvalue()
+
+          print("BPROBE-1..9: Discord + model + identity-separation PASS (UA sent, model probes, "
+                "person_id != discord_user_id, ALLOWED_USERS=discord id, missing-id fail-closed)")
           BPROBES

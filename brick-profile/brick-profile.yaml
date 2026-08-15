@@ -1,6 +1,7 @@
 profile_version: 1
 brick_id: mishari-device-001
 person_id: '231861'
+discord_user_id: '231861753082937346'   # Discord identity — SEPARATE from person_id; never inferred
 wallet_ref: wallet-mishari
 discord:
   token_env: BRICK_DISCORD_TOKEN

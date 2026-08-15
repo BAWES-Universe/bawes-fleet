@@ -57,15 +57,19 @@ def wire(dry_run=True, force=False):
 
     brick_id = ident.get("brick_id")
     person_id = ident.get("person_id")
+    discord_user_id = ident.get("discord_user_id")
     if not brick_id or not person_id:
         fail("identity.json missing brick_id/person_id")
+    if not discord_user_id:
+        fail("identity.json missing discord_user_id — Discord identity is explicit, "
+             "never inferred from person_id")
 
     # ---- 1. .env: Discord token + allowed users (A2A enforcement target) ----
     token = os.environ.get("BRICK_DISCORD_TOKEN", "")
     if not token and not force:
         fail("BRICK_DISCORD_TOKEN not set (and no --force) — brick can't speak")
-    users = a2a.get("allowed_users") or [person_id]
-    pairs = {"BRICK_ID": brick_id, "PERSON_ID": person_id}
+    users = [discord_user_id]
+    pairs = {"BRICK_ID": brick_id, "PERSON_ID": person_id, "DISCORD_USER_ID": discord_user_id}
     if token:
         pairs["DISCORD_BOT_TOKEN"] = token
     pairs["DISCORD_ALLOWED_USERS"] = ",".join(str(u) for u in users)

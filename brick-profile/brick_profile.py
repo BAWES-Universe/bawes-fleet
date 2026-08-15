@@ -114,6 +114,7 @@ def apply_profile(cfg, ident):
     # identity block (from installer's crypto-gated output, never plaintext manifest)
     (out_dir / "identity.json").write_text(json.dumps({
         "brick_id": cfg.get("brick_id"), "person_id": cfg.get("person_id"),
+        "discord_user_id": cfg.get("discord_user_id"),
         "wallet_ref": cfg.get("wallet_ref")}))
     # A2A read-only policy — actual policy artifact the gateway consumes (DA finding 1)
     (out_dir / "a2a-policy.json").write_text(json.dumps({
