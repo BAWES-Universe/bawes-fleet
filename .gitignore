@@ -13,6 +13,8 @@ raw-data/
 *.sql
 *.csv
 *.jsonl
+# EXCEPTION: the live ledger is the economy's truth — never ignored, always backed up
+!ledger-live/
 
 # Tooling noise
 .venv/
