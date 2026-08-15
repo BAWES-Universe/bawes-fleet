@@ -1,0 +1,19 @@
+{"ts": "2026-08-15T10:51:40.744592Z", "op": "claim", "detail": "first-paid-task-001 claimer=worker-001 before-mutation", "outcome": "ok"}
+{"ts": "2026-08-15T10:52:31.890797Z", "op": "dispatch", "detail": "first-paid-task-001 brick=worker-001 did=39c34f0f9f08add0 outcome=ok", "outcome": "ok"}
+{"ts": "2026-08-15T10:52:31.893429Z", "op": "mint", "detail": "first-paid-task-001 1 bananas before-mutation", "outcome": "ok"}
+{"ts": "2026-08-15T16:08:44.093429Z", "op": "dispatch", "detail": "v20-ovh-001 brick=worker-001 did=44a217b1b0e2ea95 outcome=ok", "outcome": "ok"}
+{"ts": "2026-08-15T16:08:44.097491Z", "op": "dispatch", "detail": "v20-ovh-001 brick=worker-001 did=f167fd7c02e10669 outcome=ok", "outcome": "ok"}
+{"ts": "2026-08-15T20:10:32.932510Z", "op": "dispatch", "detail": "t017-engine-verify-001 brick=worker-001 did=5e53469e1f659802 outcome=ok", "outcome": "ok"}
+{"ts": "2026-08-15T20:11:19.075891Z", "op": "dispatch", "detail": "t017-engine-verify-001 brick=worker-001 did=d9d2bbdc5c1b90f5 outcome=ok", "outcome": "ok"}
+{"ts": "2026-08-15T20:11:25.612534Z", "op": "dispatch", "detail": "t017-engine-verify-001 brick=worker-001 did=e52b1ea4ed531e4e outcome=ok", "outcome": "ok"}
+{"ts": "2026-08-15T20:13:35.502084Z", "op": "claim", "detail": "t017-engine-verify-001 claimer=worker-001 before-mutation", "outcome": "ok"}
+{"ts": "2026-08-15T20:16:02.032377Z", "op": "dispatch", "detail": "t017-engine-verify-001 brick=worker-001 did=a0c71f25b6cf536d outcome=ok", "outcome": "ok"}
+{"ts": "2026-08-15T20:16:13.757039Z", "op": "dispatch", "detail": "t017-engine-verify-001 brick=worker-001 did=071d2c895c3986df outcome=ok", "outcome": "ok"}
+{"ts": "2026-08-15T20:18:00.250382Z", "op": "dispatch", "detail": "t017-engine-verify-001 brick=worker-001 did=bd3f2cec670862b8 outcome=ok", "outcome": "ok"}
+{"ts": "2026-08-15T20:18:00.254233Z", "op": "mint", "detail": "t017-engine-verify-001 1 bananas before-mutation", "outcome": "ok"}
+{"ts": "2026-08-15T20:30:04.424931Z", "op": "dispatch", "detail": "t017-engine-verify-001 brick=worker-001 did=bb2caf7df95d637e outcome=ok", "outcome": "ok"}
+{"ts": "2026-08-15T20:30:15.999703Z", "op": "claim", "detail": "t017-engine-verify-001 claimer=worker-001 before-mutation", "outcome": "ok"}
+{"ts": "2026-08-15T20:30:16.006563Z", "op": "dispatch", "detail": "t017-engine-verify-001 brick=worker-001 did=b8e3311594771218 outcome=ok", "outcome": "ok"}
+{"ts": "2026-08-15T20:30:34.051632Z", "op": "claim", "detail": "t017-engine-verify-002 claimer=worker-001 before-mutation", "outcome": "ok"}
+{"ts": "2026-08-15T20:30:34.056752Z", "op": "dispatch", "detail": "t017-engine-verify-002 brick=worker-001 did=2e0da4096ab43857 outcome=ok", "outcome": "ok"}
+{"ts": "2026-08-15T20:30:34.059369Z", "op": "mint", "detail": "t017-engine-verify-002 1 bananas before-mutation", "outcome": "ok"}

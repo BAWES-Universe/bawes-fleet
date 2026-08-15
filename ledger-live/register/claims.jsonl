@@ -1,0 +1,1 @@
+{"topic": "brick alive bar", "topic_hash": "b0e15bb48a761d48e20ca59beeb1f1a0648564f8d7971d97bd606076ddabcdeb", "capability": "brick fully alive when heartbeat+registry+A2A 3/3 pass", "receipt_ids": ["T-UNIVERSE-010"], "source_brick": "ovh-server-001", "bridge_ref": "", "status": "claimed", "best_score": null, "ts": 1786747774}
