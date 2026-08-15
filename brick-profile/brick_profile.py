@@ -83,8 +83,8 @@ def probe_model(cfg):
     if not ep or not dm:
         return False, "model.primary / model.default_model unset"
     try:
-        req = urllib.request.Request(f"{ep}/models", timeout=10)
-        r = urllib.request.urlopen(req)
+        req = urllib.request.Request(f"{ep}/models")
+        r = urllib.request.urlopen(req, timeout=10)
         body = json.load(r)
         ids = [m.get("id", "") for m in body.get("data", [])]
         hit = dm in ids or any(dm in i for i in ids)
