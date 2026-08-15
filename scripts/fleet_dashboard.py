@@ -28,14 +28,16 @@ def rows(p):
     return out
 
 def wallet(pid):
-    b = {"earned": 0, "spent": 0, "credit": 0}
+    b = {"earned": 0, "spent": 0, "credit": 0, "seed": 0}
     for r in rows(REG / "wallet.jsonl"):
         if r.get("person_id") != pid: continue
         if r.get("kind") == "earn": b["earned"] += r.get("bananas", 0)
         elif r.get("kind") == "spend": b["spent"] += r.get("bananas", 0)
+        elif r.get("kind") == "founder-seed" and r.get("state") == "open":
+            b["seed"] += r.get("bananas", 0)
         elif r.get("kind") == "credit" and r.get("state") == "open":
             b["credit"] += r.get("bananas", 0)
-    b["available"] = b["earned"] - b["spent"] + b["credit"]
+    b["available"] = b["earned"] - b["spent"] + b["credit"] + b["seed"]
     return b
 
 def achievements(pid):
