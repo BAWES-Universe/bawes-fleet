@@ -71,5 +71,12 @@ Every brick owner gets a **free quota of N tasks** (a concrete starter number) �
 3. **BYOC** — bring your OWN LLM/compute (owner supplies own model/hardware → reduces their hosting cost to near-zero; open-source/forkable).
 If none: brick goes cold ($0 idle) then reaped. Free entry ≠ free forever — free quota, then earn/pay/BYOC. N (the free quota size) = a parameter to set via economist+DA, then khalid ok/no.
 
+## Brick lifecycle (khalid, binding — cold/dead/churn/return, for scale)
+- **Warm** — active, serving/earning (or in free quota).
+- **Cold** — idle after N days inactive → $0 compute, context FROZEN (profile/data/history preserved, never deleted).
+- **Dead/reaped** — after M more days cold + not earning → brick off, but context ARCHIVED (round-97: member owns context+data+delete/revive).
+- **Return** — a churned member comes back → brick REVIVED from archive with context intact (no re-onboarding from scratch).
+Scale: cold/dead = $0 compute + cheap storage (context is a small blob). Millions of cold bricks = millions of tiny blobs, near-zero cost. Graceful degradation + graceful return — churn is painless, return is instant.
+
 ## Milestones (verified catches, not prose)
 - **@f23a47a** — TEAM CYCLE SAVED THE VAULT: DA(OBJECT)+Rebel(DISSENT) caught a CRITICAL open vault-write on shipped code (POST /put accepted any key, no token). 10 findings fixed, 8/8 tests green, live 403 probes verified. First time the critics blocked a real security bug before a key was pasted. Vault now safe for staff ingestion.
