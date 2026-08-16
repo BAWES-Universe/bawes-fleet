@@ -958,24 +958,27 @@ jobs:
                       "known_builtin_toolsets:\n  cli: [spotify]\n  a2a: [video]\n"
                       "fallback_providers:\n  - provider: anthropic\n    model: claude-sonnet\n"
                       "platforms:\n  discord:\n    enabled: true\n")
-                  # baseline discord surface (pre-wiring)
                   os.environ["HERMES_HOME"] = str(home)
                   import hermes_cli.config as hcfg5b
                   from hermes_cli.tools_config import _get_platform_tools
-                  baseline_discord = set(_get_platform_tools(hcfg5b.load_config() or {}, "discord"))
                   assert gw5.wire(dry_run=False, force=True) == 0
                   cfg5 = hcfg5b.load_config() or {}
                   # a2a is exact
                   a2a_set = set(_get_platform_tools(cfg5, "a2a"))
                   assert a2a_set == {"web", "vision", "session_search"}, a2a_set
-                  # discord: unchanged EXCEPT global kanban disable
+                  # discord: SLIM surface == signed allow-list exactly (the
+                  # brick's own channel gets the same permission-gated surface
+                  # as inbound A2A — no terminal/file/cronjob/skills schemas
+                  # on every trivial turn; capabilities stay gated, not removed)
                   discord_set = set(_get_platform_tools(cfg5, "discord"))
-                  expected = baseline_discord - {"kanban"}
-                  print("      discord baseline:", sorted(baseline_discord))
                   print("      discord wired:   ", sorted(discord_set))
-                  assert discord_set == expected, \
-                      f"discord surface changed beyond kanban disable: " \
-                      f"baseline={sorted(baseline_discord)} wired={sorted(discord_set)}"
+                  assert discord_set == {"web", "vision", "session_search"}, \
+                      f"discord surface not exactly the signed list: {sorted(discord_set)}"
+                  assert "terminal" not in discord_set and "file" not in discord_set, discord_set
+                  assert "cronjob" not in discord_set and "skills" not in discord_set, discord_set
+                  # cli keeps the full core surface (capabilities NOT removed)
+                  cli_set = set(_get_platform_tools(cfg5, "cli"))
+                  assert "terminal" in cli_set and "file" in cli_set and "cronjob" in cli_set, cli_set
                   # preservation: existing disabled_toolsets unioned, not replaced
                   disabled = (cfg5.get("agent") or {}).get("disabled_toolsets") or []
                   assert "memory" in disabled and "x_search" in disabled, disabled
@@ -1091,9 +1094,72 @@ jobs:
                   else: os.environ["DEEPSEEK_API_KEY"] = old_deepseek
                   os.environ.pop("HERMES_HOME", None)
 
-          print("BPROBE-1..13: Discord + model + identity + REAL-0.20.1-CONSUMER + "
-                "A2A-EXACT + PRESERVATION + RUNTIME-MODEL-PROOF PASS "
+          # 14. SLIM-PROMPT REGRESSION (exact 0.20.1): the fresh local discord
+          #     prompt footprint must be substantially below the 17,281-token
+          #     trivial-turn baseline (user's /context measurement) while the
+          #     same functionality stays available (permission-gated, not
+          #     removed). Measures the REAL tool-definition payload the way
+          #     /context does (_json_tokens of get_tool_definitions for the
+          #     resolved discord toolsets).
+          with tempfile.TemporaryDirectory() as td:
+              scratch_root = _pl.Path(td)
+              bp.ROOT = scratch_root
+              outdir = scratch_root / "out"; outdir.mkdir()
+              bp.apply_profile(
+                  {"brick_id": "mishari-device-001", "person_id": "231861",
+                   "discord_user_id": "231861753082937346", "wallet_ref": "w",
+                   "a2a": {"peer_toolsets": ["web", "vision", "session_search"],
+                           "reject": ["terminal", "code_execution", "memory",
+                                      "file", "skill_manage"],
+                           "enforce_read_only": True},
+                   "model": {"primary": "http://172.20.64.1:1234/v1",
+                             "default_model": "qwen/qwen3-4b-2507"}},
+                  {"manifest": {"model_chain": ["local", "deepseek-v4-flash"]}})
+              scratch = _pl.Path(td) / "brick-profile"; scratch.mkdir()
+              _sh.copytree(outdir, scratch / "out")
+              import gateway_wire as gw7
+              gw7.OUT = scratch / "out"
+              home = _pl.Path(td) / "hermes-home"; home.mkdir()
+              gw7.HERMES_DIR = home; gw7.CONFIG = home / "config.yaml"; gw7.ENV = home / ".env"
+              old_token = os.environ.get("BRICK_DISCORD_TOKEN")
+              os.environ["BRICK_DISCORD_TOKEN"] = "tok-1234567890"
+              try:
+                  assert gw7.wire(dry_run=False, force=True) == 0
+                  os.environ["HERMES_HOME"] = str(home)
+                  import hermes_cli.config as hcfg7
+                  from hermes_cli.tools_config import _get_platform_tools
+                  from model_tools import get_tool_definitions
+                  from agent.context_breakdown import _json_tokens
+                  cfg7 = hcfg7.load_config() or {}
+                  dts = sorted(_get_platform_tools(cfg7, "discord"))
+                  defs = get_tool_definitions(enabled_toolsets=dts, quiet_mode=True)
+                  tool_tokens = _json_tokens(defs)
+                  print("      slim discord tools:", sorted(d["function"]["name"] for d in defs))
+                  print("      slim tool-def tokens:", tool_tokens)
+                  # ACCEPTANCE: tool defs must be a fraction of the 12,109-token
+                  # baseline category (17,281 total). Allow generous headroom:
+                  # < 5,000 tokens vs 12,109 baseline (>=58% cut) — actual
+                  # measured is ~1,947 (84% cut).
+                  assert tool_tokens < 5000, f"discord prompt not slim: {tool_tokens} tokens"
+                  # capability retention: web/vision/session_search resolve
+                  assert {"web", "vision", "session_search"} <= set(dts), dts
+                  # capability NOT removed: cli surface still has the full set
+                  cli_defs = get_tool_definitions(
+                      enabled_toolsets=sorted(_get_platform_tools(cfg7, "cli")), quiet_mode=True)
+                  cli_names = {d["function"]["name"] for d in cli_defs}
+                  for needed in ("terminal", "read_file", "write_file", "cronjob",
+                                 "skills_list", "delegate_task", "memory"):
+                      assert needed in cli_names, f"cli capability {needed} lost: {cli_names}"
+              finally:
+                  if old_token is None: os.environ.pop("BRICK_DISCORD_TOKEN", None)
+                  else: os.environ["BRICK_DISCORD_TOKEN"] = old_token
+                  os.environ.pop("HERMES_HOME", None)
+
+          print("BPROBE-1..14: Discord + model + identity + REAL-0.20.1-CONSUMER + "
+                "A2A-EXACT + PRESERVATION + RUNTIME-MODEL-PROOF + SLIM-PROMPT PASS "
                 "(UA sent, model probes, a2a == web/vision/session_search, "
-                "discord unchanged except kanban, config preserved, "
-                "resolve_requested_provider->lmstudio, no-cloud-key, mock chat completion OK)")
+                "discord slim == signed surface, cli full surface kept, "
+                "config preserved, resolve_requested_provider->lmstudio, "
+                "no-cloud-key, mock chat completion OK, fresh discord tool-def "
+                "footprint << 17,281 baseline)")
           BPROBES

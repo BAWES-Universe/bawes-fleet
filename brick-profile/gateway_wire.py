@@ -199,25 +199,41 @@ def build_wiring(ident, a2a, model):
             }
         }
     }
-    # REAL ENFORCEMENT: platform_toolsets.a2a is what the gateway resolves at
+    # REAL ENFORCEMENT: platform_toolsets.<plat> is what the gateway resolves at
     # session build (gateway/run.py _get_platform_tools(platform_key)) to set
-    # the inbound session's enabled_toolsets. Everything NOT in this list —
-    # terminal, code_execution, memory, file, skill_manage, ... — is
-    # unreachable by an inbound A2A request, because the session is built
-    # with exactly these toolsets and nothing else.
+    # the session's enabled_toolsets.
+    #  - a2a:    the signed peer allow-list — inbound A2A requests get exactly
+    #            these toolsets, nothing else. terminal/code_execution/memory/
+    #            file/skill_manage (the signed reject list) are structurally
+    #            unreachable.
+    #  - discord: the SAME signed surface applies to the brick's own channel.
+    #            The Hermes default discord toolset is _HERMES_CORE_TOOLS
+    #            (~31 tools, ~15K tokens of schemas) — every trivial turn pays
+    #            that full cost (the live 17,281-token /context baseline). The
+    #            signed profile's reject list already forbids terminal/
+    #            code_execution/memory/file/skill_manage, so exposing them on
+    #            the owner channel contradicts the signed model. Restricting to
+    #            the signed allow-list: (a) enforces the signed model on the
+    #            owner channel, (b) slims the fresh-turn prompt ~87% (tool
+    #            defs 14,986 -> 1,947; est. total 17,281 -> ~7,989).
+    #            Capabilities are NOT removed — they are permission-gated:
+    #            web_search/web_extract auto-appear when a web API key exists
+    #            (check_fn), and the CLI surface keeps the full core set.
     config_override["platform_toolsets"] = {
         "a2a": peer_toolsets,
+        "discord": peer_toolsets,
     }
     # Hermes 0.20 auto-adds toolsets on top of an explicit platform list:
     #  - "bfl" via _RECENTLY_SHIPPED_TOOLSETS (bfl_flux3_* video-gen) —
-    #    suppressed A2A-specifically via known_builtin_toolsets.a2a, so
-    #    Discord/CLI keep bfl.
+    #    suppressed per-platform via known_builtin_toolsets.<plat>, so CLI
+    #    keeps bfl.
     #  - "kanban" via the non-configurable toolset recovery block (reads no
     #    per-platform config — only agent.disabled_toolsets strips it, and
     #    that is global). kanban is state-mutating (kanban_create/complete/
     #    comment/block), so global-disable is the fail-closed default.
     config_override["known_builtin_toolsets"] = {
         "a2a": ["bfl"],
+        "discord": ["bfl"],   # discord is now explicit too — keep bfl out
     }
     disabled = config_override.setdefault("agent", {}).setdefault(
         "disabled_toolsets", [])
@@ -249,6 +265,8 @@ def wire(dry_run=True, force=False):
               f"(enabled, advertised_toolsets={config_override['platforms']['a2a']['extra']['advertised_toolsets']})")
         print(f"[dry]   config.yaml: platform_toolsets.a2a={config_override['platform_toolsets']['a2a']} "
               f"(ENFORCED — the inbound session's enabled_toolsets)")
+        print(f"[dry]   config.yaml: platform_toolsets.discord={config_override['platform_toolsets']['discord']} "
+              f"(ENFORCED — slim signed surface for the brick's channel)")
         print("[dry] nothing written")
         return 0
 
