@@ -19,7 +19,7 @@ FLOW_STATE = STATE_DIR / "door-flow.jsonl"
 API = "https://discord.com/api/v10"
 UA = "DiscordBot (https://github.com/BAWES-Universe/bawes-fleet, 1.0)"
 
-GREET = ("Hi — I'm the Door. One minute, no tech talk. "
+GREET = ("Hi — I'm the Door 🚪, the front door to your brick. "
          "What do you want help with today?")
 RULES = ("Four things, plain words:\n"
          "1. Your data stays yours.\n"
@@ -28,6 +28,10 @@ RULES = ("Four things, plain words:\n"
          "4. Your brick earns by helping — never by pretending.")
 ASK_CONSENT = ("One last thing — say it in your own words: "
                "'I want my brick.'")
+CONFIRM = ("Just to confirm — you want your brick, right? "
+           "Say yes and it's yours.")
+WELCOME = ("Welcome in 🍌 — your brick is waking now: privacy-locked, "
+           "wallet opening, heartbeat on. Give it a minute, then say hi.")
 
 def api(method, path, body=None):
     req = urllib.request.Request(
@@ -68,37 +72,53 @@ LANE_REPLY = {
 }
 
 def handle_dm(user_id, user_name, content, ts):
-    state = FLOW_STATE
-    state.mkdir(parents=True, exist_ok=True)
+    state_dir = FLOW_STATE
+    state_dir.mkdir(parents=True, exist_ok=True)
+    flow_file = state_dir / "flow.jsonl"
     # read user's flow position
-    pos = "greeted"
+    pos = "new"
     rows = []
-    if (state / "flow.jsonl").exists():
-        for line in (state / "flow.jsonl").read_text().splitlines():
+    if flow_file.exists():
+        for line in flow_file.read_text().splitlines():
             r = json.loads(line)
             if r["user_id"] == user_id:
                 pos = r["pos"]
             rows.append(r)
+
     reply = None
-    if pos == "greeted":
+    if pos == "new":
+        # FIRST CONTACT: warm greeting + one question. Never the wall.
+        rows.append({"user_id": user_id, "pos": "greeted", "ts": ts})
+        reply = GREET
+    elif pos == "greeted":
+        # They answered the greeting — classify + route, THEN rules.
         need = classify(content)
         rows.append({"user_id": user_id, "pos": "answered", "need": need,
                      "answer": content[:300], "ts": ts})
         reply = f"{LANE_REPLY[need]}\n\n{RULES}\n\n{ASK_CONSENT}"
     elif pos == "answered":
-        # consent capture — V-5: own words, timestamped, stored 0600
-        transcript = {"user_id": user_id, "user_name": user_name,
-                      "consent": content[:300], "ts": ts}
-        with open(TRANSCRIPT, "a") as f:
-            f.write(json.dumps(transcript) + "\n")
-        rows.append({"user_id": user_id, "pos": "consented", "ts": ts})
-        reply = ("Thank you. Your words are recorded — that's your consent, "
-                 "yours to keep, yours to take back anytime.\n\n"
-                 "Your brick is waking now: privacy-locked, wallet opening, "
-                 "heartbeat on. Give it a minute, then say hi.")
+        # Their consent words — but CONFIRM first (V-5: understood words,
+        # never confusion captured as consent)
+        rows.append({"user_id": user_id, "pos": "confirming",
+                     "consent_words": content[:300], "ts": ts})
+        reply = CONFIRM
+    elif pos == "confirming":
+        low = content.lower()
+        if any(w in low for w in ("yes", "yeah", "yep", "ok", "sure", "want it", "i do")):
+            transcript = {"user_id": user_id, "user_name": user_name,
+                          "consent": "yes-confirmed", "ts": ts}
+            with open(TRANSCRIPT, "a") as f:
+                f.write(json.dumps(transcript) + "\n")
+            rows.append({"user_id": user_id, "pos": "consented", "ts": ts})
+            reply = WELCOME
+        else:
+            # Not a confirmation — no consent recorded, go back to questions
+            rows.append({"user_id": user_id, "pos": "greeted", "ts": ts})
+            reply = ("No problem — no consent until you mean it. "
+                     "What do you want help with today?")
     else:
         reply = "Your brick is awake. What's the first thing you want it to do for you?"
-    with open(state / "flow.jsonl", "w") as f:
+    with open(flow_file, "w") as f:
         for r in rows:
             f.write(json.dumps(r) + "\n")
     return reply

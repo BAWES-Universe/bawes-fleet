@@ -44,7 +44,8 @@ def run():
         print("no token"); return
     while True:
         try:
-            ws = websocket.create_connection(GATEWAY, timeout=30)
+            ws = websocket.create_connection(GATEWAY, timeout=70)
+            ws.settimeout(70)
             ws.send(json.dumps({"op": 2, "d": {
                 "token": token, "intents": 1 << 12,  # DIRECT_MESSAGES
                 "properties": {"os": "linux", "browser": "bawes", "device": "bawes"}}}))
