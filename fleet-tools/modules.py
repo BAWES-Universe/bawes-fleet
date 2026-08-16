@@ -27,23 +27,29 @@ REGISTERED_NONEARNERS = {"security-001", "evolution-001", "neurologist-001",
 MODULES = [
     {"n": 1, "name": "Banana Basics", "teach": "How brick work earns bananas.",
      "steps": ["Say hi to your brick.", "Dispatch a test card.", "Confirm the probe result."],
-     "reward": 0, "verify": "probe result confirmed"},
+     "reward": 0, "provider": "khalid", "complexity": 0.25,
+     "verify": "probe result confirmed"},
     {"n": 2, "name": "Brick Health Check", "teach": "Inspect your brick's public exposure.",
      "steps": ["Run the guided health probe.", "Patch one open door."],
-     "reward": 0, "verify": "probe + patch verified"},
+     "reward": 0, "provider": "khalid", "complexity": 0.5,
+     "verify": "probe + patch verified"},
     {"n": 3, "name": "Credential Hygiene", "teach": "Find and rotate exposed passwords.",
      "steps": ["Scan for exposed credentials.", "Rotate what's found.", "Re-scan: no live secrets.",
                "CLEAN BRICK: a scan with zero findings IS completion."],
-     "reward": 0, "verify": "secret probe finds no live secrets (negative result counts)"},
+     "reward": 0, "provider": "khalid", "complexity": 1.0,
+     "verify": "secret probe finds no live secrets (negative result counts)"},
     {"n": 4, "name": "Lane Awareness", "teach": "What lanes are; how your brick feeds the survival game.",
      "steps": ["Learn the lanes (banana, help, universe, idea).", "Map your brick's data flow in plain words."],
-     "reward": 0, "verify": "mapping verified by non-earner"},
+     "reward": 0, "provider": "khalid", "complexity": 0.75,
+     "verify": "mapping verified by non-earner"},
     {"n": 5, "name": "Improvement Sprint", "teach": "Ship one small brick improvement.",
      "steps": ["Pick one improvement.", "Ship it (DA-gated merge)."],
-     "reward": 0, "verify": "merged unit, DA-gated"},
+     "reward": 0, "provider": "khalid", "complexity": 1.5,
+     "verify": "merged unit, DA-gated"},
     {"n": 6, "name": "Survival Sprint", "teach": "Skills under resource pressure.",
      "steps": ["14 consecutive verified tasks over 7 days.", "No missed heartbeat.", "Handle one live incident end-to-end."],
-     "reward": 0, "verify": "non-earner signs each receipt + incident close-out"},
+     "reward": 0, "provider": "khalid", "complexity": 2.0,
+     "verify": "non-earner signs each receipt + incident close-out"},
 ]
 
 def _h(key, data):
@@ -115,15 +121,26 @@ def _mint_internal(brick_id, n, signer):
     """F2 (DA CRITICAL): INTERNAL-ONLY — underscore contract means
     `import modules; modules._mint_internal` is a private symbol, not a
     public path. Called ONLY by verify() with a real registered signer.
-    Ledger uniqueness on (brick_id, card_id) makes replay a no-op."""
+    Ledger uniqueness on (brick_id, card_id) makes replay a no-op.
+    ECONOMY (round-120): learner pays 0; the module PROVIDER earns a
+    payout per VERIFIED completion — escrow 24h, released to provider
+    wallet from the sponsored (khalid-funded) lane."""
     card = f"module-{n}"
     if _ledger_has(brick_id, card):
         raise RuntimeError("already minted (ledger uniqueness)")
     row = {"kind": "module-complete", "card_id": card, "brick_id": brick_id,
            "person_id": brick_id, "signer": signer, "ts": time.time(),
            "mint_status": "none",
-           "note": "modules are FREE — khalid ruling: people earn on actual results, not curriculum"}
+           "note": "modules are FREE to learners — khalid ruling"}
     _append_ledger(row)
+    # provider payout (escrowed, sponsored lane)
+    provider = MODULES[n - 1]["provider"]
+    payout = MODULES[n - 1]["complexity"]  # 0.25-2.0 banana by complexity
+    prow = {"kind": "provider-payout", "card_id": card, "provider": provider,
+            "learner": brick_id, "bananas": payout, "escrow_until": time.time() + 86400,
+            "status": "escrow", "lane": "sponsored", "ts": time.time(),
+            "note": "khalid-funded: providers earn per verified completion"}
+    _append_ledger(prow)
 
 def list_modules():
     for m in MODULES:
