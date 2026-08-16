@@ -257,6 +257,14 @@ def handle_dm(user_id, user_name, content, ts):
                     joined_guilds=1)
         profile["lang"] = lang
         return build_reply(user_name, "just arrived", profile, "new")
+    # Refusal at ANY stage (E2E S6): "no" is never a goal, never a skill,
+    # never consent. The door stays open, the funnel does not advance.
+    low_c = content.lower().strip()
+    if state in ("new", "greeted", "building", "confirming") and any(
+            w in low_c for w in ("no", "لا", "no thanks", "not now", "later",
+                                 "لسا", "مش هينفع", "maybe later", "i don't want")):
+        return ("No rush at all — the door stays open. Come back "
+                "anytime and we'll pick up right here. 🍌")
     if state == "new":
         lang = llm_detect(content) or detect_lang(content)
         set_profile(pid, state="greeted", lang=lang, person_id=pid)
@@ -266,6 +274,12 @@ def handle_dm(user_id, user_name, content, ts):
         set_profile(pid, state="building", goal=content[:300], person_id=pid)
         return build_reply(user_name, content, profile, "greeted")
     if state == "building":
+        low = content.lower()
+        if any(w in low for w in ("no", "لا", "no thanks", "not now", "later",
+                                  "لسا", "مش هينفع")):
+            # A "no" during learning is a REFUSAL, not a skill (E2E S6).
+            return ("No rush at all — the door stays open. Come back "
+                    "anytime and we'll pick up right here. 🍌")
         set_profile(pid, state="confirming", person_id=pid,
                     skills=[s.strip() for s in content.split(",")][:6])
         return build_reply(user_name, content, profile, "confirming")
