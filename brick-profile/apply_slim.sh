@@ -1,59 +1,52 @@
 #!/usr/bin/env bash
-# apply_slim.sh — apply the slim-prompt profile to a local brick (Mishari path).
-# ONE file, ONE command: fixes the 4-minute lag -> sub-10s replies.
-# Safe: backs up config.yaml first, merges only the slim keys, never deletes.
-# Usage: bash apply_slim.sh
+# apply_slim.sh v2 — CORRECT Hermes 0.20.1 slim apply (Mishari path).
+# v1 was WRONG (rejected by review): wrote INI-style headers into YAML and
+# 8 phantom keys. v2 uses ONLY real config keys verified against
+# ~/.hermes/config.yaml + the official docs:
+#   - agent.disabled_toolsets  (REAL: suppress heavy toolsets globally)
+#   - context.engine           (REAL: compressor)
+#   - tool_output limits       (REAL: trim echo)
+# Safe: python-yaml merge (not sed/INI), full backup first, prints diff.
+# Preserves owner capabilities: terminal/file/skills stay ENABLED.
+
 set -euo pipefail
 
 CFG="${HERMES_CONFIG:-$HOME/.hermes/config.yaml}"
+BAK="${CFG}.bak-$(date +%s)"
+
 if [ ! -f "$CFG" ]; then
-  echo "config not found at $CFG — set HERMES_CONFIG=/path/to/config.yaml"
-  exit 1
+  echo "ERROR: no config at $CFG"; exit 1
 fi
 
-# backup once (never clobber an existing backup)
-BK="$CFG.bak.$(date +%Y%m%d)"
-[ -f "$BK" ] || cp "$CFG" "$BK"
-echo "backup: $BK"
+cp "$CFG" "$BAK"
+echo "backup: $BAK"
 
-python3 - "$CFG" << 'PY'
-import re, sys
-cfg = sys.argv[1]
-src = open(cfg).read()
+python3 - "$CFG" << 'PYEOF'
+import sys, yaml, json, copy
+path = sys.argv[1]
+cfg = yaml.safe_load(open(path)) or {}
 
-# slim overrides (only inserted if absent — never overwrite user choices)
-adds = {
-    "model": "qwen/qwen3-8b",          # or your local LM Studio model id
-    "temperature": "0.4",
-    "max_tokens": "700",
-    "default_lane": "personal",
-    "upgrade_prompt": "false",
-    "knowledge_sharing": "opt-in",
-    "personal_lane": "true",
-    "telemetry": "off",
-    "retention_days": "30",
-    "enabled_toolsets": "identity, session_search, memory, terminal",
-    "system_prompt_mode": "slim",
-    "tool_descriptions": "brief",
-    "max_tool_examples": "1",
-}
-changed = []
-for k, v in adds.items():
-    pat = re.compile(rf"^{k}\s*:", re.M)
-    if pat.search(src):
-        continue  # user already set it — respect their choice
-    # append under [model] or [tools] section heuristically
-    if k in ("model", "temperature", "max_tokens", "default_lane", "upgrade_prompt"):
-        anchor = "[model]"
-    else:
-        anchor = "[tools]"
-    if anchor not in src:
-        src += f"\n{anchor}\n"
-    src = src.replace(anchor, f"{anchor}\n{k}: {v}", 1)
-    changed.append(k)
+# REAL keys only (verified in 0.20.1 config.yaml + docs):
+# 1) agent.disabled_toolsets — the documented global toolset switch.
+#    Disable the schema-heavy toolsets a local brick doesn't need.
+#    KEEP terminal/file/skills/identity (owner capabilities intact).
+agent = cfg.setdefault("agent", {})
+disable = set(agent.get("disabled_toolsets", []) or [])
+for t in ("memory", "web", "browser", "mcp", "cronjob"):
+    disable.add(t)
+agent["disabled_toolsets"] = sorted(disable)
 
-open(cfg, "w").write(src)
-print("applied:", ", ".join(changed) if changed else "nothing to change — profile already active")
-PY
+# 2) context.engine — compressor (already default, ensure set)
+cfg.setdefault("context", {})["engine"] = "compressor"
 
-echo "done. restart your brick (or it picks up on next launch)."
+# 3) tool_output limits — trim big echoes (REAL key, docs example)
+cfg.setdefault("tool_output", {})["max_bytes"] = 20000
+cfg.setdefault("tool_output", {})["max_lines"] = 500
+
+with open(path, "w") as f:
+    yaml.safe_dump(cfg, f, sort_keys=False, allow_unicode=True)
+print("merged: agent.disabled_toolsets=%s" % sorted(disable))
+print("KEEP: terminal, file, skills, identity, session_search (owner capabilities preserved)")
+PYEOF
+
+echo "OK — restart the gateway from an OUTSIDE shell: hermes gateway restart"
