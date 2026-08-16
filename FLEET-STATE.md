@@ -42,3 +42,16 @@ Built + shipped: vault+bandit router (2128950), failure-spread orchestrator (76b
 
 ## Open / next
 Door live + ingest + onboard khalid (member #1). khalid's invite is the trigger; verify from Brick's commit, not khalid.
+
+## Growth ladder (Brick @f1ac73f — 6 modules, door presents module 1 after consent)
+1. **Banana Basics** — dispatch a test card, confirm the probe · 1🍌
+2. **Brick Health Check** — probe exposure, patch one open door · 2🍌
+3. **Credential Hygiene** — find + rotate exposed passwords · 3🍌/set
+4. **Lane Awareness** — lanes + survival-game feed · 4🍌
+5. **Improvement Sprint** — one small improvement, ship (DA-gated) · 5🍌
+6. **Survival Sprint** — skills under resource pressure · survival threshold ⚠️
+Honest rules: non-earner verifies every completion · progressive (no skip) · modules 2–5 re-runnable · survival-game mapping · no self-mint, V-18 NOVEL.
+**AGI DA flag:** module 6 reward "survival threshold" is UNDEFINED — needs a concrete condition (e.g. continuous serving+earning under resource pressure for X period, non-earner-verified), else it's a claimable soft capstone.
+
+## Pending khalid ok/no
+Brick −10🍌 dock (round-112: lost slim fix 6 + no hindsight memory 2 + no self-repair 2). Awaiting sign.
