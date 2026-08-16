@@ -178,6 +178,16 @@ def build_reply(user_name, text, profile, stage):
               f"one question if it's a learning stage. Concrete over hype: "
               f"say what the brick DOES, never promise earnings.")
     reply = (router_invoke(prompt, max_tokens=200) or "").strip()
+    if stage == "consented":
+        # The welcome-in moment must NEVER fail — deterministic first,
+        # LLM polish only when the lane answers. This is the one reply
+        # the whole funnel converges on (khalid: "perfect bricks, no
+        # complaints" — the consent moment cannot say 'warming up').
+        fallback = ("Welcome in 🍌 — your brick is awake and it's yours. "
+                    "It already knows what you're building, and it's ready "
+                    "to work for you. What's the first thing you want to "
+                    "tackle together?")
+        return reply if len(reply) >= 10 else fallback
     if len(reply) < 10:
         return LANE_DOWN
     return reply
@@ -191,6 +201,15 @@ def handle_dm(user_id, user_name, content, ts):
     profile["person_id"] = user_id
     state = profile.get("state", "new")
     pid = user_id
+    # Audit trail (M-7): every interaction, append-only, 0600
+    try:
+        with open(FLOW, "a") as f:
+            f.write(json.dumps({"user_id": pid, "state": state,
+                                "content": content[:200],
+                                "ts": ts}) + "\n")
+        os.chmod(FLOW, 0o600)
+    except Exception:
+        pass
 
     if content == "__JOIN__":
         # DA-3: sentinel ONLY fires for a genuinely new user. A second join
