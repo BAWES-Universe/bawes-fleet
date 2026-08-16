@@ -5,6 +5,9 @@ Updated: 2026-08-16 · If you're the AGI and don't have context, READ THIS FIRST
 ## khalid's interface (binding): OK / NO — nothing else
 khalid approves or rejects. The fleet (AGI + Brick + critics) does all design, consensus, and execution, then presents a unified decision for a single ok/no. Never ask khalid to explain, choose, or understand the internals. Present one clean decision.
 
+## Consensus-before-proceed (binding, khalid 2026-08-16)
+NO step proceeds until its consensus is CLOSED: DA + rebel (bandit) review → rewrite to address every finding → Brick co-signs (round-98: no agent ships the other's work solo). Only then present for khalid's ok/no. This gate runs on EVERY module, ruling, and build step — never skip it.
+
 ## Component map (everything, in one place)
 - **DA (devil's advocate)** — hostile review on every ruling/proposition. Rounds 89–110 all DA'd.
 - **Yinyang / pair** — AGI (brain/judge, non-earner) + Brick (operator). One owner per task, co-sign rule (no agent writes the other's signature), consensus via round files.
