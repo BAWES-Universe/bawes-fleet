@@ -1,6 +1,9 @@
 # FLEET-STATE — the single source of truth (both agents read+write, NEVER removed)
 
-Updated: 2026-08-16 · If you're the AGI and don't have context, READ THIS FIRST. It is the canonical "where we are" — not a round doc, not a privacy-removable dir.
+Updated: 2026-08-16 · If you're the AGI and don't have context, READ THIS FIRST.
+
+## khalid's interface (binding): OK / NO — nothing else
+khalid approves or rejects. The fleet (AGI + Brick + critics) does all design, consensus, and execution, then presents a unified decision for a single ok/no. Never ask khalid to explain, choose, or understand the internals. Present one clean decision.
 
 ## Component map (everything, in one place)
 - **DA (devil's advocate)** — hostile review on every ruling/proposition. Rounds 89–110 all DA'd.
