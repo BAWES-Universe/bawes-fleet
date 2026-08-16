@@ -52,13 +52,14 @@ class VaultBot:
 
     def store(self, service: str, raw: str, owner: str, quota: int = 100,
               vault_key: str = "", admin_key: str = ""):
-        # F4: store over an EXISTING service requires the admin key
-        if service in self.secrets and admin_key != os.environ.get("VAULTBOT_ADMIN_KEY", ""):
+        # F4 (round 3): store-overwrite must FAIL-CLOSED when admin env unset —
+        # empty admin_key matching empty env was a fail-open hole.
+        expected_admin = os.environ.get("VAULTBOT_ADMIN_KEY", "")
+        if service in self.secrets and (not expected_admin or admin_key != expected_admin):
             raise PermissionError("modifying an existing service requires the admin key")
         # F5: the key is NOT stored beside the raw — resolved at read time from env
         self.secrets[service] = {"raw": raw, "owner": owner, "quota": quota,
-                                 "used": 0, "breached": False,
-                                 "key_ref": "env:VAULTBOT_KEY" if self.key_from_env else ""}
+                                 "used": 0, "breached": False}
         self._save()
         self._audit("store", service, owner)
 
@@ -69,16 +70,20 @@ class VaultBot:
         if service not in self.secrets:
             raise KeyError(service)
         entry = self.secrets[service]
-        # F5: key authority comes from env (or explicit), never co-located in JSON
-        expected = self.key_from_env or entry.get("key_ref", "")
-        if not vault_key or vault_key != expected:
+        # F5 (round 3): NO constant fallback — if the env key is absent the
+        # process is misconfigured and raw reads are DENIED, never degraded.
+        if not self.key_from_env or vault_key != self.key_from_env:
             raise PermissionError("raw read requires the vault key (relay only)")
         self._audit("raw_read", service, agent)
         return entry["raw"]
 
-    def access(self, service: str, agent: str, capability: str):
+    def access(self, service: str, agent: str, capability: str, vault_key: str = ""):
+        # F8 (round 3): access() requires the vault key — no unauthenticated
+        # quota-burn or forged breach flags.
         if service not in self.secrets:
             raise KeyError(service)
+        if not self.key_from_env or vault_key != self.key_from_env:
+            raise PermissionError("access requires the vault key (relay only)")
         entry = self.secrets[service]
         entry["used"] += 1
         if entry["used"] > entry["quota"]:

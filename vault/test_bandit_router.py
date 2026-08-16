@@ -33,16 +33,16 @@ class TestBanditRouter(unittest.TestCase):
     def test_reward_updates_prior(self):
         """A verified reward updates the arm's success counts."""
         self.r.register("triage-bot", ["question"])
-        arm = self.r.pick("question")
-        self.r.reward(arm, success=True)
+        arm = self.r.pick("question", issue_id="I-1")
+        self.r.reward(arm, success=True, meta={"issue_id": "I-1"})
         stats = self.r.stats(arm)
         self.assertEqual(stats["alpha"], stats["beta"] + 1)  # alpha = successes + 1
 
     def test_failed_reward_increases_beta(self):
         """Escalation/timeout increases the failure count."""
         self.r.register("triage-bot", ["question"])
-        arm = self.r.pick("question")
-        self.r.reward(arm, success=False)
+        arm = self.r.pick("question", issue_id="I-2")
+        self.r.reward(arm, success=False, meta={"issue_id": "I-2"})
         stats = self.r.stats(arm)
         self.assertEqual(stats["beta"], 2)  # beta = failures + 1
 
@@ -56,8 +56,8 @@ class TestBanditRouter(unittest.TestCase):
     def test_no_secret_in_rewards(self):
         """Reward log never contains secret material."""
         self.r.register("triage-bot", ["question"])
-        arm = self.r.pick("question")
-        self.r.reward(arm, success=True, meta={"token": "SHOULD-NOT-APPEAR"})
+        arm = self.r.pick("question", issue_id="I-3")
+        self.r.reward(arm, success=True, meta={"issue_id": "I-3", "token": "SHOULD-NOT-APPEAR"})
         for c in self.r.choices():
             self.assertNotIn("SHOULD-NOT-APPEAR", json.dumps(c))
 

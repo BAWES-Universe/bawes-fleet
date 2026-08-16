@@ -46,8 +46,13 @@ class TestDAFixB2(unittest.TestCase):
         shutil.rmtree(self.dir, ignore_errors=True)
 
     def test_audit_file_0600(self):
-        self.v.store("x", "y", owner="khalid")
-        self.v.access("x", agent="brick", capability="z")
+        os.environ["VAULTBOT_KEY"] = "ENV-KEY"
+        try:
+            self.v = VaultBot(self.dir)
+            self.v.store("x", "y", owner="khalid")
+            self.v.access("x", agent="brick", capability="z", vault_key="ENV-KEY")
+        finally:
+            os.environ.pop("VAULTBOT_KEY", None)
         mode = stat_mode(pathlib.Path(self.dir) / "audit.jsonl")
         self.assertEqual(mode, 0o600)
 

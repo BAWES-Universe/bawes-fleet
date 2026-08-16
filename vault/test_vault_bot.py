@@ -13,10 +13,12 @@ from vault_bot import VaultBot
 
 class TestVaultBot(unittest.TestCase):
     def setUp(self):
+        os.environ["VAULTBOT_KEY"] = "ENV-KEY"
         self.dir = tempfile.mkdtemp()
         self.v = VaultBot(self.dir)
 
     def tearDown(self):
+        os.environ.pop("VAULTBOT_KEY", None)
         shutil.rmtree(self.dir, ignore_errors=True)
 
     def test_store_secret_scoped(self):
@@ -43,22 +45,22 @@ class TestVaultBot(unittest.TestCase):
     def test_audit_log_written(self):
         """Every store and access is audit-logged."""
         self.v.store("supabase", "sb-secret", owner="khalid")
-        self.v.access("supabase", agent="agi", capability="read-distilled")
+        self.v.access("supabase", agent="agi", capability="read-distilled", vault_key="ENV-KEY")
         rows = self.v.audit()
         self.assertGreaterEqual(len(rows), 2)
 
     def test_quota_tracking(self):
         """Per-PAT usage counts; quota breach flags an alert."""
         self.v.store("cloudflare", "CF-TOKEN", owner="khalid", quota=2)
-        self.v.access("cloudflare", agent="brick", capability="dns")
-        self.v.access("cloudflare", agent="brick", capability="dns")
-        self.v.access("cloudflare", agent="brick", capability="dns")  # breach
+        self.v.access("cloudflare", agent="brick", capability="dns", vault_key="ENV-KEY")
+        self.v.access("cloudflare", agent="brick", capability="dns", vault_key="ENV-KEY")
+        self.v.access("cloudflare", agent="brick", capability="dns", vault_key="ENV-KEY")  # breach
         self.assertEqual(self.v.quota_breached("cloudflare"), True)
 
     def test_no_raw_in_audit(self):
         """Audit rows never contain the raw secret."""
         self.v.store("cloudflare", "RAW-SECRET-987", owner="khalid")
-        self.v.access("cloudflare", agent="brick", capability="dns")
+        self.v.access("cloudflare", agent="brick", capability="dns", vault_key="ENV-KEY")
         for row in self.v.audit():
             self.assertNotIn("RAW-SECRET-987", json.dumps(row))
 
