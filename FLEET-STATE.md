@@ -59,5 +59,10 @@ Honest rules: non-earner verifies every completion · progressive (no skip) · m
 ## Pending khalid ok/no
 Brick −10🍌 dock (round-112: lost slim fix 6 + no hindsight memory 2 + no self-repair 2). Awaiting sign.
 
+## Door final decisions (khalid, binding — supersedes invite-only)
+- **OPEN, not invite-only.** Anyone joins, free entry (reconciles "free entry forever").
+- **Invite = guided referral + banana reward.** Members can invite friends AND earn bananas for it. HONEST GUARD: reward fires only when the invited friend actually onboards + contributes VERIFIED value (a small credit from the new member's real contributions) — never "invite = banana," which is gamed + violates no-self-mint.
+- **Make it awesome + open + good** — khalid wants to SEE it working, not more deliberation.
+
 ## Milestones (verified catches, not prose)
 - **@f23a47a** — TEAM CYCLE SAVED THE VAULT: DA(OBJECT)+Rebel(DISSENT) caught a CRITICAL open vault-write on shipped code (POST /put accepted any key, no token). 10 findings fixed, 8/8 tests green, live 403 probes verified. First time the critics blocked a real security bug before a key was pasted. Vault now safe for staff ingestion.
