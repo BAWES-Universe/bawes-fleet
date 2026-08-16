@@ -122,6 +122,7 @@ def spawn_brick(profile, user_name):
            "seed": "profile-v1"}
     with open(STATE_DIR / "brick-spawns.jsonl", "a") as f:
         f.write(json.dumps(row, ensure_ascii=False) + "\n")
+    os.chmod(STATE_DIR / "brick-spawns.jsonl", 0o600)  # DA-5: PII 0600
     return brick_id
 
 # ---------------- conversation ----------------
@@ -157,24 +158,25 @@ def build_reply(user_name, text, profile, stage):
         pass  # keep ar
     voice = VOICE.get(lang, VOICE["en"])
     stage_note = {
-        "new": ("FIRST CONTACT — the member just joined. Greet them warmly, "
-                "then SELL THE BRICK: tell them they can get their own brick "
-                "— a personal helper that works for them and earns with them. "
-                "Then ask ONE question: what do they want to build or do? "
-                "Make the brick sound exciting, concrete, worth having."),
-        "greeted": ("Learning phase — ask about their goal. One question only. "
-                    "Keep the brick alive in the conversation."),
+        "new": ("FIRST CONTACT — the member just arrived. Greet them warmly. "
+                "Then say what the brick DOES today, concretely — e.g. it "
+                "chats for them, learns their world, takes on small tasks. "
+                "NO earning promises, NO hype — only what it can do right now. "
+                "Then ask consent, plainly: do they want one? "
+                "One question only."),
+        "greeted": ("They are interested. Ask about their goal. One question only. "
+                    "Keep it concrete — what would they use a helper for?"),
         "building": ("Learning phase — ask about what they do / skills. One question. "
-                     "Keep the brick alive in the conversation."),
+                     "Keep it concrete and human."),
         "confirming": ("They said they want their brick. Confirm simply — ask yes/no. "
                        "Make it feel like a moment — this is the good part."),
         "consented": ("Welcome them in. One warm line. Tell them their brick is waking "
-                      "up now and what it can do first."),
+                      "up now and what it can do first, concretely."),
     }[stage]
     prompt = (f"{voice}\n\nPerson: {user_name}\nThey said: \"{text[:200]}\"\n"
               f"Stage: {stage_note}\n\nWrite your reply now. 2 sentences max, "
-              f"one question if it's a learning stage. Always push toward the "
-              f"brick — the brick is the point.")
+              f"one question if it's a learning stage. Concrete over hype: "
+              f"say what the brick DOES, never promise earnings.")
     reply = (router_invoke(prompt, max_tokens=200) or "").strip()
     if len(reply) < 10:
         return LANE_DOWN
@@ -190,12 +192,21 @@ def handle_dm(user_id, user_name, content, ts):
     state = profile.get("state", "new")
     pid = user_id
 
+    if content == "__JOIN__":
+        # DA-3: sentinel ONLY fires for a genuinely new user. A second join
+        # (cross-guild, rejoin) must NEVER touch an existing profile —
+        # no goal overwrite, no extra DM (dedup: 1 join -> 1 DM).
+        if state != "new":
+            return None  # gateway sends nothing
+        lang = llm_detect("hello") or "en"
+        set_profile(pid, state="greeted", lang=lang, person_id=pid,
+                    joined_guilds=1)
+        profile["lang"] = lang
+        return build_reply(user_name, "just arrived", profile, "new")
     if state == "new":
         lang = llm_detect(content) or detect_lang(content)
         set_profile(pid, state="greeted", lang=lang, person_id=pid)
         profile["lang"] = lang
-        if content == "__JOIN__":
-            return build_reply(user_name, "just joined", profile, "new")
         return build_reply(user_name, content, profile, "new")
     if state == "greeted":
         set_profile(pid, state="building", goal=content[:300], person_id=pid)
@@ -217,6 +228,7 @@ def handle_dm(user_id, user_name, content, ts):
                                     "consent": "yes-confirmed",
                                     "lang": profile.get("lang"),
                                     "ts": ts}) + "\n")
+            os.chmod(TRANSCRIPT, 0o600)  # DA-5: consent PII 0600
             return build_reply(user_name, content, profile, "consented")
         set_profile(pid, state="building")
         return ("No rush — no consent until you mean it. "

@@ -42,12 +42,13 @@ def run():
     token = os.environ.get(TOKEN_ENV, "")
     if not token:
         print("no token"); return
+    _intents = [(1 << 12) | (1 << 1)]  # DM + GUILD_MEMBERS; downgrades on 4014
     while True:
         try:
             ws = websocket.create_connection(GATEWAY, timeout=70)
             ws.settimeout(70)
             ws.send(json.dumps({"op": 2, "d": {
-                "token": token, "intents": (1 << 12) | (1 << 1),  # DIRECT_MESSAGES | GUILD_MEMBERS
+                "token": token, "intents": _intents[0],
                 "properties": {"os": "linux", "browser": "bawes", "device": "bawes"}}}))
             heartbeat = None
             while True:
@@ -74,9 +75,11 @@ def run():
                         name = d.get("user", {}).get("username", "?")
                         if uid and not d.get("user", {}).get("bot"):
                             print(f"NEW MEMBER: {name} joined — door reaching out")
-                            # The door goes to THEM first: welcome + sell the brick
+                            # The door goes to THEM first: welcome + consent ask.
+                            # handle_dm returns None for re-joins (DA-3 dedup).
                             reply = handle_dm(uid, name, "__JOIN__", time.time())
-                            send_dm(uid, reply)
+                            if reply:
+                                send_dm(uid, reply)
                     elif t == "MESSAGE_CREATE":
                         d = msg["d"]
                         if d.get("channel_type") == 1 and not d.get("author", {}).get("bot"):
@@ -89,6 +92,13 @@ def run():
                 elif op == 11:  # heartbeat ACK
                     pass
         except Exception as e:
+            # DA-1: 4014 = disallowed intents (portal toggle off) — downgrade
+            # to DM-only so the door keeps serving DMs instead of crash-looping.
+            code = getattr(e, "status_code", None) or (e.args[0].close.code
+                   if getattr(e, "args", None) and getattr(e.args[0], "close", None) else None)
+            if code == 4014 or "4014" in str(e):
+                print("4014 disallowed intents — downgrading to DM-only")
+                _intents[0] = 1 << 12  # DIRECT_MESSAGES only
             print(f"gateway error: {str(e)[:100]} — reconnecting in 5s")
             time.sleep(5)
 
