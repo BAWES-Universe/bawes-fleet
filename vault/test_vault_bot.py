@@ -32,8 +32,13 @@ class TestVaultBot(unittest.TestCase):
 
     def test_owner_can_read_raw(self):
         """Only the owner (khalid) with the vault key can retrieve raw tokens."""
-        self.v.store("github", "ghp_rawsecret", owner="khalid", vault_key="VK")
-        self.assertEqual(self.v.get_raw("github", agent="khalid", vault_key="VK"), "ghp_rawsecret")
+        os.environ["VAULTBOT_KEY"] = "ENV-KEY"
+        try:
+            self.v = VaultBot(self.dir)
+            self.v.store("github", "ghp_rawsecret", owner="khalid")
+            self.assertEqual(self.v.get_raw("github", agent="khalid", vault_key="ENV-KEY"), "ghp_rawsecret")
+        finally:
+            os.environ.pop("VAULTBOT_KEY", None)
 
     def test_audit_log_written(self):
         """Every store and access is audit-logged."""

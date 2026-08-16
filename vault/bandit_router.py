@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
-"""bandit_router.py — Bandit Router (AGI-designed, 2026-08-16).
-Thompson Sampling over bot-capability arms:
-- Arm = bot tagged by capability embeddings
-- Reward = 1 if issue resolved + user ack, 0 if escalated/timeout
-- Hidden state = per-bot success counts (alpha/beta)
-- Forced exploration for new/untested pairs, UCB-style for mature arms
-- Stale stats decay weekly. All choices logged. No secrets in rewards."""
-import json, pathlib, random, time
+"""bandit_router.py — Bandit Router (AGI design, DA-hardened).
+Thompson Sampling over bot-capability arms. DA hardening (deleg_38939fca):
+F6 atomic 0600 file creates, F7 reward dedup per issue + pick tracking,
+no reward inflation."""
+import json, os, pathlib, random, time
 
 class BanditRouter:
     def __init__(self, base_dir: str):
@@ -14,7 +11,9 @@ class BanditRouter:
         self.base.mkdir(parents=True, exist_ok=True)
         self.state_file = self.base / "bandit_state.json"
         self.choice_file = self.base / "choices.jsonl"
-        self.arms = {}   # arm_id -> {"caps": [...], "alpha": 1, "beta": 1, "last_seen": ts}
+        self.arms = {}
+        self._picks = {}   # issue_id -> arm picked (F7)
+        self._rewarded = {}  # issue_id -> set of arms rewarded (F7)
         self._load()
 
     def _load(self):
@@ -23,8 +22,10 @@ class BanditRouter:
             self.arms = d.get("arms", {})
 
     def _save(self):
-        self.state_file.write_text(json.dumps({"arms": self.arms}, indent=2))
-        self.state_file.chmod(0o600)
+        fd = os.open(self.state_file, os.O_CREAT | os.O_WRONLY | os.O_TRUNC, 0o600)
+        os.fchmod(fd, 0o600)
+        with os.fdopen(fd, "w") as f:
+            f.write(json.dumps({"arms": self.arms}, indent=2))
 
     def register(self, arm_id: str, capabilities: list):
         if arm_id not in self.arms:
@@ -33,7 +34,6 @@ class BanditRouter:
         self._save()
 
     def _decay_stale(self):
-        """Weekly decay: halve counts for arms unseen in 7 days."""
         now = time.time()
         for arm in self.arms.values():
             if now - arm["last_seen"] > 7 * 86400:
@@ -47,31 +47,40 @@ class BanditRouter:
         matched = [aid for aid, a in self.arms.items() if need in a["caps"]]
         return matched or list(self.arms.keys())
 
-    def pick(self, need: str) -> str:
+    def pick(self, need: str, issue_id: str = "") -> str:
         cands = self._candidates(need)
-        # Thompson: sample from Beta(alpha, beta), explore untested with noise
         best, best_score = None, -1
         for aid in cands:
             a = self.arms[aid]
             score = random.betavariate(a["alpha"], a["beta"])
-            if (a["alpha"] + a["beta"]) <= 2:  # untested: explore
+            if (a["alpha"] + a["beta"]) <= 2:
                 score += random.random() * 0.2
             if score > best_score:
                 best, best_score = aid, score
-        self._log({"ts": time.time(), "need": need, "picked": best, "score": round(best_score, 4)})
+        if issue_id:
+            self._picks[issue_id] = best
+        self._log({"ts": time.time(), "need": need, "picked": best,
+                   "score": round(best_score, 4), "issue_id": issue_id})
         self.arms[best]["last_seen"] = time.time()
         self._save()
         return best
 
     def reward(self, arm_id: str, success: bool, meta: dict = None):
-        if arm_id not in self.arms:
-            return
+        issue_id = (meta or {}).get("issue_id", "")
+        # F7: reward requires this arm was picked for the issue
+        if issue_id and self._picks.get(issue_id) != arm_id:
+            raise PermissionError("reward rejected: arm was not picked for this issue")
+        # F7: dedup — each issue rewarded once per arm
+        rewarded = self._rewarded.setdefault(issue_id, set())
+        if issue_id in rewarded:
+            return  # already counted, no inflation
+        if issue_id:
+            rewarded.add(issue_id)
         a = self.arms[arm_id]
         if success:
             a["alpha"] += 1
         else:
             a["beta"] += 1
-        # WHITELIST only safe fields — never persist arbitrary caller meta
         safe = {}
         if meta:
             for k in ("issue_id", "lane"):
@@ -94,7 +103,7 @@ class BanditRouter:
         return rows
 
     def _log(self, row):
-        with open(self.choice_file, "a") as f:
+        fd = os.open(self.choice_file, os.O_CREAT | os.O_WRONLY | os.O_APPEND, 0o600)
+        os.fchmod(fd, 0o600)
+        with os.fdopen(fd, "a") as f:
             f.write(json.dumps(row) + "\n")
-        # DA FIX B2: choice/audit trail must not be world-readable
-        self.choice_file.chmod(0o600)

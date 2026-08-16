@@ -1,34 +1,54 @@
 #!/usr/bin/env python3
-"""spread.py — Failure-Spread Orchestrator (AGI design, 2026-08-16).
-Failed tests spread across bricks:
-1. Failure broadcast to bandit router with capability match + solve rates
-2. Top-k bricks selected (UCB exploration/exploitation)
-3. Pair protocol: each brick declares ONE attack workspace (no double-own)
-4. All k attack the same failure as parallel hypotheses
-5. First verified fix -> pair-DA hostile review -> merge
-6. Winner = solver credit; losers = exploration credit (feed router priors)"""
-import json, pathlib, random, time
+"""spread.py — Failure-Spread Orchestrator (AGI design, DA-hardened).
+Failed tests spread across bricks: bandit picks top-k by capability +
+solve rate, each brick declares ONE attack workspace (pair protocol),
+parallel hypotheses, first verified fix -> pair-DA hostile review ->
+merge. DA hardening (deleg_38939fca): F1 register_da admin-gated,
+F2 winner must be a solver, F3 state HMAC integrity."""
+import hashlib, hmac, json, os, pathlib, time
 
 class SpreadOrchestrator:
-    def __init__(self, base_dir: str):
+    def __init__(self, base_dir: str, integrity_key: str = ""):
         self.base = pathlib.Path(base_dir)
         self.base.mkdir(parents=True, exist_ok=True)
         self.state_file = self.base / "spread_state.json"
+        self.integrity_key = integrity_key or os.environ.get("SPREAD_INTEGRITY_KEY", "")
         self.state = {"bricks": {}, "failures": {}, "workspaces": {}, "da_keys": {}}
         self._load()
 
-    def register_da(self, reviewer_id: str, da_key: str):
-        """Register a non-earner DA reviewer with its key (BLOCKER #2 fix)."""
-        self.state["da_keys"][reviewer_id] = da_key
-        self._save()
+    def _hmac(self, payload: str) -> str:
+        return hmac.new(self.integrity_key.encode(), payload.encode(), hashlib.sha256).hexdigest()
 
     def _load(self):
-        if self.state_file.exists():
-            self.state = json.loads(self.state_file.read_text())
+        if not self.state_file.exists():
+            return
+        raw = self.state_file.read_text()
+        data = json.loads(raw)
+        if self.integrity_key:
+            if data.get("_hmac") != self._hmac(json.dumps(data.get("state", {}), sort_keys=True)):
+                raise RuntimeError("spread state integrity check failed (tampered)")
+        self.state = data.get("state", self.state)
 
     def _save(self):
-        self.state_file.write_text(json.dumps(self.state, indent=2))
-        self.state_file.chmod(0o600)
+        doc = {"state": self.state}
+        if self.integrity_key:
+            doc["_hmac"] = self._hmac(json.dumps(self.state, sort_keys=True))
+        fd = os.open(self.state_file, os.O_CREAT | os.O_WRONLY | os.O_TRUNC, 0o600)
+        os.fchmod(fd, 0o600)
+        with os.fdopen(fd, "w") as f:
+            f.write(json.dumps(doc, indent=2))
+
+    def register_da(self, reviewer_id: str, da_key: str, admin_key: str = ""):
+        """F1: DA keys are minted ONLY by the relay admin — caller-asserted
+        reviewer identity is no longer proof of anything. Fail-closed: no
+        configured admin key = deny all registrations."""
+        expected = os.environ.get("SPREAD_ADMIN_KEY", "")
+        if not expected or admin_key != expected:
+            raise PermissionError("DA registration requires the admin key (relay only)")
+        if reviewer_id in self.state["da_keys"]:
+            raise PermissionError("DA key already registered — rotation requires admin ceremony")
+        self.state["da_keys"][reviewer_id] = da_key
+        self._save()
 
     def register(self, brick_id: str, capabilities: list):
         self.state["bricks"].setdefault(brick_id, {
@@ -40,11 +60,10 @@ class SpreadOrchestrator:
         for c in brick["caps"]:
             if c.lower() in failure_text.lower():
                 score += 2
-        # UCB: exploit solve rate, explore untested
         if brick["tries"] > 0:
             score += 0.5 * (brick["solves"] / brick["tries"])
         else:
-            score += 0.7  # exploration bonus for untested
+            score += 0.7
         return score
 
     def spread(self, failure_text: str, k: int = 2) -> list:
@@ -57,7 +76,6 @@ class SpreadOrchestrator:
             "da_approved": False, "merged": False, "ts": time.time()}
         for bid in solvers:
             self.state["bricks"][bid]["tries"] += 1
-            # pair protocol: ONE workspace per solver, never double-owned
             self.state["workspaces"][f"{fid}:{bid}"] = {
                 "owner": bid, "failure": fid, "status": "attacking"}
         self._save()
@@ -68,10 +86,13 @@ class SpreadOrchestrator:
 
     def verify_fix(self, brick_id: str, failure_id: str, passed: bool):
         f = self.state["failures"][failure_id]
+        # F2: only a PICKED SOLVER can claim the win
+        if brick_id not in f["solvers"]:
+            raise PermissionError("only a picked solver can verify a fix")
+        ws = self.state["workspaces"].get(f"{failure_id}:{brick_id}")
         if passed and f["winner"] is None:
             f["winner"] = brick_id
             self.state["bricks"][brick_id]["solves"] += 1
-            ws = self.state["workspaces"].get(f"{failure_id}:{brick_id}")
             if ws:
                 ws["status"] = "fix-verified"
         self._save()
@@ -80,8 +101,6 @@ class SpreadOrchestrator:
         f = self.state["failures"][failure_id]
         if f["winner"] is None:
             raise RuntimeError("no verified fix to review")
-        # BLOCKER #2 fix: reviewer identity must match the registered DA key —
-        # a caller-asserted reviewer string is no longer proof of anything.
         if not da_key or self.state["da_keys"].get(reviewer) != da_key:
             raise PermissionError("DA approval requires the registered reviewer key")
         f["da_approved"] = True
@@ -96,7 +115,6 @@ class SpreadOrchestrator:
         self._save()
 
     def exploration_credit(self, brick_id: str, failure_id: str):
-        """Non-winner gets exploration credit (feeds router priors)."""
         self.state["bricks"][brick_id]["exploration"] += 1
         self._save()
 

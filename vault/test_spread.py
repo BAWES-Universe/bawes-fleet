@@ -4,17 +4,19 @@ Failed tests spread across bricks: bandit picks top-k by capability + solve
 rate, each brick declares ONE attack workspace (pair protocol), parallel
 hypotheses, first verified fix -> pair-DA hostile review -> merge. Winner
 gets solver credit; losers get exploration credit."""
-import json, pathlib, shutil, sys, tempfile, unittest
+import json, os, pathlib, shutil, sys, tempfile, unittest
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from spread import SpreadOrchestrator
 
 class TestSpread(unittest.TestCase):
     def setUp(self):
+        os.environ["SPREAD_ADMIN_KEY"] = "ADMIN"
         self.dir = tempfile.mkdtemp()
         self.s = SpreadOrchestrator(self.dir)
 
     def tearDown(self):
+        os.environ.pop("SPREAD_ADMIN_KEY", None)
         shutil.rmtree(self.dir, ignore_errors=True)
 
     def test_failure_broadcast_selects_solvers(self):
@@ -44,7 +46,7 @@ class TestSpread(unittest.TestCase):
 
     def test_pair_da_required_before_merge(self):
         """A fix cannot merge without a hostile non-earner DA review."""
-        self.s.register_da("security-001", "DA-KEY")
+        self.s.register_da("security-001", "DA-KEY", admin_key="ADMIN")
         self.s.register("brick-web", ["build"])
         self.s.spread("build failure", k=1)
         self.s.verify_fix("brick-web", "failure-1", passed=True)
@@ -55,7 +57,7 @@ class TestSpread(unittest.TestCase):
 
     def test_da_approval_not_forgeable(self):
         """BLOCKER #2 fix: a caller without the DA key cannot forge approval."""
-        self.s.register_da("security-001", "DA-KEY")
+        self.s.register_da("security-001", "DA-KEY", admin_key="ADMIN")
         self.s.register("brick-web", ["build"])
         self.s.spread("build failure", k=1)
         self.s.verify_fix("brick-web", "failure-1", passed=True)

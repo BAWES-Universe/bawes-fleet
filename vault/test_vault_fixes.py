@@ -11,10 +11,12 @@ from bandit_router import BanditRouter
 
 class TestDAFixB1(unittest.TestCase):
     def setUp(self):
+        os.environ["VAULTBOT_KEY"] = "ENV-KEY"
         self.dir = tempfile.mkdtemp()
         self.v = VaultBot(self.dir)
 
     def tearDown(self):
+        os.environ.pop("VAULTBOT_KEY", None)
         shutil.rmtree(self.dir, ignore_errors=True)
 
     def test_raw_read_requires_access_key(self):
@@ -25,12 +27,12 @@ class TestDAFixB1(unittest.TestCase):
 
     def test_raw_read_with_key_succeeds(self):
         """The relay (holding the vault key) can read raw."""
-        self.v.store("cloudflare", "CF-TOKEN", owner="khalid", vault_key="REAL-KEY")
+        self.v.store("cloudflare", "CF-TOKEN", owner="khalid")
         self.assertEqual(
-            self.v.get_raw("cloudflare", agent="relay", vault_key="REAL-KEY"), "CF-TOKEN")
+            self.v.get_raw("cloudflare", agent="relay", vault_key="ENV-KEY"), "CF-TOKEN")
 
     def test_wrong_key_rejected(self):
-        self.v.store("cloudflare", "CF-TOKEN", owner="khalid", vault_key="REAL-KEY")
+        self.v.store("cloudflare", "CF-TOKEN", owner="khalid")
         with self.assertRaises(PermissionError):
             self.v.get_raw("cloudflare", agent="relay", vault_key="WRONG")
 
