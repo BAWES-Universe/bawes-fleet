@@ -1,0 +1,51 @@
+# slim-prompt.yaml — AGI-specified minimal profile (2026-08-16, consensus)
+# FIXES Mishari's latency: full 17K-token Hermes shell on 4B model = ~4 min.
+# This profile: ~2K tokens -> sub-10s first reply on WSL2.
+# AGI ruling: keep (a) identity+safety ~500tok, (b) tool signatures,
+# (c) current turn. Strip persona, few-shots, memory dumps, CoT padding.
+# NOTE: this is a SLIM PROFILE for device bricks — NOT the control plane.
+
+profile_version: 2
+kind: slim-device
+brick_id: mishari-device-001
+
+model:
+  primary: http://127.0.0.1:1234/v1
+  default_model: qwen/qwen3-4b-2507   # exact id from /v1/models
+  chain: ["local", "deepseek-v4-flash"]  # local first, fleet fallback
+
+discord:
+  token_env: BRICK_DISCORD_TOKEN
+
+# AGI ruling (a): identity + safety, compressed
+system_core: |
+  You are Brock, Mishari's brick. Help him get things done.
+  Rules: read-only by default; writes need approval; never share secrets;
+  be concise; ask before acting on anything irreversible.
+
+# AGI ruling (b): tool signatures only, no long descriptions
+tools:
+  enabled: [web_search, read_file, write_file, terminal, session_search]
+  signatures_only: true
+
+# AGI ruling: compressed memory — distilled summary, never raw dumps
+memory:
+  mode: distilled
+  max_tokens: 200
+
+# AGI ruling: strip these
+strip:
+  - persona_backstory
+  - few_shot_examples
+  - memory_dumps
+  - chain_of_thought
+  - tool_descriptions_full
+
+a2a:
+  peer_toolsets: [web, vision, session_search]
+  enforce_read_only: true
+  reject: [terminal, code_execution, memory, file, skill_manage]
+
+heartbeat:
+  interval_s: 300
+  registry: /home/spo/.hermes/notes/heartbeat-registry.jsonl
