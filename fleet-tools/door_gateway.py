@@ -10,7 +10,7 @@ Run: python3 door_gateway.py
 import json, os, pathlib, sys, time, urllib.request
 
 sys.path.insert(0, "/srv/door")
-from door_responder import handle_dm, TOKEN_ENV, UA
+from door_v4 import handle_dm, TOKEN_ENV, UA
 
 import websocket  # websocket-client
 
@@ -47,7 +47,7 @@ def run():
             ws = websocket.create_connection(GATEWAY, timeout=70)
             ws.settimeout(70)
             ws.send(json.dumps({"op": 2, "d": {
-                "token": token, "intents": 1 << 12,  # DIRECT_MESSAGES
+                "token": token, "intents": (1 << 12) | (1 << 1),  # DIRECT_MESSAGES | GUILD_MEMBERS
                 "properties": {"os": "linux", "browser": "bawes", "device": "bawes"}}}))
             heartbeat = None
             while True:
@@ -68,6 +68,15 @@ def run():
                     t = msg.get("t")
                     if t == "READY":
                         print("GATEWAY READY — door listening for DMs")
+                    elif t == "GUILD_MEMBER_ADD":
+                        d = msg["d"]
+                        uid = d.get("user", {}).get("id")
+                        name = d.get("user", {}).get("username", "?")
+                        if uid and not d.get("user", {}).get("bot"):
+                            print(f"NEW MEMBER: {name} joined — door reaching out")
+                            # The door goes to THEM first: welcome + sell the brick
+                            reply = handle_dm(uid, name, "__JOIN__", time.time())
+                            send_dm(uid, reply)
                     elif t == "MESSAGE_CREATE":
                         d = msg["d"]
                         if d.get("channel_type") == 1 and not d.get("author", {}).get("bot"):

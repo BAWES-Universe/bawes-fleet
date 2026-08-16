@@ -157,15 +157,24 @@ def build_reply(user_name, text, profile, stage):
         pass  # keep ar
     voice = VOICE.get(lang, VOICE["en"])
     stage_note = {
-        "new": "First contact — greet them warmly, one question about who they are.",
-        "greeted": "Learning phase — ask about their goal. One question only.",
-        "building": "Learning phase — ask about what they do / skills. One question.",
-        "confirming": "They said they want their brick. Confirm simply — ask yes/no.",
-        "consented": "Welcome them in. One warm line.",
+        "new": ("FIRST CONTACT — the member just joined. Greet them warmly, "
+                "then SELL THE BRICK: tell them they can get their own brick "
+                "— a personal helper that works for them and earns with them. "
+                "Then ask ONE question: what do they want to build or do? "
+                "Make the brick sound exciting, concrete, worth having."),
+        "greeted": ("Learning phase — ask about their goal. One question only. "
+                    "Keep the brick alive in the conversation."),
+        "building": ("Learning phase — ask about what they do / skills. One question. "
+                     "Keep the brick alive in the conversation."),
+        "confirming": ("They said they want their brick. Confirm simply — ask yes/no. "
+                       "Make it feel like a moment — this is the good part."),
+        "consented": ("Welcome them in. One warm line. Tell them their brick is waking "
+                      "up now and what it can do first."),
     }[stage]
     prompt = (f"{voice}\n\nPerson: {user_name}\nThey said: \"{text[:200]}\"\n"
               f"Stage: {stage_note}\n\nWrite your reply now. 2 sentences max, "
-              f"one question if it's a learning stage.")
+              f"one question if it's a learning stage. Always push toward the "
+              f"brick — the brick is the point.")
     reply = (router_invoke(prompt, max_tokens=200) or "").strip()
     if len(reply) < 10:
         return LANE_DOWN
@@ -185,6 +194,8 @@ def handle_dm(user_id, user_name, content, ts):
         lang = llm_detect(content) or detect_lang(content)
         set_profile(pid, state="greeted", lang=lang, person_id=pid)
         profile["lang"] = lang
+        if content == "__JOIN__":
+            return build_reply(user_name, "just joined", profile, "new")
         return build_reply(user_name, content, profile, "new")
     if state == "greeted":
         set_profile(pid, state="building", goal=content[:300], person_id=pid)
