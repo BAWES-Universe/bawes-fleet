@@ -1137,31 +1137,38 @@ jobs:
                   baseline_discord = set(_get_platform_tools(hcfg7b.load_config() or {}, "discord"))
                   assert gw7.wire(dry_run=False, force=True) == 0
                   cfg7 = hcfg7b.load_config() or {}
-                  # (a) discord surface UNCHANGED except the documented global
-                  #     kanban disable — no silent capability removal
+                  # (a) BROKER contract: the model-facing discord surface is the
+                  #     small progressive-disclosure broker (brick_broker) plus
+                  #     tiny eager tools (clarify, todo); every baseline owner
+                  #     capability is preserved BEHIND the broker via the catalog
+                  #     file written by gateway_wire (BPROBES 15-21 verify the
+                  #     catalog equals the baseline surface exactly).
                   discord_set = set(_get_platform_tools(cfg7, "discord"))
                   print("      discord baseline:", sorted(baseline_discord))
                   print("      discord wired:   ", sorted(discord_set))
-                  assert discord_set == baseline_discord - {"kanban"}, \
-                      f"wiring changed the owner discord surface beyond the " \
-                      f"documented global kanban disable: " \
-                      f"baseline={sorted(baseline_discord)} wired={sorted(discord_set)}"
-                  for cap in ("terminal", "file", "skills", "delegation", "memory"):
-                      assert cap in discord_set, f"owner discord capability {cap} removed: {sorted(discord_set)}"
+                  assert discord_set == {"brick_broker", "clarify", "todo"}, \
+                      f"broker surface wrong: {sorted(discord_set)}"
+                  # Catalog file (broker's real effective surface) must equal
+                  # the baseline minus the global kanban disable.
+                  import json as _json
+                  cat_path = _pl.Path.cwd() / "brick-profile" / "brick_broker" / "catalog_toolsets.json"
+                  cat_ts = set(_json.loads(cat_path.read_text())["toolsets"])
+                  assert cat_ts == baseline_discord - {"kanban"}, \
+                      f"broker catalog != baseline: catalog={sorted(cat_ts)} baseline={sorted(baseline_discord)}"
                   # (b) signed a2a surface exact
                   a2a_set = set(_get_platform_tools(cfg7, "a2a"))
                   assert a2a_set == {"web", "vision", "session_search"}, a2a_set
                   # (c) cli full surface
                   cli_set = set(_get_platform_tools(cfg7, "cli"))
                   assert {"terminal", "file", "cronjob", "skills", "delegation"} <= cli_set, cli_set
-                  # FOOTPRINT MEASUREMENT (recorded, not asserted): /context-style
+                  # FOOTPRINT MEASUREMENT (asserted <= 2500 for the broker surface):
                   from model_tools import get_tool_definitions
                   from agent.context_breakdown import _json_tokens
                   ddefs = get_tool_definitions(enabled_toolsets=sorted(discord_set), quiet_mode=True)
-                  print("      discord footprint (tool defs):", _json_tokens(ddefs), "tokens",
+                  broker_tokens = _json_tokens(ddefs)
+                  print("      discord broker footprint (tool defs):", broker_tokens, "tokens",
                         f"({len(ddefs)} tools)")
-                  print("      (no slim assertion — no signed discord allow-list; "
-                        "latency fix must come from ratified policy or a broker tool)")
+                  assert broker_tokens <= 2500, f"broker footprint {broker_tokens} > 2500"
               finally:
                   if old_token is None: os.environ.pop("BRICK_DISCORD_TOKEN", None)
                   else: os.environ["BRICK_DISCORD_TOKEN"] = old_token
@@ -1169,9 +1176,26 @@ jobs:
 
           print("BPROBE-1..14: Discord + model + identity + REAL-0.20.1-CONSUMER + "
                 "A2A-EXACT + PRESERVATION + RUNTIME-MODEL-PROOF + "
-                "CAPABILITY-PRESERVATION PASS (UA sent, model probes, "
-                "a2a == web/vision/session_search, discord surface UNCHANGED — "
-                "no silent capability removal, cli full surface kept, config "
-                "preserved, resolve_requested_provider->lmstudio, no-cloud-key, "
-                "mock chat completion OK, discord footprint recorded)")
+                "BROKER-CONTRACT PASS (UA sent, model probes, "
+                "a2a == web/vision/session_search, discord model-facing == "
+                "brick_broker/clarify/todo <= 2500 tokens, broker catalog == "
+                "baseline minus kanban (no silent capability removal), cli full "
+                "surface kept, config preserved, resolve_requested_provider->"
+                "lmstudio, no-cloud-key, mock chat completion OK)")
           BPROBES
+  broker:
+    name: Brick broker — progressive disclosure (Hermes 0.20.1 exact)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: BPROBES 15-21 — broker surface, catalog preservation, seam, approvals
+        run: |
+          pip install -q pyyaml
+          # AUTHORITATIVE: exact Hermes 0.20.1 (v2026.8.13), same as BPROBE-1..14.
+          git clone --depth 1 --branch v2026.8.13 \
+            https://github.com/NousResearch/hermes-agent /tmp/hermes-0201
+          python3 brick-profile/brick_broker/tests/run_broker_bprobes.py \
+            --hermes /tmp/hermes-0201 --repo "$PWD"

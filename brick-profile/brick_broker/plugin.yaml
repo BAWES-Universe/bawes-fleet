@@ -1,0 +1,5 @@
+name: brick_broker
+version: 0.1.0
+kind: standalone
+description: "Progressive-disclosure capability broker for Brock's Discord owner surface. Exposes brick_capability_search/describe/invoke so the model never receives every core tool schema; dispatch re-enters Hermes's real executor/approval path."
+manifest_version: 1

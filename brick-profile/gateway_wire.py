@@ -208,6 +208,29 @@ def build_wiring(ident, a2a, model):
     config_override["platform_toolsets"] = {
         "a2a": peer_toolsets,
     }
+    # BROKER SURFACE (Brock latency fix, brick/brock-latency-broker-v3):
+    # The owner's discord session exposes ONLY the small progressive-disclosure
+    # broker (brick_capability_search/describe/invoke) plus tiny eager tools
+    # (clarify, todo). The broker's catalog — the full baseline owner surface —
+    # is generated at runtime from catalog_toolsets.json (written below), so
+    # every capability stays reachable behind the broker without paying its
+    # schema cost on every turn. A2A is untouched: peer_toolsets stays the
+    # signed {web, vision, session_search}.
+    config_override["platform_toolsets"]["discord"] = [
+        "brick_broker", "clarify", "todo",
+    ]
+    # The broker's own plugin tools are plugin-registered (deferrable) — the
+    # native tool_search bridge would otherwise strip them and replace with
+    # tool_search/tool_describe/tool_call, defeating the broker. Tool search
+    # must stay OFF so the three broker tools are the model-facing surface.
+    config_override["tools"] = {
+        "tool_search": {"enabled": "off"},
+    }
+    # Catalog source for the broker: the FULL baseline owner surface the
+    # gateway would have resolved for discord WITHOUT the broker override.
+    # Written as JSON next to the plugin; the broker reads it at runtime and
+    # regenerates real schemas via get_tool_definitions() (check_fn-gated).
+    broker_catalog_toolsets = _baseline_discord_toolsets()
     # Hermes 0.20 auto-adds toolsets on top of an explicit platform list:
     #  - "bfl" via _RECENTLY_SHIPPED_TOOLSETS (bfl_flux3_* video-gen) —
     #    suppressed A2A-specifically via known_builtin_toolsets.a2a, so
@@ -228,12 +251,50 @@ def build_wiring(ident, a2a, model):
     return env_pairs, config_override
 
 
+def _baseline_discord_toolsets():
+    """Return the FULL baseline discord toolset list the gateway would resolve
+    WITHOUT the broker override (the owner's real effective surface).
+
+    Reads the CURRENT (pre-wiring) config if present; otherwise falls back to
+    the Hermes platform default for discord. Never includes brick_broker.
+    """
+    try:
+        existing = load_yaml(CONFIG) or {}
+    except Exception:
+        existing = {}
+    try:
+        from hermes_cli.tools_config import _get_platform_tools
+        toolsets = _get_platform_tools(existing, "discord")
+    except Exception:
+        toolsets = set()
+    toolsets = {str(ts) for ts in toolsets}
+    toolsets.discard("brick_broker")
+    return sorted(toolsets)
+
+
+def _write_broker_catalog(broker_catalog_toolsets):
+    """Write catalog_toolsets.json next to the brick_broker plugin so the
+    broker's catalog is generated from Brock's real effective surface.
+
+    Path: brick-profile/brick_broker/catalog_toolsets.json (in-repo, next to
+    the plugin). The plugin reads it relative to its own __file__.
+    """
+    plugin_dir = pathlib.Path(__file__).parent / "brick_broker"
+    plugin_dir.mkdir(parents=True, exist_ok=True)
+    target = plugin_dir / "catalog_toolsets.json"
+    if target.exists():
+        shutil.copy2(target, str(target) + BACKUP_SUFFIX)
+    target.write_text(json.dumps({"toolsets": broker_catalog_toolsets}, indent=2) + "\n")
+    return target
+
+
 def wire(dry_run=True, force=False):
     ident = load_out("identity.json")
     a2a = load_out("a2a-policy.json")
     model = load_out("model.json")
 
     env_pairs, config_override = build_wiring(ident, a2a, model)
+    broker_catalog_toolsets = _baseline_discord_toolsets()
     brick_id = ident.get("brick_id")
     person_id = ident.get("person_id")
 
@@ -249,6 +310,12 @@ def wire(dry_run=True, force=False):
               f"(enabled, advertised_toolsets={config_override['platforms']['a2a']['extra']['advertised_toolsets']})")
         print(f"[dry]   config.yaml: platform_toolsets.a2a={config_override['platform_toolsets']['a2a']} "
               f"(ENFORCED — the inbound session's enabled_toolsets)")
+        print(f"[dry]   config.yaml: platform_toolsets.discord={config_override['platform_toolsets']['discord']} "
+              f"(BROKER surface — model sees only the broker + clarify/todo)")
+        print(f"[dry]   config.yaml: tools.tool_search.enabled=off "
+              f"(keeps broker tools model-facing; native bridge stays off)")
+        print(f"[dry]   brick-profile/brick_broker/catalog_toolsets.json: {len(broker_catalog_toolsets)} baseline "
+              f"toolsets ({broker_catalog_toolsets})")
         print("[dry] nothing written")
         return 0
 
@@ -262,8 +329,10 @@ def wire(dry_run=True, force=False):
     merged = _deep_merge(existing, config_override)
     write_yaml(CONFIG, merged)
     write_env(ENV, env_pairs)
+    catalog_target = _write_broker_catalog(broker_catalog_toolsets)
 
     print(f"wired brick '{brick_id}' -> {HERMES_DIR} (backups: {BACKUP_SUFFIX})")
+    print(f"broker catalog: {catalog_target} ({len(broker_catalog_toolsets)} baseline toolsets)")
     print("receipt:", {"brick_id": brick_id, "person_id": person_id,
                        "model": config_override["model"],
                        "a2a_port": env_pairs["A2A_PORT"],
