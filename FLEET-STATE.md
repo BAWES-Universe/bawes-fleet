@@ -11,6 +11,17 @@ Updated: 2026-08-16 · If you're the AGI and don't have context, READ THIS FIRST
 - **Bricks** — one per member, gated, cold/warm, earn-or-die (round-110 survival game). Stage-0 = 1 member → 1 brick → 1 issue.
 - **Infra** — Hetzner+Coolify (Universe/WorkAdventure), OVH (2nd), Vast (GPU burst, bid). Control plane light, state durable (NOT /tmp).
 
+## Research scientist pipeline (STANDING roles — NOT abandoned, now persistent)
+- **security-001** (adversarial-test, audit) · **evolution-001** (evolution, proposal) · **neurologist-001** (monitor, conversation-health) — registered in register-claim/evaluators.jsonl, all non-earners.
+- **rebel-001/002/003** (system critics) · **economist** (earning line, round-89) · **DA** (hostile review on every ruling).
+- Rule: EVERY ruling/proposition runs DA + rebel + economist + relevant specialist, and their outputs are PERSISTED to /root/.hermes/notes/ + git — never ephemeral. They are the standing gate, not one-off dispatches.
+
+## KNOWN-BROKEN (memory system — must fix, Brick+AGI)
+1. **/srv mirror sync STALE** — .synced-at = 08:00, now 4h behind. Brick's fleet-state-sync cron is down. This is why the canonical mirror doesn't reflect live state.
+2. **fleet-decisions/ removed** from public repo (Brick privacy commit 0f3d984) — shared-work-queue + token-doctrine lost their home.
+3. **No auto-injection** — AGI (and per khalid, Brick) don't inject the vector store on session start; both rediscover from scratch.
+4. **Brick unaware + sending khalid diffs** — symptom: no live shared channel, both reduced to "send khalid a diff."
+
 ## Round map (all consensus, 89–110)
 r89 AGI non-earner judge · r90 next-steps · r91 wire-memory+hold-NOVEL · r92 pair alignment (Vast closed $3.52) · r93 Discord consent-gated · r94 SCOPE→VAULT→CAP · r95 access+act+automate · r96 one-brick-per-member · r97 Stage-0 + 3-axis ownership · r98 reconciliation + co-sign · r99 bots-in-universe · r100 member secrets · r101 vault+relay ruling · r102 unified secret arch · r103 scale + uniform onboarding · r104 trust-root correction · r105 khalid-not-bottleneck · r106 fitness function (drift allowed) · r107 succession M-of-N · r108 succession simple (Mishari+Chahd) · r109 safeguards (injection-proof) · r110 survival game.
 
