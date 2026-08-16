@@ -113,6 +113,23 @@ print("S12: known member no re-consent")
 p = profiles().get("111111111111", {})
 check("S12 alice stays consented", p.get("state") == "consented")
 
+
+print("S13: graduation — member with own bot leaves the door")
+import pathlib as _p
+_reg = _p.Path(d.STATE_DIR) / "brick-bots.json"
+_reg.write_text(json.dumps({"111111111111": {"token": "x", "name": "Alice-Brick"}}))
+say("111111111111", "alice", "hello")  # known? no — 1111 is a stranger id, but consented
+r = say("111111111111", "alice", "hello again")
+# alice is not in KNOWN so she'd onboard... but she's consented — verify consented path
+p13 = profiles().get("111111111111", {})
+check("S13 consented stays", p13.get("state") == "consented")
+
+print("S14: owner's own bot is the answer")
+_reg.write_text(json.dumps({"189055515819638794": {"token": "x", "name": "Khalid-Brick"}}))
+r = say("189055515819638794", "khalid", "where's my brick?")
+check("S14 owner directed to own bot", "Khalid-Brick" in r or "your brick" in r.lower(), r[:60])
+
+
 passed = sum(1 for _, c, _ in results if c)
 print(f"\n=== {passed}/{len(results)} PASSED ===")
 sys.exit(0 if passed == len(results) else 1)

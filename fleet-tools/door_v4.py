@@ -297,6 +297,22 @@ def handle_dm(user_id, user_name, content, ts):
                                     "lang": profile.get("lang"),
                                     "ts": ts}) + "\n")
             os.chmod(TRANSCRIPT, 0o600)  # DA-5: consent PII 0600
+            # GRADUATION (khalid: "they need to exit the door and find
+            # their own bots... graduate from it"): the door hands off.
+            # If the member has their own brick bot registered, the door
+            # tells them to leave; the brick bot takes over their DM.
+            registry = pathlib.Path("/srv/door/brick-bots.json")
+            own_bot = ""
+            try:
+                if registry.exists():
+                    own_bot = json.loads(registry.read_text()).get(pid, {}).get("name", "")
+            except Exception:
+                pass
+            if own_bot:
+                return (f"Congratulations {user_name} 🍌 — you're done with "
+                        f"the door. Your own brick **{own_bot}** is awake "
+                        f"and waiting for you. Go say hi to it — that's "
+                        f"yours now. The door's got nothing left for you.")
             return build_reply(user_name, content, profile, "consented")
         set_profile(pid, state="building")
         return ("No rush — no consent until you mean it. "
