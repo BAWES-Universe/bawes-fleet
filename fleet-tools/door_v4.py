@@ -220,24 +220,31 @@ def handle_dm(user_id, user_name, content, ts):
     except Exception:
         pass
 
-    # Known people (owner/staff): casual check-ins NEVER trigger onboarding.
-    # They already have bricks or are the owner — answer as a brick would.
-    low = content.lower().strip()
-    if user_id in KNOWN and any(c in low for c in CASUAL):
+    # KNOWN people (owner/staff): NEVER onboarding. Never again, no matter
+    # what they say. The door knows exactly who they are and answers as
+    # their brick companion every time. (khalid: "no character consistency
+    # or proper path and it has no clue who's who and what's next")
+    if user_id in KNOWN:
         name = KNOWN[user_id]
         profile["state"] = profile.get("state") or "known"
+        identity = {
+            "189055515819638794": ("khalid", "the owner of the fleet"),
+            "231861753082937346": ("mishari", "a core engineer with his own brick"),
+            "690554066815811625": ("chahd", "a family member with her own brick"),
+        }.get(user_id, (name, "a known member of the fleet"))
         prompt = (f"{VOICE.get(profile.get('lang') or 'en', VOICE['en'])}\n\n"
-                  f"Person: {name} (a known member of the fleet) said: "
-                  f"\"{content[:200]}\"\n"
-                  f"They're checking in. Answer as their brick companion — "
-                  f"warm, one line about what's happening, then ONE simple "
-                  f"question. 2 sentences max.")
+                  f"Person: {identity[0]} — {identity[1]}. "
+                  f"They said: \"{content[:200]}\"\n"
+                  f"This person is NOT onboarding — they are already in. "
+                  f"Answer as their personal brick companion: warm, direct, "
+                  f"concrete. If they ask about the fleet, say what's real. "
+                  f"If they ask about their brick, tell them the truth. "
+                  f"2 sentences max, ONE question if needed.")
         reply = (router_invoke(prompt, max_tokens=200) or "").strip()
         if len(reply) >= 10:
             return reply
-        return (f"Hey {name} 🍌 — everything's running: the door's up, "
-                f"the fleet's working, and your brick's right here with "
-                f"you. What do you need?")
+        return (f"Hey {name} 🍌 — you're in, this is your brick. "
+                f"Everything's running. What do you need?")
 
     if content == "__JOIN__":
         # DA-3: sentinel ONLY fires for a genuinely new user. A second join
