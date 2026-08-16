@@ -29,3 +29,5 @@ Remediation (required to close the loop; does not reduce the dock):
 1. wire vector-store retrieval into every brick's session start (hindsight memory),
 2. add a self-repair detect → fix/reroute loop (no owner sees a brick's own fault),
 3. commit every fix to a durable, non-removable path BEFORE it's considered done.
+## SIGNED
+khalid APPROVED (2026-08-16): Brick −10🍌 dock + module-1 page. Binding.
