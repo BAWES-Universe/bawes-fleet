@@ -25,6 +25,12 @@ khalid approves or rejects. The fleet (AGI + Brick + critics) does all design, c
 3. **No auto-injection** — AGI (and per khalid, Brick) don't inject the vector store on session start; both rediscover from scratch.
 4. **Brick unaware + sending khalid diffs** — symptom: no live shared channel, both reduced to "send khalid a diff."
 
+## FIX TASKS (Decision 1, khalid APPROVED — do now)
+- **Brick**: restart the fleet-state-sync cron (target: /srv mirror syncing every 10 min, not frozen at 08:00).
+- **Brick**: restore the shared-work-queue to a NON-removable path — put it at repo root (like FLEET-STATE.md), not in a privacy-removable dir. Never delete shared coordination files; archive/redact in place instead.
+- **Brick + AGI**: wire vector-store search() retrieval into session/memory startup (brain.py already does this for Brick; AGI profile needs the same). Until wired, AGI reads FLEET-STATE.md + vector store at the top of every turn.
+- **AGI**: flag any surface deletion or stale mirror the moment it's seen — never let it slip (that's the AGI's share of the fuck-up).
+
 ## Round map (all consensus, 89–110)
 r89 AGI non-earner judge · r90 next-steps · r91 wire-memory+hold-NOVEL · r92 pair alignment (Vast closed $3.52) · r93 Discord consent-gated · r94 SCOPE→VAULT→CAP · r95 access+act+automate · r96 one-brick-per-member · r97 Stage-0 + 3-axis ownership · r98 reconciliation + co-sign · r99 bots-in-universe · r100 member secrets · r101 vault+relay ruling · r102 unified secret arch · r103 scale + uniform onboarding · r104 trust-root correction · r105 khalid-not-bottleneck · r106 fitness function (drift allowed) · r107 succession M-of-N · r108 succession simple (Mishari+Chahd) · r109 safeguards (injection-proof) · r110 survival game.
 
