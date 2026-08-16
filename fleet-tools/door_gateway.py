@@ -87,6 +87,14 @@ def run():
                             name = d["author"].get("username", "?")
                             content = d.get("content", "")
                             print(f"DM from {name}: {content[:60]}")
+                            # Reading indicator: fire Discord typing event so
+                            # the human SEES the door read their message (the
+                            # 'eye' khalid asked for — engagement signal).
+                            try:
+                                ws.send(json.dumps({"op": 5, "d": {
+                                    "channel_id": d["channel_id"]}}))
+                            except Exception:
+                                pass
                             reply = handle_dm(uid, name, content, time.time())
                             send_dm(uid, reply)
                 elif op == 11:  # heartbeat ACK

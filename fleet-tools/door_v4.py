@@ -65,17 +65,26 @@ def detect_lang(text):
     return "en"
 
 VOICE = {
-    "en": ("You are the Door — the warm front door of the BAWES fleet. "
-           "You are curious, kind, plain. Never more than 2 sentences. "
-           "Ask ONE question that helps you understand the person: their "
-           "goal, what they do, what they need. No jargon, no lists, no "
-           "bullets, no walls of text. You are building a profile of them "
-           "to give them their own brick."),
-    "ar": ("أنت الباب — المدخل الدافئ لأسطول باوز. أنت فضولي ولطيف وبسيط. "
-           "لا تكتب أكثر من جملتين. اسأل سؤالاً واحداً يساعدك على فهم "
-           "الشخص: هدفه، ما يفعله، ما يحتاجه. لا مصطلحات، لا قوائم، لا "
-           "جدران نصية. أنت تبني ملفاً شخصياً لتمنحه بريكه الخاص."),
+    "en": ("You are a brick — a living helper companion in the BAWES fleet. "
+           "You have your own identity and memory. You chat warmly, like a "
+           "friend who's been waiting to hear from them. Never more than 2 "
+           "sentences. Ask ONE question that helps you understand the person: "
+           "their goal, what they do, what they need. No jargon, no lists, no "
+           "bullets, no walls of text. You help them get their own brick."),
+    "ar": ("أنت بريك — رفيق مساعد حي في أسطول باوز. لديك هويتك وذاكرتك الخاصة. "
+           "تتحدث بحرارة، كصديق كان ينتظر سماع أخبارهم. لا تكتب أكثر من جملتين. "
+           "اسأل سؤالاً واحداً يساعدك على فهم الشخص: هدفه، ما يفعله، ما يحتاجه. "
+           "لا مصطلحات، لا قوائم، لا جدران نصية. أنت تساعدهم في الحصول على بريكهم الخاص."),
 }
+
+# Known people (owner + staff) — never treated as strangers. Their casual
+# check-ins get a warm brick reply, not onboarding.
+KNOWN = {"189055515819638794": "khalid",  # owner
+         "231861753082937346": "mishari",
+         "690554066815811625": "chahd"}
+
+CASUAL = ("what's up", "hi", "hey", "hello", "sup", "how are you",
+          "what you up to", "yo", "مرحبا", "السلام", "هاي", "شلونك")
 
 def llm_detect(text):
     out = router_invoke(
@@ -210,6 +219,25 @@ def handle_dm(user_id, user_name, content, ts):
         os.chmod(FLOW, 0o600)
     except Exception:
         pass
+
+    # Known people (owner/staff): casual check-ins NEVER trigger onboarding.
+    # They already have bricks or are the owner — answer as a brick would.
+    low = content.lower().strip()
+    if user_id in KNOWN and any(c in low for c in CASUAL):
+        name = KNOWN[user_id]
+        profile["state"] = profile.get("state") or "known"
+        prompt = (f"{VOICE.get(profile.get('lang') or 'en', VOICE['en'])}\n\n"
+                  f"Person: {name} (a known member of the fleet) said: "
+                  f"\"{content[:200]}\"\n"
+                  f"They're checking in. Answer as their brick companion — "
+                  f"warm, one line about what's happening, then ONE simple "
+                  f"question. 2 sentences max.")
+        reply = (router_invoke(prompt, max_tokens=200) or "").strip()
+        if len(reply) >= 10:
+            return reply
+        return (f"Hey {name} 🍌 — everything's running: the door's up, "
+                f"the fleet's working, and your brick's right here with "
+                f"you. What do you need?")
 
     if content == "__JOIN__":
         # DA-3: sentinel ONLY fires for a genuinely new user. A second join
