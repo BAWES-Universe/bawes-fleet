@@ -4,6 +4,7 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:    # allow manual CI on isolated branches (e.g. brick/slim-prompt-v2)
 
 jobs:
   guardrails:
@@ -1091,9 +1092,86 @@ jobs:
                   else: os.environ["DEEPSEEK_API_KEY"] = old_deepseek
                   os.environ.pop("HERMES_HOME", None)
 
-          print("BPROBE-1..13: Discord + model + identity + REAL-0.20.1-CONSUMER + "
-                "A2A-EXACT + PRESERVATION + RUNTIME-MODEL-PROOF PASS "
-                "(UA sent, model probes, a2a == web/vision/session_search, "
-                "discord unchanged except kanban, config preserved, "
-                "resolve_requested_provider->lmstudio, no-cloud-key, mock chat completion OK)")
+          # 14. CAPABILITY-PRESERVATION + FOOTPRINT MEASUREMENT (exact 0.20.1).
+          #     The signed profile scopes peer_toolsets/reject to a2a ONLY —
+          #     there is no signed discord allow-list. Wiring must therefore:
+          #       (a) NOT change the owner's discord surface at all (no silent
+          #           capability removal — terminal/file/skills/delegation/
+          #           memory stay reachable on the owner channel),
+          #       (b) keep the signed a2a surface exactly web/vision/
+          #           session_search,
+          #       (c) keep cli's full core surface.
+          #     This probe MEASURES the discord tool-definition footprint the
+          #     way /context does (_json_tokens) and records it, so a future
+          #     ratified slim-prompt policy (signed discord allow-list, or a
+          #     broker tool) has a baseline to regress against — but it
+          #     asserts NO discord restriction, because none is signed.
+          with tempfile.TemporaryDirectory() as td:
+              scratch_root = _pl.Path(td)
+              bp.ROOT = scratch_root
+              outdir = scratch_root / "out"; outdir.mkdir()
+              bp.apply_profile(
+                  {"brick_id": "mishari-device-001", "person_id": "231861",
+                   "discord_user_id": "231861753082937346", "wallet_ref": "w",
+                   "a2a": {"peer_toolsets": ["web", "vision", "session_search"],
+                           "reject": ["terminal", "code_execution", "memory",
+                                      "file", "skill_manage"],
+                           "enforce_read_only": True},
+                   "model": {"primary": "http://172.20.64.1:1234/v1",
+                             "default_model": "qwen/qwen3-4b-2507"}},
+                  {"manifest": {"model_chain": ["local", "deepseek-v4-flash"]}})
+              scratch = _pl.Path(td) / "brick-profile"; scratch.mkdir()
+              _sh.copytree(outdir, scratch / "out")
+              import gateway_wire as gw7
+              gw7.OUT = scratch / "out"
+              home = _pl.Path(td) / "hermes-home"; home.mkdir()
+              gw7.HERMES_DIR = home; gw7.CONFIG = home / "config.yaml"; gw7.ENV = home / ".env"
+              old_token = os.environ.get("BRICK_DISCORD_TOKEN")
+              os.environ["BRICK_DISCORD_TOKEN"] = "tok-1234567890"
+              try:
+                  # baseline discord surface BEFORE wiring (owner's own config)
+                  os.environ["HERMES_HOME"] = str(home)
+                  import hermes_cli.config as hcfg7b
+                  from hermes_cli.tools_config import _get_platform_tools
+                  (home / "config.yaml").write_text("platforms:\n  discord:\n    enabled: true\n")
+                  baseline_discord = set(_get_platform_tools(hcfg7b.load_config() or {}, "discord"))
+                  assert gw7.wire(dry_run=False, force=True) == 0
+                  cfg7 = hcfg7b.load_config() or {}
+                  # (a) discord surface UNCHANGED except the documented global
+                  #     kanban disable — no silent capability removal
+                  discord_set = set(_get_platform_tools(cfg7, "discord"))
+                  print("      discord baseline:", sorted(baseline_discord))
+                  print("      discord wired:   ", sorted(discord_set))
+                  assert discord_set == baseline_discord - {"kanban"}, \
+                      f"wiring changed the owner discord surface beyond the " \
+                      f"documented global kanban disable: " \
+                      f"baseline={sorted(baseline_discord)} wired={sorted(discord_set)}"
+                  for cap in ("terminal", "file", "skills", "delegation", "memory"):
+                      assert cap in discord_set, f"owner discord capability {cap} removed: {sorted(discord_set)}"
+                  # (b) signed a2a surface exact
+                  a2a_set = set(_get_platform_tools(cfg7, "a2a"))
+                  assert a2a_set == {"web", "vision", "session_search"}, a2a_set
+                  # (c) cli full surface
+                  cli_set = set(_get_platform_tools(cfg7, "cli"))
+                  assert {"terminal", "file", "cronjob", "skills", "delegation"} <= cli_set, cli_set
+                  # FOOTPRINT MEASUREMENT (recorded, not asserted): /context-style
+                  from model_tools import get_tool_definitions
+                  from agent.context_breakdown import _json_tokens
+                  ddefs = get_tool_definitions(enabled_toolsets=sorted(discord_set), quiet_mode=True)
+                  print("      discord footprint (tool defs):", _json_tokens(ddefs), "tokens",
+                        f"({len(ddefs)} tools)")
+                  print("      (no slim assertion — no signed discord allow-list; "
+                        "latency fix must come from ratified policy or a broker tool)")
+              finally:
+                  if old_token is None: os.environ.pop("BRICK_DISCORD_TOKEN", None)
+                  else: os.environ["BRICK_DISCORD_TOKEN"] = old_token
+                  os.environ.pop("HERMES_HOME", None)
+
+          print("BPROBE-1..14: Discord + model + identity + REAL-0.20.1-CONSUMER + "
+                "A2A-EXACT + PRESERVATION + RUNTIME-MODEL-PROOF + "
+                "CAPABILITY-PRESERVATION PASS (UA sent, model probes, "
+                "a2a == web/vision/session_search, discord surface UNCHANGED — "
+                "no silent capability removal, cli full surface kept, config "
+                "preserved, resolve_requested_provider->lmstudio, no-cloud-key, "
+                "mock chat completion OK, discord footprint recorded)")
           BPROBES
