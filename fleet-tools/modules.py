@@ -27,20 +27,20 @@ REGISTERED_NONEARNERS = {"security-001", "evolution-001", "neurologist-001",
 MODULES = [
     {"n": 1, "name": "Banana Basics", "teach": "How brick work earns bananas.",
      "steps": ["Say hi to your brick.", "Dispatch a test card.", "Confirm the probe result."],
-     "reward": 1, "verify": "probe result confirmed"},
+     "reward": 0, "verify": "probe result confirmed"},
     {"n": 2, "name": "Brick Health Check", "teach": "Inspect your brick's public exposure.",
      "steps": ["Run the guided health probe.", "Patch one open door."],
-     "reward": 2, "verify": "probe + patch verified"},
+     "reward": 0, "verify": "probe + patch verified"},
     {"n": 3, "name": "Credential Hygiene", "teach": "Find and rotate exposed passwords.",
      "steps": ["Scan for exposed credentials.", "Rotate what's found.", "Re-scan: no live secrets.",
                "CLEAN BRICK: a scan with zero findings IS completion."],
-     "reward": 3, "verify": "secret probe finds no live secrets (negative result counts)"},
+     "reward": 0, "verify": "secret probe finds no live secrets (negative result counts)"},
     {"n": 4, "name": "Lane Awareness", "teach": "What lanes are; how your brick feeds the survival game.",
      "steps": ["Learn the lanes (banana, help, universe, idea).", "Map your brick's data flow in plain words."],
-     "reward": 4, "verify": "mapping verified by non-earner"},
+     "reward": 0, "verify": "mapping verified by non-earner"},
     {"n": 5, "name": "Improvement Sprint", "teach": "Ship one small brick improvement.",
      "steps": ["Pick one improvement.", "Ship it (DA-gated merge)."],
-     "reward": 5, "verify": "merged unit, DA-gated"},
+     "reward": 0, "verify": "merged unit, DA-gated"},
     {"n": 6, "name": "Survival Sprint", "teach": "Skills under resource pressure.",
      "steps": ["14 consecutive verified tasks over 7 days.", "No missed heartbeat.", "Handle one live incident end-to-end."],
      "reward": 0, "verify": "non-earner signs each receipt + incident close-out"},
@@ -121,14 +121,14 @@ def _mint_internal(brick_id, n, signer):
         raise RuntimeError("already minted (ledger uniqueness)")
     row = {"kind": "module-complete", "card_id": card, "brick_id": brick_id,
            "person_id": brick_id, "signer": signer, "ts": time.time(),
-           "mint_status": "pending-khalid",
-           "note": "reward value is khalid's call, not auto-minted"}
+           "mint_status": "none",
+           "note": "modules are FREE — khalid ruling: people earn on actual results, not curriculum"}
     _append_ledger(row)
 
 def list_modules():
     for m in MODULES:
         v = "non-earner-observed" if m["n"] == 6 else m["verify"]
-        print(f"M{m['n']} {m['name']:<22} +{m['reward']}🍌  verify: {v}")
+        print(f"M{m["n"]} {m["name"]:<22} FREE  verify: {v}")
 
 def show(n):
     m = MODULES[n - 1]
