@@ -155,6 +155,26 @@ class WorkerHandler(BaseHTTPRequestHandler):
                     return
                 out = json.dumps({"build_ok": True}, sort_keys=True)
                 out = hashlib.sha256(out.encode()).hexdigest()
+            elif pid == "probe-browser-mut-001":
+                # MUTATED PRODUCT JOB (consensus-growth): browser build + dist
+                # file count + build time — new dimensions vs probe-browser-001.
+                import subprocess, sys as _sys
+                r = subprocess.run(
+                    [_sys.executable, "/opt/orbit-repo/web-app/job_browser_mut.py"],
+                    capture_output=True, text=True, timeout=600)
+                if r.returncode != 0 or not r.stdout.strip().startswith("{"):
+                    self._json(500, {"error": "browser-mut job failed"})
+                    return
+                # verdict = mutation dimensions: ok + dist_files (build_s is
+                # informational — varies per run, never in the hash gate)
+                try:
+                    d = json.loads(r.stdout.strip())
+                    verdict = json.dumps({"ok": d.get("ok"),
+                                          "dist_files": d.get("dist_files")}, sort_keys=True)
+                except Exception:
+                    self._json(500, {"error": "browser-mut bad output"})
+                    return
+                out = hashlib.sha256(verdict.encode()).hexdigest()
             else:
                 self._json(404, {"error": f"unknown probe {pid}"})
                 return
