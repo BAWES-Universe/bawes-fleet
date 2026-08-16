@@ -1,20 +1,29 @@
-# Smart-door spec — what a "good first impression" actually means (verifiable)
+# Smart door v2 — smart + upsell ("better & theirs") + free access + invite-only
 
-thread: bawes-zeus-001 · khalid: "I wanted it smart and good first impression, now it's just an idiot responding to every message with 'Your brick is awake.'"
+thread: bawes-zeus-001 · khalid: "I want something smart that upsells brick as something that's better and theirs and gives extra access free. They can also invite their friends (thinking to make it invite only)."
 
-## The failure
-The door is a STATIC canned responder: same line to every message, no recognition of who's talking, no read of what they said. It's not wired to any context. That is the exact opposite of "smart."
+## 1. Smart (v1, unchanged)
+Recognize who's there · read the actual message · personalized opener + route to consent→module 1 · no spam/repeat.
 
-## What smart means (concrete acceptance criteria — not vague)
-1. **Recognize who's there.** khalid → owner greeting. Mishari → his context (building the broker). A stranger → new-member welcome. Never the same line to all three.
-2. **Read the message, respond to it.** If someone says "I'm stuck on the broker," the door responds to *that*, not "your brick is awake."
-3. **Personalized opener + immediate next step.** New member: "Welcome — I'm the door. First, one tap to agree the fleet can help you [consent]. Then I'll wake your brick and show you how to earn your first banana [module 1]." Not a question that punts work back to them.
-4. **No spam / no repeat.** It never sends the same canned line twice in a row. It listens after it speaks.
-5. **First impression = one clean move, then route.** Greet → consent → module 1. The door leads; it doesn't ask "what do you want to do?" like it has no idea.
+## 2. Upsell — honest, not hype
+The door presents the brick as:
+- **Theirs** — TRUE (round-97 3-axis: the member owns their context + data + delete/revive). Not marketing fluff; it's the architecture.
+- **Better** — honest comparison, not vague "better": your brick is YOUR agent that learns you, earns for you, and keeps itself alive — not a rented chatbot that forgets you. "Better" = ownership + earning + memory, three concrete things.
 
-## Acceptance test (how we verify "smart", not claim it)
-- New user sends "hello" → door greets by name/context + presents consent + module 1, and does NOT print "your brick is awake."
-- Same user sends a second message → door responds to the content of that message, not the first line again.
-- khalid sends "hi" → recognized as owner, not treated like a stranger.
+## 3. Extra access free (concrete, not a fake premium)
+- Brick runs **idle at $0** (cold = free to exist).
+- **First task free**: module 1 earns your first banana at no cost to you.
+- **Free starter lane**: one lane unlocked immediately so the brick can start serving without paying in.
+(These are real and already in the design — the door just surfaces them as "you get this free.")
 
-## Sent to: DA + rebel + Brick (co-sign).
+## 4. Invite-only (viral, not a wall)
+- Every onboarded member gets a set of **invites** to give friends.
+- Invite = free to send, free to accept; it's exclusivity, not a paywall.
+- Growth loop: member → invite friend → friend onboards → friend gets invites → …
+- Reconcile with "free entry forever": entry stays FREE (invite costs nothing); the gate is *who vouches for you*, not *what you pay*.
+
+## Open for the full board (DA + rebel + economist + evolution + neurologist + security)
+1. Is the upsell honest, or does "better & theirs" drift into hype a brick can't back?
+2. Is "extra access free" concrete enough, or is it fake-premium theater?
+3. Does invite-only conflict with "free entry" / "capture lost people" (round-95)? What's the honest reconciliation?
+4. Is the invite loop a real growth mechanism or vanity (round-91/93 kill)?
