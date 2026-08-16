@@ -658,7 +658,7 @@ jobs:
           PROBES
       - name: Brick profile — Discord probe UA + fail-closed regression (Hermes 0.20.1)
         run: |
-          pip install -q pyyaml cryptography
+          pip install -q pyyaml cryptography requests httpx
           # AUTHORITATIVE: use the EXACT Hermes version Mishari runs
           # (0.20.1 = tag v2026.8.13, commit f80f453). PyPI ships 0.19,
           # which has no A2A plugin and a different toolset resolver —
@@ -969,14 +969,16 @@ jobs:
                   # a2a is exact
                   a2a_set = set(_get_platform_tools(cfg5, "a2a"))
                   assert a2a_set == {"web", "vision", "session_search"}, a2a_set
-                  # discord: unchanged EXCEPT global kanban disable
+                  # discord: BROKER contract — model-facing surface is the
+                  # progressive-disclosure broker + tiny eager tools (bfl stays
+                  # in the toolset set via _RECENTLY_SHIPPED_TOOLSETS but its
+                  # schemas are check_fn-gated on Nous credentials; the broker
+                  # catalog preserves every baseline capability).
                   discord_set = set(_get_platform_tools(cfg5, "discord"))
-                  expected = baseline_discord - {"kanban"}
                   print("      discord baseline:", sorted(baseline_discord))
                   print("      discord wired:   ", sorted(discord_set))
-                  assert discord_set == expected, \
-                      f"discord surface changed beyond kanban disable: " \
-                      f"baseline={sorted(baseline_discord)} wired={sorted(discord_set)}"
+                  assert discord_set == {"brick_broker", "clarify", "todo", "bfl"}, \
+                      f"broker surface wrong: {sorted(discord_set)}"
                   # preservation: existing disabled_toolsets unioned, not replaced
                   disabled = (cfg5.get("agent") or {}).get("disabled_toolsets") or []
                   assert "memory" in disabled and "x_search" in disabled, disabled
@@ -1146,7 +1148,7 @@ jobs:
                   discord_set = set(_get_platform_tools(cfg7, "discord"))
                   print("      discord baseline:", sorted(baseline_discord))
                   print("      discord wired:   ", sorted(discord_set))
-                  assert discord_set == {"brick_broker", "clarify", "todo"}, \
+                  assert discord_set == {"brick_broker", "clarify", "todo", "bfl"}, \
                       f"broker surface wrong: {sorted(discord_set)}"
                   # Catalog file (broker's real effective surface) must equal
                   # the baseline minus the global kanban disable.
@@ -1193,7 +1195,7 @@ jobs:
           python-version: "3.11"
       - name: BPROBES 15-21 — broker surface, catalog preservation, seam, approvals
         run: |
-          pip install -q pyyaml
+          pip install -q pyyaml requests httpx
           # AUTHORITATIVE: exact Hermes 0.20.1 (v2026.8.13), same as BPROBE-1..14.
           git clone --depth 1 --branch v2026.8.13 \
             https://github.com/NousResearch/hermes-agent /tmp/hermes-0201

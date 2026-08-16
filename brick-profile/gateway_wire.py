@@ -256,7 +256,9 @@ def _baseline_discord_toolsets():
     WITHOUT the broker override (the owner's real effective surface).
 
     Reads the CURRENT (pre-wiring) config if present; otherwise falls back to
-    the Hermes platform default for discord. Never includes brick_broker.
+    the Hermes platform default for discord. Subtracts the global
+    agent.disabled_toolsets (e.g. kanban) so the catalog reflects the
+    EFFECTIVE surface, not the raw composite. Never includes brick_broker.
     """
     try:
         existing = load_yaml(CONFIG) or {}
@@ -268,6 +270,12 @@ def _baseline_discord_toolsets():
     except Exception:
         toolsets = set()
     toolsets = {str(ts) for ts in toolsets}
+    disabled = set(existing.get("agent", {}).get("disabled_toolsets") or [])
+    # The wiring ALWAYS globally disables kanban (state-mutating) — strip it
+    # even when the pre-wiring config has no disabled_toolsets yet, so the
+    # catalog equals the EFFECTIVE post-wiring surface (baseline minus kanban).
+    disabled.add("kanban")
+    toolsets -= {str(d) for d in disabled}
     toolsets.discard("brick_broker")
     return sorted(toolsets)
 
