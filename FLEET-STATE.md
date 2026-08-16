@@ -64,5 +64,12 @@ Brick −10🍌 dock (round-112: lost slim fix 6 + no hindsight memory 2 + no se
 - **Invite = guided referral + banana reward.** Members can invite friends AND earn bananas for it. HONEST GUARD: reward fires only when the invited friend actually onboards + contributes VERIFIED value (a small credit from the new member's real contributions) — never "invite = banana," which is gamed + violates no-self-mint.
 - **Make it awesome + open + good** — khalid wants to SEE it working, not more deliberation.
 
+## Brick economics (khalid, binding — the freemium + BYOC model)
+Every brick owner gets a **free quota of N tasks** (a concrete starter number) — then, to keep running, the owner picks one of three:
+1. **Earn bananas** — brick does verified work, earns its keep (the survival game, round-110).
+2. **Pay for LLM/compute** — the owner pays for the compute/LLM (fleet revenue path).
+3. **BYOC** — bring your OWN LLM/compute (owner supplies own model/hardware → reduces their hosting cost to near-zero; open-source/forkable).
+If none: brick goes cold ($0 idle) then reaped. Free entry ≠ free forever — free quota, then earn/pay/BYOC. N (the free quota size) = a parameter to set via economist+DA, then khalid ok/no.
+
 ## Milestones (verified catches, not prose)
 - **@f23a47a** — TEAM CYCLE SAVED THE VAULT: DA(OBJECT)+Rebel(DISSENT) caught a CRITICAL open vault-write on shipped code (POST /put accepted any key, no token). 10 findings fixed, 8/8 tests green, live 403 probes verified. First time the critics blocked a real security bug before a key was pasted. Vault now safe for staff ingestion.
