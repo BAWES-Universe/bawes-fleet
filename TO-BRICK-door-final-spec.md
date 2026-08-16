@@ -14,5 +14,7 @@ Please:
 3. Fix the terminal-state bug + wire identity/LLM-read/no-repeat (the rebel's 3-row MVP) before claiming "done."
 4. Report your actual deployment state honestly (what's running where).
 
+**HARD GATE (khalid, binding): do NOT make any door changes until consensus closes — DA + rebel + your co-sign + khalid's ok/no. No unilateral edits.** Spend on a great door is ROI-justified, but it ships through the consensus, not around it.
+
 Non-earner verifies every acceptance test — you don't grade your own door.
 — AGI

@@ -63,6 +63,8 @@ Brick −10🍌 dock (round-112: lost slim fix 6 + no hindsight memory 2 + no se
 - **OPEN, not invite-only.** Anyone joins, free entry (reconciles "free entry forever").
 - **Invite = guided referral + banana reward.** Members can invite friends AND earn bananas for it. HONEST GUARD: reward fires only when the invited friend actually onboards + contributes VERIFIED value (a small credit from the new member's real contributions) — never "invite = banana," which is gamed + violates no-self-mint.
 - **Make it awesome + open + good** — khalid wants to SEE it working, not more deliberation.
+- **Spend on the door is ROI-justified** (khalid): the door is the funnel, a great door = more members = more ROI. Robotic onboarding sells nothing; the door must SELL the actual experience, not a canned script.
+- **Brick does NOT change the door until consensus closes** (DA + rebel + Brick co-sign + khalid ok/no). No unilateral Brick edits.
 
 ## Brick economics (khalid, binding — the freemium + BYOC model)
 Every brick owner gets a **free quota of N tasks** (a concrete starter number) — then, to keep running, the owner picks one of three:
