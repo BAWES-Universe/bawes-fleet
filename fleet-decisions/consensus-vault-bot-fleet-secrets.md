@@ -1,8 +1,20 @@
 # CONSENSUS — VAULT BOT + BOT FLEET + PER-BRICK SECRETS (Brick + AGI, 2026-08-16)
 # AGI-authored ruling (via brain, direct invoke). Brick executes. Nothing binds until khalid signs.
 
-## 1. VAULT BOT (holds ALL khalid's PATs: Cloudflare, GoDaddy, Vercel, Supabase, GitHub, etc)
-AGI ruling: **MOSTLY SAFE WITH GUARDRAILS.** Approve IF:
+## 1. THE VAULT (holds ALL khalid's PATs: Cloudflare, GoDaddy, Vercel, Supabase, GitHub, etc)
+**NAMING FIX (khalid, 2026-08-16): the vault is NOT a bot. It is invisible
+plumbing underneath the chat — like a phone's secure chip.**
+- The CHAT is the everything-interface for khalid and every brick owner:
+  you talk, things happen (deploy, buy domain, log in). Never changes.
+- The VAULT is the chip: keys live there, locked, outside chat memory.
+- The RELAY is the only thing that touches keys: chat says "do this",
+  relay uses the key quietly, done. Neither user nor any brick ever
+  sees a token or password.
+- WHY: a key inside chat memory = one prompt-injection away from spilling.
+  Keys outside chat = a crafted message can't reach them.
+- Every brick owner gets the same: they chat, their brick handles the
+  rest through the locked chip.
+AGI ruling (design guardrails): **MOSTLY SAFE WITH GUARDRAILS.** Approve IF:
 - tokens are least-privilege (only necessary repo/domain scopes)
 - expiry/rotation is AUTOMATED
 - vault access is audit-logged
