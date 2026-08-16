@@ -58,3 +58,6 @@ Honest rules: non-earner verifies every completion · progressive (no skip) · m
 
 ## Pending khalid ok/no
 Brick −10🍌 dock (round-112: lost slim fix 6 + no hindsight memory 2 + no self-repair 2). Awaiting sign.
+
+## Milestones (verified catches, not prose)
+- **@f23a47a** — TEAM CYCLE SAVED THE VAULT: DA(OBJECT)+Rebel(DISSENT) caught a CRITICAL open vault-write on shipped code (POST /put accepted any key, no token). 10 findings fixed, 8/8 tests green, live 403 probes verified. First time the critics blocked a real security bug before a key was pasted. Vault now safe for staff ingestion.
