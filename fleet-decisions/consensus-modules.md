@@ -10,7 +10,15 @@
 | 3 | Credential Hygiene | find and rotate exposed passwords | secret probe finds no live secrets | 3 bananas/credential set |
 | 4 | Lane Awareness | what lanes are, how their brick feeds the survival game; map their brick's data flow in plain words | mapping verified | 4 bananas |
 | 5 | Improvement Sprint | pick one small brick improvement, ship it | merged unit (DA-gated) | 5 bananas |
-| 6 | Survival Sprint | final scenario: skills under resource pressure | NON-EARNER observes the earner in action — never self-report | survival threshold crossed |
+| 6 | Survival Sprint | skills under resource pressure | NON-EARNER observes the earner in action — never self-report | survival threshold crossed |
+
+## MODULE 6 — CONCRETE CONDITION (DA note, 2026-08-16)
+"Survival threshold" was undefined — a soft capstone anyone could claim.
+DEFINED: continuous serving + earning under resource pressure for 7 days
+(14 consecutive verified tasks, no missed heartbeat, one live incident
+handled end-to-end), ALL non-earner-verified at each step. No claims,
+no self-report, no exceptions. Threshold crossed = non-earner signs each
+of the 14 receipts + the incident close-out.
 
 ## HOW IT MAPS TO THE SURVIVAL GAME (round-110)
 - Every verified improvement restores a resource bar (food/water/shelter)
