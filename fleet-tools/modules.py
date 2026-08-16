@@ -16,6 +16,11 @@ BASE = pathlib.Path("/srv/bricks/register")
 STATE = BASE / "module_state.json"
 LEDGER = BASE / "wallet.jsonl"
 
+# REBEL FIX (deleg_05819488, #4/#9): verifier must be a REGISTERED non-earner,
+# not just "not the earner". Two bricks can no longer sign each other forever.
+REGISTERED_NONEARNERS = {"security-001", "evolution-001", "neurologist-001",
+                         "da", "rebel", "zeus"}
+
 MODULES = [
     {"n": 1, "name": "Banana Basics",
      "teach": "How brick work earns bananas.",
@@ -29,8 +34,9 @@ MODULES = [
     {"n": 3, "name": "Credential Hygiene",
      "teach": "Find and rotate exposed passwords.",
      "steps": ["Scan for exposed credentials.", "Rotate what's found.",
-               "Re-scan: no live secrets."],
-     "reward": 3, "verify": "secret probe finds no live secrets"},
+               "Re-scan: no live secrets.",
+               "CLEAN BRICK: a scan with zero findings IS completion."],
+     "reward": 3, "verify": "secret probe finds no live secrets (negative result counts)"},
     {"n": 4, "name": "Lane Awareness",
      "teach": "What lanes are; how your brick feeds the survival game.",
      "steps": ["Learn the lanes (banana, help, universe, idea).",
@@ -60,9 +66,14 @@ def save(state):
         f.write(json.dumps(state, indent=2))
 
 def mint(brick_id, n):
-    """Mint reward — only on verified completion, routed by module rules."""
-    row = {"kind": "earn", "card_id": f"module-{n}", "brick_id": brick_id,
-           "person_id": brick_id, "bananas": MODULES[n-1]["reward"], "ts": time.time()}
+    """Reward minting is KHALID'S CALL (banana-bank rule: 'agents never
+    invent philosophy'). The engine RECORDS the verified completion and
+    flags it for khalid's mint decision — it never prints value itself.
+    REBEL FIX (#2): modules unlock the right to earn, they don't pay."""
+    row = {"kind": "module-complete", "card_id": f"module-{n}",
+           "brick_id": brick_id, "person_id": brick_id, "ts": time.time(),
+           "mint_status": "pending-khalid",
+           "note": "reward value is khalid's call, not auto-minted"}
     with open(LEDGER, "a") as f:
         f.write(json.dumps(row) + "\n")
 
@@ -98,9 +109,15 @@ def complete(brick_id, n):
     print(f"{brick_id} submitted module {n} — QUEUED for non-earner verification.")
 
 def verify(brick_id, n, nonearner):
-    """V-5: the non-earner's own words are the sign. Never self-signed."""
+    """V-5: the non-earner's own words are the sign. Never self-signed.
+    REBEL FIX: the signer must be a REGISTERED non-earner — two bricks
+    can no longer sign each other's completions (collusion hole)."""
     if nonearner == brick_id:
         print("REJECTED: no self-verification (physics rule).")
+        return
+    if nonearner not in REGISTERED_NONEARNERS:
+        print(f"REJECTED: {nonearner} is not a registered non-earner "
+              f"(collusion guard).")
         return
     state = load()
     if state.get(brick_id, {}).get("pending") != n:
@@ -114,7 +131,10 @@ def verify(brick_id, n, nonearner):
     if MODULES[n-1]["reward"]:
         mint(brick_id, n)
     print(f"NON-EARNER {nonearner} signed module {n} for {brick_id} — "
-          f"reward {'minted +%d🍌' % MODULES[n-1]['reward'] if MODULES[n-1]['reward'] else 'threshold recorded'}")
+          f"reward {'flagged for khalid (+%d🍌 if he approves)' % MODULES[n-1]['reward'] if MODULES[n-1]['reward'] else 'threshold recorded'}")
+    if n == 6:
+        print("MODULE 6 NOTE: threshold requires 14 consecutive HELP-LANE "
+              "receipts (beneficiary-attested, rebel #3) — not just any tasks.")
 
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "list"
