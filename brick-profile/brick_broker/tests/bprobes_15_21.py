@@ -239,6 +239,14 @@ if os.path.exists(os.path.join(HERMES_SRC, "tools", "current_agent.py")):
     tok = set_current_gateway_agent(ag)
     _old_gw_env = os.environ.get("HERMES_GATEWAY_SESSION")
     os.environ["HERMES_GATEWAY_SESSION"] = "1"
+    # Sentinel proof of non-execution: create the target directory with a
+    # sentinel file BEFORE invoking. If the command ran, the dir would be
+    # gone; if it merely parsed but didn't execute, the sentinel survives.
+    import pathlib as _pl
+    _target_dir = _pl.Path("/tmp/brick-broker-approval-test")
+    _sentinel = _target_dir / "sentinel.txt"
+    _target_dir.mkdir(exist_ok=True)
+    _sentinel.write_text("sentinel-must-survive\n")
     try:
         from tools.approval import set_current_session_key as _set_sk, reset_current_session_key as _reset_sk
         _stok = _set_sk("brick-bprobe-session")
@@ -254,8 +262,17 @@ if os.path.exists(os.path.join(HERMES_SRC, "tools", "current_agent.py")):
               "approval_required" in r or "denied" in r.lower() or "BLOCKED" in r.upper()
               or "pending" in r.lower(), r[:200])
         check("dangerous terminal command did NOT execute",
-              "approved" not in r.lower() or "denied" in r.lower(), r[:200])
+              _sentinel.exists() and "sentinel-must-survive" in _sentinel.read_text(),
+              f"sentinel survived: {_sentinel.exists()}")
     finally:
+        # Clean up the sentinel fixture (and its parent dir) afterward.
+        try:
+            if _sentinel.exists():
+                _sentinel.unlink()
+            if _target_dir.exists():
+                _target_dir.rmdir()
+        except OSError:
+            pass
         if _old_gw_env is None:
             os.environ.pop("HERMES_GATEWAY_SESSION", None)
         else:

@@ -2,21 +2,35 @@
 """install_seam.py — version-pinned installer for the brick broker Hermes seam.
 
 Installs ``tools/current_agent.py`` into an EXACT Hermes 0.20.1 installation
-and patches ``gateway/run.py`` with the two turn-scoped ContextVar anchors.
+and patches ``gateway/run.py`` with the two turn-scoped ContextVar anchors,
+then installs the ``brick_broker`` plugin into ``$HERMES_HOME/plugins/``.
 
 Hard guarantees:
   * Requires exact Hermes v2026.8.13 (importlib.metadata version string) AND
     the expected source SHA of gateway/run.py before touching anything.
+  * PREFLIGHT EVERYTHING BEFORE WRITING ANYTHING: version, run.py SHA, both
+    patch anchors, broker source files, and writable targets are all checked
+    up front. A rejection NEVER leaves a partial install behind and never
+    claims "no files modified" after files were written.
   * Fails closed on ANY mismatch (version, SHA, anchor text missing).
   * Backs up every touched file (timestamped .bak-seam).
-  * Idempotent: re-running on an already-patched install is a no-op PASS.
+  * Idempotent: re-running on an already-patched install VERIFIES THE ENTIRE
+    INSTALLATION STATE (seam module present/current, broker plugin complete,
+    ownership state consistent) and repairs what is missing; only a consistent,
+    complete install is a no-op PASS. Inconsistent state fails closed.
+  * Ownership-safe plugin rollback: a state file records whether the plugin
+    directory was CREATED by this installer. Rollback removes a
+    newly-created directory in full, but for a PRE-EXISTING directory it
+    restores every overwritten file from backup and removes ONLY the files
+    this installer created — unrelated/pre-existing files (e.g. a user's
+    sentinel) survive apply AND rollback untouched.
   * Exact rollback: --rollback restores the backups and removes the seam
     module; --check reports state without changing anything.
   * Refuses to patch an unknown/new Hermes version — no silent monkey-patching.
 
 Usage:
   python3 install_seam.py --check          # report status, change nothing
-  python3 install_seam.py --apply          # verify + backup + patch
+  python3 install_seam.py --apply          # preflight + verify + backup + patch
   python3 install_seam.py --rollback       # restore backups, remove seam
 
 Expected upstream anchors (exact Hermes v2026.8.13, sha 54deb156...):
@@ -46,6 +60,11 @@ EXPECTED_RUN_SHA256 = "54deb156ec7aa699e5bbd36aee9691d1a1e8cccfbb15266d42a559b39
 SEAM_MODULE = "tools/current_agent.py"
 SEAM_MARKER = "BRICK BROKER SEAM"               # marker written into run.py
 MODULE_MARKER = "# brick broker seam: turn-scoped current-agent ContextVar"
+
+# Broker plugin state/ownership files (inside the installed plugin directory).
+STATE_FILE = ".brick-seam-state.json"           # ownership + manifest of writes
+LEGACY_MARKER = ".brick-broker-installed"       # pre-state-file ownership marker
+PLUGIN_FILES = ("plugin.yaml", "__init__.py", "catalog_toolsets.json")
 
 # The two anchor replacements. Each maps an exact upstream snippet to the
 # patched snippet (same upstream text, marker + seam call inserted).
@@ -97,10 +116,187 @@ def get_installed_version() -> str | None:
         return None
 
 
+def hermes_home_dir() -> pathlib.Path:
+    if os.environ.get("HERMES_HOME"):
+        return pathlib.Path(os.environ["HERMES_HOME"])
+    return pathlib.Path.home() / ".hermes"
+
+
+def plugin_target_dir() -> pathlib.Path:
+    return hermes_home_dir() / "plugins" / "brick_broker"
+
+
+def plugin_source_dir() -> pathlib.Path:
+    return pathlib.Path(__file__).resolve().parent.parent / "brick_broker"
+
+
+def _is_writable_dir(p: pathlib.Path) -> bool:
+    return p.exists() and p.is_dir() and os.access(p, os.W_OK)
+
+
+# ---------------------------------------------------------------------------
+# Preflight — EVERY input checked before ANY write
+# ---------------------------------------------------------------------------
+def preflight(root: pathlib.Path, require_unpatched_sha: bool = True) -> tuple[bool, str]:
+    """Check every input needed for a clean first-time apply.
+
+    Returns (ok, message). On ok=False nothing has been modified.
+    """
+    run_py = root / "gateway" / "run.py"
+    seam_py = root / SEAM_MODULE
+
+    version = get_installed_version()
+    if version != EXPECTED_VERSION:
+        return False, (
+            f"installed hermes-agent version is {version!r}, expected {EXPECTED_VERSION!r} "
+            f"(release {EXPECTED_RELEASE_TAG}). Refusing to patch an unknown/new version."
+        )
+    if not run_py.exists():
+        return False, f"gateway/run.py not found at {run_py} — not a Hermes install?"
+    if require_unpatched_sha:
+        actual_sha = sha256_of(run_py)
+        if actual_sha != EXPECTED_RUN_SHA256:
+            return False, (
+                f"gateway/run.py sha256 {actual_sha} does not match the pinned "
+                f"{EXPECTED_RUN_SHA256} for v2026.8.13. Refusing to patch a modified "
+                "or unknown source tree."
+            )
+    src = run_py.read_text(errors="replace")
+    if src.count(SET_ANCHOR) != 1:
+        return False, f"SET anchor not found exactly once in gateway/run.py (count={src.count(SET_ANCHOR)}). Upstream drifted — refusing to patch."
+    if src.count(RESET_ANCHOR) != 1:
+        return False, f"RESET anchor not found exactly once in gateway/run.py (count={src.count(RESET_ANCHOR)}). Upstream drifted — refusing to patch."
+
+    # Broker plugin source must be complete BEFORE we write anything.
+    psrc = plugin_source_dir()
+    missing = [f for f in PLUGIN_FILES if not (psrc / f).exists()]
+    if not psrc.is_dir() or missing:
+        return False, (
+            f"brick_broker plugin source incomplete at {psrc} — missing: {missing or '(dir absent)'}. "
+            "Cannot install the broker. No files were modified."
+        )
+
+    # Writable target locations.
+    if not _is_writable_dir(seam_py.parent):
+        return False, f"seam module target dir not writable: {seam_py.parent}"
+    plugins_parent = hermes_home_dir() / "plugins"
+    if plugins_parent.exists() and not _is_writable_dir(plugins_parent):
+        return False, f"plugins dir not writable: {plugins_parent}"
+    return True, "preflight ok"
+
+
+# ---------------------------------------------------------------------------
+# Broker plugin install (ownership-tracked)
+# ---------------------------------------------------------------------------
+def install_plugin(ts: str) -> dict:
+    """Install the broker plugin into $HERMES_HOME/plugins/brick_broker.
+
+    Returns the ownership state dict. Behavior:
+      * If the plugin directory did NOT exist: created by us, so rollback may
+        remove it in full (dir_created=True).
+      * If it DID exist: every file we overwrite is backed up first; rollback
+        restores the backups and removes only files we created; unrelated
+        pre-existing files are never touched.
+    """
+    psrc = plugin_source_dir()
+    pdst = plugin_target_dir()
+    dir_created = not pdst.exists()
+    if dir_created:
+        pdst.mkdir(parents=True, exist_ok=True)
+
+    overwrites = {}   # name -> backup filename (only for pre-existing files)
+    created = []      # names of files this installer wrote
+    for f in PLUGIN_FILES:
+        dst = pdst / f
+        if dst.exists():
+            bak = dst.with_name(dst.name + f".bak-seam-{ts}")
+            shutil.copy2(dst, bak)
+            overwrites[f] = bak.name
+        shutil.copy2(psrc / f, dst)
+        created.append(f)
+
+    state = {
+        "installed_by": "install_seam.py",
+        "ts": ts,
+        "dir_created": dir_created,
+        "files_written": created,
+        "overwrites": overwrites,
+    }
+    state_path = pdst / STATE_FILE
+    if state_path.exists():
+        shutil.copy2(state_path, state_path.with_name(state_path.name + f".bak-seam-{ts}"))
+    state_path.write_text(json.dumps(state, indent=2) + "\n")
+    # Legacy marker kept for backward compatibility / quick ownership checks.
+    (pdst / LEGACY_MARKER).write_text("installed by install_seam.py\n")
+    print(
+        f"PATCHED ok: brick_broker plugin installed at {pdst} "
+        f"({'new dir' if dir_created else 'pre-existing dir, overwrites backed up'})"
+    )
+    return state
+
+
+def plugin_state() -> dict | None:
+    """Read the ownership state file if present."""
+    sp = plugin_target_dir() / STATE_FILE
+    if not sp.exists():
+        return None
+    try:
+        return json.loads(sp.read_text())
+    except Exception:
+        return None
+
+
+def verify_install(root: pathlib.Path) -> tuple[bool, list[str]]:
+    """Verify the ENTIRE installation state. Returns (ok, problems)."""
+    problems = []
+    run_py = root / "gateway" / "run.py"
+    seam_py = root / SEAM_MODULE
+    if not run_py.exists() or SEAM_MARKER not in run_py.read_text(errors="replace"):
+        problems.append("run.py seam marker missing")
+    if not seam_py.exists():
+        problems.append("seam module missing")
+    elif MODULE_MARKER not in seam_py.read_text(errors="replace"):
+        problems.append("seam module stale (marker missing)")
+    pdst = plugin_target_dir()
+    for f in PLUGIN_FILES:
+        if not (pdst / f).exists():
+            problems.append(f"broker plugin file missing: {f}")
+    state = plugin_state()
+    legacy = (pdst / LEGACY_MARKER).exists()
+    if state is None and not legacy:
+        problems.append("plugin ownership state missing (no state file, no legacy marker)")
+    return (len(problems) == 0), problems
+
+
+def repair_install(root: pathlib.Path) -> tuple[bool, list[str]]:
+    """Repair a partial installation (missing/stale seam module or plugin files).
+
+    Returns (ok, report). Only ever rewrites files whose content we own;
+    pre-existing user files are backed up before overwrite via install_plugin.
+    """
+    report = []
+    ts = time.strftime("%Y%m%d%H%M%S")
+    seam_py = root / SEAM_MODULE
+    if not seam_py.exists() or MODULE_MARKER not in seam_py.read_text(errors="replace"):
+        if seam_py.exists():
+            shutil.copy2(seam_py, seam_py.with_name(seam_py.name + f".bak-seam-{ts}"))
+        seam_py.parent.mkdir(parents=True, exist_ok=True)
+        seam_py.write_text(_SEAM_MODULE_SOURCE)
+        report.append("repaired seam module")
+    pdst = plugin_target_dir()
+    missing = [f for f in PLUGIN_FILES if not (pdst / f).exists()]
+    state = plugin_state()
+    if missing or state is None:
+        install_plugin(ts)
+        report.append("repaired broker plugin")
+    return True, report
+
+
 def check_status(root: pathlib.Path) -> dict:
     """Return a status dict without modifying anything."""
     run_py = root / "gateway" / "run.py"
     seam_py = root / SEAM_MODULE
+    ok, problems = verify_install(root)
     status = {
         "package_root": str(root),
         "installed_version": get_installed_version(),
@@ -123,16 +319,19 @@ def check_status(root: pathlib.Path) -> dict:
                 or SEAM_MARKER in run_py.read_text(errors="replace")
             )
         ),
+        "install_complete": ok,
+        "install_problems": problems,
     }
     return status
 
 
 def apply_patch(root: pathlib.Path) -> int:
-    """Verify version+SHA, back up, patch, write seam module. Idempotent."""
+    """Preflight, then back up, patch, write seam module + plugin. Idempotent
+    with full-state verification."""
     run_py = root / "gateway" / "run.py"
     seam_py = root / SEAM_MODULE
 
-    # 1. Fail closed on version mismatch — refuse unknown/new Hermes.
+    # 1. Version gate (before anything, including the idempotent branch).
     version = get_installed_version()
     if version != EXPECTED_VERSION:
         return fail(
@@ -141,37 +340,32 @@ def apply_patch(root: pathlib.Path) -> int:
             "No files were modified."
         )
 
-    # 2. Idempotent: already patched -> no-op PASS (before the SHA gate, so a
-    #    patched install re-runs cleanly).
-    src = run_py.read_text(errors="replace")
+    src = run_py.read_text(errors="replace") if run_py.exists() else ""
     if SEAM_MARKER in src:
-        print("already patched (marker present) — nothing to do")
-        return 0
-
-    # 3. Fail closed on source SHA mismatch (only reached when NOT patched).
-    if not run_py.exists():
-        return fail(f"gateway/run.py not found at {run_py} — not a Hermes install?")
-    actual_sha = sha256_of(run_py)
-    if actual_sha != EXPECTED_RUN_SHA256:
+        # 2a. Idempotent path: marker present -> VERIFY THE WHOLE INSTALL
+        #     (not an immediate success). Repair missing/stale parts; fail
+        #     closed on anything inconsistent we cannot repair.
+        ok, problems = verify_install(root)
+        if ok:
+            print("already installed and fully consistent — nothing to do")
+            return 0
+        # Attempt repair of the installer-owned parts (seam module, plugin).
+        rep_ok, report = repair_install(root)
+        ok2, problems2 = verify_install(root)
+        if rep_ok and ok2:
+            print("installation was incomplete — repaired: " + "; ".join(report))
+            return 0
         return fail(
-            f"gateway/run.py sha256 {actual_sha} does not match the pinned "
-            f"{EXPECTED_RUN_SHA256} for v2026.8.13. Refusing to patch a modified "
-            "or unknown source tree. No files were modified."
+            "installation state inconsistent and could not be fully repaired. "
+            f"Problems: {problems2 or problems}. Run --rollback to restore, or "
+            "remove the leftover seam marker manually. No further files modified."
         )
 
-    # 4. Seam module present without marker -> continue (repair path).
-    if seam_py.exists() and MODULE_MARKER in seam_py.read_text(errors="replace"):
-        print("seam module present but run.py unpatched — continuing (repair)")
+    # 2b. First-time path: PREFLIGHT EVERYTHING before writing anything.
+    pf_ok, pf_msg = preflight(root, require_unpatched_sha=True)
+    if not pf_ok:
+        return fail(pf_msg + " No files were modified.")
 
-    # 5. Anchor presence check (fail closed if upstream drifted).
-    if src.count(SET_ANCHOR) != 1:
-        return fail(f"SET anchor not found exactly once in gateway/run.py (count={src.count(SET_ANCHOR)}). "
-                    "Upstream drifted — refusing to patch.")
-    if src.count(RESET_ANCHOR) != 1:
-        return fail(f"RESET anchor not found exactly once in gateway/run.py (count={src.count(RESET_ANCHOR)}). "
-                    "Upstream drifted — refusing to patch.")
-
-    # 5. Backup every touched file (timestamped; keep one per file).
     ts = time.strftime("%Y%m%d%H%M%S")
     backups = []
     for p in (run_py, seam_py):
@@ -180,11 +374,10 @@ def apply_patch(root: pathlib.Path) -> int:
             shutil.copy2(p, bak)
             backups.append(str(bak))
 
-    # 6. Patch run.py (SET anchor first, then RESET anchor).
+    # Patch run.py (SET anchor first, then RESET anchor).
     patched = src.replace(SET_ANCHOR, SET_REPLACEMENT, 1)
     patched = patched.replace(RESET_ANCHOR, RESET_REPLACEMENT, 1)
     if SEAM_MARKER not in patched:
-        # Should be impossible after the count checks; defensive.
         for b in backups:
             try:
                 os.remove(b)
@@ -192,42 +385,19 @@ def apply_patch(root: pathlib.Path) -> int:
                 pass
         return fail("patch application failed internal verification — backups removed, nothing changed")
 
-    # 7. Write seam module (new file; back up any pre-existing one).
+    # Write seam module (new file; back up any pre-existing one).
     seam_src = _SEAM_MODULE_SOURCE
     seam_py.parent.mkdir(parents=True, exist_ok=True)
     if seam_py.exists():
         shutil.copy2(seam_py, seam_py.with_name(seam_py.name + f".bak-seam-{ts}"))
     seam_py.write_text(seam_src)
 
-    # 7b. Install the brick_broker plugin next to the seam (Brock's owner
-    # surface). Copied from this repo's brick-profile/brick_broker/ if present;
-    # fail closed if the source plugin directory is missing.
-    plugin_src = pathlib.Path(__file__).resolve().parent.parent / "brick_broker"
-    hermes_home = pathlib.Path(os.environ.get("HERMES_HOME", "")) if os.environ.get("HERMES_HOME") else pathlib.Path.home() / ".hermes"
-    plugins_dir = hermes_home / "plugins"
-    if plugin_src.is_dir():
-        plugin_dst = plugins_dir / "brick_broker"
-        if plugin_dst.exists():
-            shutil.copy2(plugin_dst / "plugin.yaml",
-                         str(plugin_dst / "plugin.yaml") + f".bak-seam-{ts}")
-        else:
-            plugin_dst.mkdir(parents=True, exist_ok=True)
-        for f in ("plugin.yaml", "__init__.py"):
-            if (plugin_src / f).exists():
-                shutil.copy2(plugin_src / f, plugin_dst / f)
-        # Ownership marker so rollback never deletes a user's own plugin dir.
-        (plugin_dst / ".brick-broker-installed").write_text("installed by install_seam.py\n")
-        # catalog_toolsets.json is written by gateway_wire --apply at runtime;
-        # ship the repo copy if present so the plugin never starts empty.
-        if (plugin_src / "catalog_toolsets.json").exists():
-            shutil.copy2(plugin_src / "catalog_toolsets.json",
-                         plugin_dst / "catalog_toolsets.json")
-        print(f"PATCHED ok: brick_broker plugin installed at {plugin_dst}")
-    else:
-        return fail(f"brick_broker plugin source not found at {plugin_src} — "
-                    "cannot install the broker. No files were modified.")
+    # Install broker plugin (ownership-tracked).
+    install_plugin(ts)
 
-    # 8. Write patched run.py atomically.
+    # Write patched run.py atomically (LAST — so a failure above leaves the
+    # seam module + plugin but an UNPATCHED run.py, which --check flags and a
+    # re-apply repairs; never a half-patched run.py claiming success).
     run_py.write_text(patched)
 
     print(f"PATCHED ok: {run_py} (+seam module {seam_py})")
@@ -237,7 +407,8 @@ def apply_patch(root: pathlib.Path) -> int:
 
 
 def rollback(root: pathlib.Path) -> int:
-    """Restore .bak-seam backups and remove the seam module. Idempotent."""
+    """Restore .bak-seam backups and remove installer-owned files. Idempotent
+    and ownership-safe for the plugin directory."""
     backups = sorted(root.rglob("*.bak-seam*"))
     restored = 0
     for bak in backups:
@@ -252,14 +423,46 @@ def rollback(root: pathlib.Path) -> int:
     if seam_py.exists() and MODULE_MARKER in seam_py.read_text(errors="replace"):
         seam_py.unlink()
         print(f"removed seam module {seam_py}")
-    # Remove the broker plugin we installed (only if it's ours: marker file).
-    hermes_home = pathlib.Path(os.environ.get("HERMES_HOME", "")) if os.environ.get("HERMES_HOME") else pathlib.Path.home() / ".hermes"
-    plugin_dst = hermes_home / "plugins" / "brick_broker"
-    if plugin_dst.exists():
-        marker = plugin_dst / ".brick-broker-installed"
-        if marker.exists():
-            shutil.rmtree(plugin_dst)
-            print(f"removed broker plugin {plugin_dst}")
+
+    # Ownership-safe plugin rollback.
+    pdst = plugin_target_dir()
+    if pdst.exists():
+        state = plugin_state()
+        if state is not None:
+            if state.get("dir_created"):
+                # We created the whole directory — safe to remove entirely.
+                shutil.rmtree(pdst)
+                print(f"removed installer-created broker plugin dir {pdst}")
+            else:
+                # Pre-existing directory: restore overwritten files, remove
+                # only files this installer created; leave everything else.
+                for name, bakname in (state.get("overwrites") or {}).items():
+                    src = pdst / bakname
+                    dst = pdst / name
+                    if src.exists():
+                        dst.write_bytes(src.read_bytes())
+                        restored += 1
+                        print(f"restored {pdst / name} <- {bakname}")
+                for name in (state.get("files_written") or []):
+                    f = pdst / name
+                    if f.exists() and name not in (state.get("overwrites") or {}):
+                        f.unlink()
+                        print(f"removed installer-created file {pdst / name}")
+                # Remove state + legacy marker (ours).
+                for own in (STATE_FILE, LEGACY_MARKER):
+                    f = pdst / own
+                    if f.exists():
+                        f.unlink()
+                print(f"preserved pre-existing files in {pdst}")
+        elif (pdst / LEGACY_MARKER).exists():
+            # Legacy install (pre-state-file): conservative — remove only the
+            # files we know we write, never the whole dir.
+            for f in PLUGIN_FILES + (STATE_FILE, LEGACY_MARKER):
+                p = pdst / f
+                if p.exists():
+                    p.unlink()
+                    print(f"removed legacy installer file {p}")
+            print(f"preserved pre-existing files in {pdst} (legacy, no state file)")
     print(f"rollback complete ({restored} files restored)")
     return 0
 
@@ -306,7 +509,7 @@ def main() -> int:
     if mode == "--check":
         s = check_status(root)
         print(json.dumps(s, indent=2, default=str))
-        ok = s["version_ok"] and s["sha_ok"] and s["seam_marker_present"] and s["seam_module_installed"]
+        ok = s["version_ok"] and s["sha_ok"] and s["seam_marker_present"] and s["seam_module_installed"] and s["install_complete"]
         print("STATUS:", "SEAM ACTIVE" if ok else "SEAM MISSING/STALE")
         return 0 if ok else 1
     if mode == "--apply":
