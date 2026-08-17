@@ -50,3 +50,8 @@ refill guidance + the 5-pot transparency dashboard.
    baseline etc.), not a billing system.
 
 ## STATUS: cap-enforcer only now; payments/gateway/billing deferred.
+
+## KHALID AMENDMENT (2026-08-17): FREE ALLOWANCE = 50 TASKS
+- Every user's sponsored baseline: **50 free tasks** (not 30).
+- Hit 50 → clean stop → team handles later (payment/gift/adjust model).
+- Cap enforcer uses 50 as the default allowance.
