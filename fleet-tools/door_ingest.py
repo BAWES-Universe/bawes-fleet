@@ -230,8 +230,20 @@ class H(BaseHTTPRequestHandler):
             data[person]["used"] = True
             _save(data)
             sha = vault_put(service, key, person)
+            # round-146 item 4: BYOK — best-effort lane wiring (endpoint from
+            # the fleet allowlist only, C2). Vault is always real; a person
+            # without a registered brick stays vault-only (staged).
+            lane = {}
+            try:
+                import sys as _sys
+                _sys.path.insert(0, "/srv/bricks/ovh-server-001")
+                from byok import wire_lane
+                lane = wire_lane(person, service, key)
+            except Exception:
+                lane = {"ok": False, "error": "lane wiring unavailable"}
             self._json({"ok": True, "sha": sha,
-                        "note": note or "validated"})
+                        "note": note or "validated",
+                        "lane": lane})
         except Exception:
             alert(f"PUT error for {person}: {sys.exc_info()[1]}")
             self._json({"error": "server error"}, 500)  # D6: generic

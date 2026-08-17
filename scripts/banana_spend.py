@@ -15,16 +15,35 @@ RULINGS IMPLEMENTED:
   pattern: recorded, capped, repayable).
 - R5 per-utterance consent; spend row IS the consent record.
 """
-import argparse, json, os, pathlib, sys, time, hashlib, urllib.request, urllib.error
+import argparse, json, os, pathlib, sys, time, hashlib, urllib.request, urllib.error, math
+
+# round-143b (khalid-set rate line, DA proposes / khalid signs / nothing auto):
+# beyond-cap tasks are priced at full cost + 20% per round-65/predictable-
+# pricing doctrine. price = max(floor, ceil(our_cost x 1.20 / peg, 2dp)).
+# peg = $0.012/banana (v1.1, round-84). deepseek-flash $0.002 -> 0.20 bananas.
+BEYOND_CAP_PEG_USD = 0.012
+BEYOND_CAP_FLOOR = 0.05
+
+def beyond_cap_price(our_cost_usd: float) -> float:
+    """ceil(our_cost x 1.20 / peg, 2dp), floor 0.05 bananas."""
+    price = our_cost_usd * 1.20 / BEYOND_CAP_PEG_USD
+    return max(BEYOND_CAP_FLOOR, math.ceil(price * 100) / 100)
 
 SPEND_RATE_CARD = {
-    "version": "v1.0", "set_by": "khalid", "ts_effective": "2026-08-15",
+    "version": "v1.1", "set_by": "khalid", "ts_effective": "2026-08-17",
     # R3: per-size-band, not flat — a 1-line request != 5k-token request
     "bands": {
         "small":  {"max_tokens": 1000,  "price_bananas": 1},
         "medium": {"max_tokens": 5000,  "price_bananas": 2},
         "large":  {"max_tokens": 20000, "price_bananas": 5},
     },
+    # round-143b: beyond-cap escape — cost+20%, dynamic price (round-65
+    # paid-work pricing; T-026 consumer bands above stay unchanged)
+    "beyond_cap": {"rule": "full-cost+20%", "peg_usd": BEYOND_CAP_PEG_USD,
+                   "floor_bananas": BEYOND_CAP_FLOOR,
+                   "our_cost_source": "ledger cost_per_task",
+                   "earned_only": True, "no_self_pay": True,
+                   "set_by": "khalid", "version": "v1.1"},
     # R2: spend-side margin declared; our cost disclosed in every receipt
     "our_cost_usd": {"small": 0.0004, "medium": 0.0007, "large": 0.0020},
     "earn_side_note": "earn-side rate stays cost+20% (v1.1) — different instrument",
@@ -57,13 +76,27 @@ class BananaSpend:
                 "available": earn - spend + credit}
 
     # ---- R5: the spend row IS the consent record ----
-    def spend(self, person_id, band, utterance_id, metadata):
+    def spend(self, person_id, band, utterance_id, metadata,
+              price_override=None):
         if band not in SPEND_RATE_CARD["bands"]:
             return {"ok": False, "error": f"unknown band {band}"}
-        price = SPEND_RATE_CARD["bands"][band]["price_bananas"]
+        if band == "beyond_cap":
+            # round-143b: dynamic price = our_cost x 1.20 / peg (cost+20%);
+            # the caller (router) supplies the lane cost via price_override.
+            cost_usd = float(metadata.get("cost_usd", 0.0) or 0.0)
+            price = price_override if price_override is not None \
+                else beyond_cap_price(cost_usd)
+        else:
+            price = SPEND_RATE_CARD["bands"][band]["price_bananas"]
         bal = self.balance(person_id)
         if bal["available"] < price:
             return {"ok": False, "error": "insufficient bananas (earning-first)",
+                    "balance": bal, "price": price}
+        if band == "beyond_cap" and bal["earned"] <= 0:
+            # earned-only: verified earnings must exist — a credit-only wallet
+            # cannot pay overage (no self-pay, anti-inflation round-143b)
+            return {"ok": False, "error": "beyond-cap spend is earned-only — "
+                                          "no verified earnings yet",
                     "balance": bal, "price": price}
         row = {"kind": "spend", "person_id": person_id, "band": band,
                "bananas": price, "utterance_id": utterance_id,
