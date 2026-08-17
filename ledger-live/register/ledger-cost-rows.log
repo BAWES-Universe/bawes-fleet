@@ -1,0 +1,91 @@
+{"ts": "2026-08-15T10:50:53.668179Z", "op": "dispatch-price", "detail": "{\"card\": \"first-paid-task-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T10:50:53.681883Z", "op": "dispatch-void", "detail": "{\"card\": \"first-paid-task-001\", \"brick_id\": \"worker-001\", \"http\": 501}", "outcome": "voided"}
+{"ts": "2026-08-15T10:51:05.854726Z", "op": "dispatch-price", "detail": "{\"card\": \"first-paid-task-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T10:51:05.856479Z", "op": "dispatch-void", "detail": "{\"card\": \"first-paid-task-001\", \"brick_id\": \"worker-001\", \"http\": 501}", "outcome": "voided"}
+{"ts": "2026-08-15T10:51:40.749616Z", "op": "dispatch-price", "detail": "{\"card\": \"first-paid-task-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T10:51:40.763065Z", "op": "dispatch-void", "detail": "{\"card\": \"first-paid-task-001\", \"brick_id\": \"worker-001\", \"http\": 403}", "outcome": "voided"}
+{"ts": "2026-08-15T10:51:47.107231Z", "op": "dispatch-price", "detail": "{\"card\": \"first-paid-task-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T10:51:47.109300Z", "op": "dispatch-void", "detail": "{\"card\": \"first-paid-task-001\", \"brick_id\": \"worker-001\", \"http\": 403}", "outcome": "voided"}
+{"ts": "2026-08-15T10:52:31.889031Z", "op": "dispatch-price", "detail": "{\"card\": \"first-paid-task-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T16:07:19.593718Z", "op": "dispatch-price", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T16:07:19.604262Z", "op": "dispatch-void", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"err\": \"<urlopen error [Errno 111] Connection re\"}", "outcome": "voided"}
+{"ts": "2026-08-15T16:07:19.606354Z", "op": "dispatch-price", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T16:07:19.607084Z", "op": "dispatch-void", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"err\": \"<urlopen error [Errno 111] Connection re\"}", "outcome": "voided"}
+{"ts": "2026-08-15T16:07:36.930623Z", "op": "dispatch-price", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T16:07:36.931681Z", "op": "dispatch-void", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"err\": \"<urlopen error [Errno 111] Connection re\"}", "outcome": "voided"}
+{"ts": "2026-08-15T16:07:36.933228Z", "op": "dispatch-price", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T16:07:36.933740Z", "op": "dispatch-void", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"err\": \"<urlopen error [Errno 111] Connection re\"}", "outcome": "voided"}
+{"ts": "2026-08-15T16:07:58.714193Z", "op": "dispatch-price", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T16:07:58.715209Z", "op": "dispatch-void", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"err\": \"<urlopen error [Errno 111] Connection re\"}", "outcome": "voided"}
+{"ts": "2026-08-15T16:07:58.716956Z", "op": "dispatch-price", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T16:07:58.717621Z", "op": "dispatch-void", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"err\": \"<urlopen error [Errno 111] Connection re\"}", "outcome": "voided"}
+{"ts": "2026-08-15T16:08:12.214875Z", "op": "dispatch-price", "detail": "{\"card\": \"probe-1\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T16:08:12.215619Z", "op": "dispatch-void", "detail": "{\"card\": \"probe-1\", \"brick_id\": \"worker-001\", \"err\": \"<urlopen error [Errno 111] Connection re\"}", "outcome": "voided"}
+{"ts": "2026-08-15T16:08:44.090883Z", "op": "dispatch-price", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T16:08:44.096038Z", "op": "dispatch-price", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T20:10:32.929138Z", "op": "dispatch-price", "detail": "{\"card\": \"t017-engine-verify-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T20:11:19.073545Z", "op": "dispatch-price", "detail": "{\"card\": \"t017-engine-verify-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T20:11:25.609636Z", "op": "dispatch-price", "detail": "{\"card\": \"t017-engine-verify-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T20:12:10.483265Z", "op": "dispatch-price", "detail": "{\"card\": \"t017-engine-verify-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T20:12:10.494894Z", "op": "dispatch-void", "detail": "{\"card\": \"t017-engine-verify-001\", \"brick_id\": \"worker-001\", \"http\": 403}", "outcome": "voided"}
+{"ts": "2026-08-15T20:12:34.378907Z", "op": "dispatch-price", "detail": "{\"card\": \"t017-engine-verify-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T20:12:34.380526Z", "op": "dispatch-void", "detail": "{\"card\": \"t017-engine-verify-001\", \"brick_id\": \"worker-001\", \"http\": 403}", "outcome": "voided"}
+{"ts": "2026-08-15T20:12:49.673240Z", "op": "dispatch-price", "detail": "{\"card\": \"t017-engine-verify-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T20:12:49.675646Z", "op": "dispatch-void", "detail": "{\"card\": \"t017-engine-verify-001\", \"brick_id\": \"worker-001\", \"http\": 403}", "outcome": "voided"}
+{"ts": "2026-08-15T20:13:25.673915Z", "op": "dispatch-price", "detail": "{\"card\": \"t017-engine-verify-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T20:13:25.676352Z", "op": "dispatch-void", "detail": "{\"card\": \"t017-engine-verify-001\", \"brick_id\": \"worker-001\", \"http\": 403}", "outcome": "voided"}
+{"ts": "2026-08-15T20:13:35.503960Z", "op": "dispatch-price", "detail": "{\"card\": \"t017-engine-verify-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T20:13:35.505445Z", "op": "dispatch-void", "detail": "{\"card\": \"t017-engine-verify-001\", \"brick_id\": \"worker-001\", \"http\": 403}", "outcome": "voided"}
+{"ts": "2026-08-15T20:13:45.988503Z", "op": "dispatch-price", "detail": "{\"card\": \"t017-engine-verify-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T20:13:45.989778Z", "op": "dispatch-void", "detail": "{\"card\": \"t017-engine-verify-001\", \"brick_id\": \"worker-001\", \"http\": 403}", "outcome": "voided"}
+{"ts": "2026-08-15T20:16:02.028266Z", "op": "dispatch-price", "detail": "{\"card\": \"t017-engine-verify-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T20:16:13.751681Z", "op": "dispatch-price", "detail": "{\"card\": \"t017-engine-verify-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T20:18:00.245370Z", "op": "dispatch-price", "detail": "{\"card\": \"t017-engine-verify-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T20:30:04.409063Z", "op": "dispatch-price", "detail": "{\"card\": \"t017-engine-verify-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T20:30:16.001948Z", "op": "dispatch-price", "detail": "{\"card\": \"t017-engine-verify-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T20:30:34.053668Z", "op": "dispatch-price", "detail": "{\"card\": \"t017-engine-verify-002\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T20:54:03.173042Z", "op": "dispatch-price", "detail": "{\"card\": \"plgn-credsan-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T20:54:03.200056Z", "op": "dispatch-void", "detail": "{\"card\": \"plgn-credsan-001\", \"brick_id\": \"worker-001\", \"err\": \"Remote end closed connection without res\"}", "outcome": "voided"}
+{"ts": "2026-08-15T20:54:46.335452Z", "op": "dispatch-price", "detail": "{\"card\": \"plgn-credsan-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T22:32:26.071347Z", "op": "dispatch-price", "detail": "{\"card\": \"org-credsan-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T22:32:26.092351Z", "op": "dispatch-void", "detail": "{\"card\": \"org-credsan-001\", \"brick_id\": \"worker-001\", \"http\": 500}", "outcome": "voided"}
+{"ts": "2026-08-15T22:32:26.097438Z", "op": "dispatch-price", "detail": "{\"card\": \"org-credsan-002\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T22:32:26.101638Z", "op": "dispatch-void", "detail": "{\"card\": \"org-credsan-002\", \"brick_id\": \"worker-001\", \"http\": 500}", "outcome": "voided"}
+{"ts": "2026-08-15T22:32:34.384953Z", "op": "dispatch-price", "detail": "{\"card\": \"org-credsan-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T22:32:34.388872Z", "op": "dispatch-void", "detail": "{\"card\": \"org-credsan-001\", \"brick_id\": \"worker-001\", \"http\": 500}", "outcome": "voided"}
+{"ts": "2026-08-15T22:32:34.393318Z", "op": "dispatch-price", "detail": "{\"card\": \"org-credsan-002\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T22:32:34.396247Z", "op": "dispatch-void", "detail": "{\"card\": \"org-credsan-002\", \"brick_id\": \"worker-001\", \"http\": 500}", "outcome": "voided"}
+{"ts": "2026-08-15T22:32:47.620877Z", "op": "dispatch-price", "detail": "{\"card\": \"org-credsan-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T22:32:47.624321Z", "op": "dispatch-void", "detail": "{\"card\": \"org-credsan-001\", \"brick_id\": \"worker-001\", \"http\": 500}", "outcome": "voided"}
+{"ts": "2026-08-15T22:35:11.684616Z", "op": "dispatch-price", "detail": "{\"card\": \"org-credsan-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T22:35:11.690215Z", "op": "dispatch-void", "detail": "{\"card\": \"org-credsan-001\", \"brick_id\": \"worker-001\", \"http\": 403}", "outcome": "voided"}
+{"ts": "2026-08-15T22:35:11.695149Z", "op": "dispatch-price", "detail": "{\"card\": \"org-credsan-002\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T22:35:11.698544Z", "op": "dispatch-void", "detail": "{\"card\": \"org-credsan-002\", \"brick_id\": \"worker-001\", \"http\": 403}", "outcome": "voided"}
+{"ts": "2026-08-15T22:35:21.119771Z", "op": "dispatch-price", "detail": "{\"card\": \"org-credsan-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T22:35:21.122911Z", "op": "dispatch-void", "detail": "{\"card\": \"org-credsan-001\", \"brick_id\": \"worker-001\", \"http\": 403}", "outcome": "voided"}
+{"ts": "2026-08-15T22:36:17.476798Z", "op": "dispatch-price", "detail": "{\"card\": \"org-credsan-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T22:36:27.428616Z", "op": "dispatch-price", "detail": "{\"card\": \"org-credsan-002\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T22:36:32.270154Z", "op": "dispatch-price", "detail": "{\"card\": \"org-credsan-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T22:36:38.620458Z", "op": "dispatch-price", "detail": "{\"card\": \"org-credsan-002\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T23:06:32.605928Z", "op": "dispatch-price", "detail": "{\"card\": \"browser-dist-verify-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T23:06:32.638452Z", "op": "dispatch-void", "detail": "{\"card\": \"browser-dist-verify-001\", \"brick_id\": \"worker-001\", \"http\": 500}", "outcome": "voided"}
+{"ts": "2026-08-15T23:06:32.643131Z", "op": "dispatch-price", "detail": "{\"card\": \"browser-dist-verify-002\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T23:06:32.667181Z", "op": "dispatch-void", "detail": "{\"card\": \"browser-dist-verify-002\", \"brick_id\": \"worker-001\", \"http\": 500}", "outcome": "voided"}
+{"ts": "2026-08-15T23:07:06.151195Z", "op": "dispatch-price", "detail": "{\"card\": \"browser-dist-verify-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T23:07:06.170355Z", "op": "dispatch-void", "detail": "{\"card\": \"browser-dist-verify-001\", \"brick_id\": \"worker-001\", \"http\": 500}", "outcome": "voided"}
+{"ts": "2026-08-15T23:07:36.146081Z", "op": "dispatch-price", "detail": "{\"card\": \"browser-dist-verify-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T23:07:36.148847Z", "op": "dispatch-void", "detail": "{\"card\": \"browser-dist-verify-001\", \"brick_id\": \"worker-001\", \"err\": \"<urlopen error [Errno 111] Connection re\"}", "outcome": "voided"}
+{"ts": "2026-08-15T23:07:55.755390Z", "op": "dispatch-price", "detail": "{\"card\": \"browser-dist-verify-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T23:07:55.778227Z", "op": "dispatch-void", "detail": "{\"card\": \"browser-dist-verify-001\", \"brick_id\": \"worker-001\", \"http\": 500}", "outcome": "voided"}
+{"ts": "2026-08-15T23:08:16.786577Z", "op": "dispatch-price", "detail": "{\"card\": \"browser-dist-verify-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T23:08:16.806717Z", "op": "dispatch-void", "detail": "{\"card\": \"browser-dist-verify-001\", \"brick_id\": \"worker-001\", \"http\": 500}", "outcome": "voided"}
+{"ts": "2026-08-15T23:09:08.299050Z", "op": "dispatch-price", "detail": "{\"card\": \"browser-dist-verify-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T23:09:08.328093Z", "op": "dispatch-void", "detail": "{\"card\": \"browser-dist-verify-001\", \"brick_id\": \"worker-001\", \"http\": 500}", "outcome": "voided"}
+{"ts": "2026-08-15T23:10:01.409697Z", "op": "dispatch-price", "detail": "{\"card\": \"browser-dist-verify-002\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T23:10:01.434247Z", "op": "dispatch-void", "detail": "{\"card\": \"browser-dist-verify-002\", \"brick_id\": \"worker-001\", \"http\": 500}", "outcome": "voided"}
+{"ts": "2026-08-15T23:10:24.307495Z", "op": "dispatch-price", "detail": "{\"card\": \"browser-dist-verify-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T23:11:13.439545Z", "op": "dispatch-price", "detail": "{\"card\": \"browser-dist-verify-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T23:11:50.994319Z", "op": "dispatch-price", "detail": "{\"card\": \"browser-dist-verify-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T23:12:56.911110Z", "op": "dispatch-price", "detail": "{\"card\": \"browser-dist-verify-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T23:20:01.558478Z", "op": "dispatch-price", "detail": "{\"card\": \"browser-dist-verify-002\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-16T08:03:00.167297Z", "op": "dispatch-price", "detail": "{\"card\": \"browser-mut-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}

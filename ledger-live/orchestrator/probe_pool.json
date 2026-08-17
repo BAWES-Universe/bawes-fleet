@@ -1,0 +1,38 @@
+{
+  "probe-verify-001": {
+    "expected_sha256": "ec79948f9255059831326607f627d81e85ec1680a8a9e26d15e12d72c069dad4",
+    "card_types": [
+      "probe",
+      "verify"
+    ],
+    "verify_mode": "vast-worker"
+  },
+  "probe-credsan-001": {
+    "expected_sha256": "4777a10f73b2e60ddcdf5f7d2bdab89a0f2370ba172da7ab72f54731c2d05830",
+    "card_types": [
+      "verify"
+    ],
+    "verify_mode": "recompute"
+  },
+  "probe-credsan-002": {
+    "expected_sha256": "38596ec77f44633d7b4d60fb2e83a637e02faae42310ef42d85ce8c8e44aaba5",
+    "card_types": [
+      "scan"
+    ],
+    "verify_mode": "non-earner"
+  },
+  "probe-browser-001": {
+    "expected_sha256": "50663ff2d9ac35804b2feda6a2357ac9dbe7d84ca94d4009ed00baf90327fa95",
+    "card_types": [
+      "build"
+    ],
+    "verify_mode": "smoke"
+  },
+  "probe-browser-mut-001": {
+    "expected_sha256": "1413f4a82701c7e873aac1cfac43729d9dcdab59bd8811d0b39f266c665fcaf3",
+    "card_types": [
+      "build"
+    ],
+    "verify_mode": "recompute"
+  }
+}
