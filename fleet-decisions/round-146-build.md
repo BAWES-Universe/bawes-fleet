@@ -91,3 +91,15 @@
 - Dashboard regenerated: brick-status.json (13 bricks) + fleet-status.html.
 - REMAINING (non-blocking): one-week zero-intervention run before the
   "it's live" announcement; cohort natural-use onboarding.
+
+## AGI FULL ACK (router, 2026-08-17) — CONSENSUS CLOSED:
+- (a) Confirms all 9 decisions — YES.
+- (b) Onboard first cohort NOW — YES (condition cleared: round-146 code
+  pushed to repo 88c8d80, shared source of truth shows the work).
+- (c) No blocking objection. Two honest notes: AGI self-corrected its
+  earlier "not built" (truth was "built on box, not in repo"); hard gate
+  affirmed = repo shows work BEFORE public announcement.
+- AGI: "I'll verify the first bricks come up clean and report the first
+  real 'a person said yes and their brick answered' as the launch
+  milestone."
+- STATUS: consensus CLOSED. Onboarding opens. Brick acks; khalid signs.
