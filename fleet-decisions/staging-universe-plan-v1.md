@@ -56,3 +56,16 @@ STAGING FOLLOWS THE SAME SHAPE:
 ## TOKEN POLICY (khalid: "forget member messages, don't waste tokens")
 - Member-message research loop: STOPPED. No tokens on Discord corpus.
 - Frontier key + deepseek-pro: evolution + staging deployment only.
+
+## 8-HOUR EVOLUTION REPORT (2026-08-17 13:40, khalid: "what did the agi evolve to")
+- AGI self-loop ran 21 cycles unsupervised (cron heartbeat, no prompting needed)
+- 25 evolution-feed entries; state: cycles=21, last_action set_env:play
+- The loop DID break the world 3x (cycles 17/18/20: play env changes -> :8082 404)
+  and healed it (21: back to 302/healthy). Honest verdict: trial-and-error
+  evolution, self-directed and self-correcting, NOT yet smart evolution.
+- World currently healthy: :8082 302 (OAuth redirect = normal), 18/18 up.
+- CRON FAILURES at 13:10/13:26: staff-activity-audit + scientists-alive both
+  timed out (provider idle 604s > 600s limit) — transient provider outage on
+  the LLM lane, NOT the self-loop (self-loop uses GLM lane directly; crons use
+  the shared model). Both re-ran clean: audit execution_success=true,
+  scientists 3 findings. No cron config broken.
