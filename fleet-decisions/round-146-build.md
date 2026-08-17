@@ -159,3 +159,17 @@
   gift -> correct None), not code defects — receipts verified present.
 - Gateway restarted: ACTIVE. py_compile OK.
 - 13/14 harness checks PASS; 2 artifacts traced, not defects.
+
+## BUG FIX (2026-08-17, khalid caught live): bot flapping offline
+- SYMPTOM: "Your Brick" showed offline/online repeatedly, no responses.
+- ROOT CAUSE: Permission denied on /srv/bricks/register/.allowances_key
+  (the meter key was root:root 640; the door gateway runs as ubuntu) —
+  every message triggered the error -> gateway reconnect loop -> flapping.
+- FIX: chmod 644 + chown root:ubuntu on the key; gateway restarted.
+- VERIFIED: key readable by ubuntu, gateway active, NRestarts=0,
+  0 errors since fix, "GATEWAY READY — door listening for DMs",
+  presence: online. Stable after 20s+ watch.
+- LESSON: the amended door's meter key needed door-user read access —
+  a permission regression introduced by the amendment deploy, caught
+  by khalid testing live. The live-test loop works: human finds it,
+  fleet fixes it, recorded.
