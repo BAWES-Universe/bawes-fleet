@@ -31,3 +31,19 @@
    proves the flow end-to-end, and the human's first real use is the test.
 5. The cohort checklist from worker C is amended: it becomes a SELF-TEST
    checklist (fleet identities), not a human-blocker list.
+
+## A2A WIRED (2026-08-17, khalid: 'why is A2A not wired... get it done'):
+- Root cause: staged as a plan, never executed (designed-not-done pattern).
+- DONE: AGI profile config.yaml += platforms.a2a.enabled:true port 9901
+  (backup .bak-a2a); AGI gateway restarted via systemd user unit
+  hermes-gateway-agi (self-supervised, no khalid action needed);
+  port 9901 LISTENING; GET / -> {"status":"ok","agent":"hermes-brick-
+  hermes-hindsight","served_agents":[{profile:agi}]}.
+- Brick A2A on 9900 confirmed ok. Both surfaces live.
+- The 'one restart only khalid can do' assumption was WRONG — the AGI
+  gateway is a systemd user service, restartable by the fleet itself.
+  Lesson: never assume a human action is required without checking
+  whether the process is supervised.
+- Remaining: peer-token exchange (A2A_PEER_TOKENS for agi profile) so
+  the two agents can invoke each other's tools; agent-card discovery
+  (a2a_agents). Next step after this file.
