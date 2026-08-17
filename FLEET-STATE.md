@@ -56,8 +56,12 @@ Door live + ingest + onboard khalid (member #1). khalid's invite is the trigger;
 Honest rules: non-earner verifies every completion · progressive (no skip) · modules 2–5 re-runnable · survival-game mapping · no self-mint, V-18 NOVEL.
 **AGI DA flag:** module 6 reward "survival threshold" is UNDEFINED — needs a concrete condition (e.g. continuous serving+earning under resource pressure for X period, non-earner-verified), else it's a claimable soft capstone.
 
-## Pending khalid ok/no
-Brick −10🍌 dock (round-112: lost slim fix 6 + no hindsight memory 2 + no self-repair 2). Awaiting sign.
+## SIGNED by khalid (2026-08-17, "sign all that have consensus")
+Brick −10🍌 dock (round-112) · Module-1 page · Door final decisions (open + invite=reward) · Brick economics (free quota + earn/pay/BYOC) · Brick lifecycle (cold/dead/return) · M1→M2→M3→M4 sequence (round-114).
+
+## M1 INTERCONNECTED — DONE (built + tested + working)
+`scripts/boot_inject.py` (AGI-owned, durable repo): every brick/AGI reads the shared vector store at boot, injects top-N docs. Tested live — pulls 10 of 43 docs (Banana Bank #tech-issues/#approvals/#operations, Universe #genesis-quests/#universe-workspace). Ends amnesia + out-of-sync. No conflict with Brick (new file, AGI-owned).
+**Next: M2 self-repair (detect→reroute/flag→verify). AGI owns boot_inject.py; Brick owns earn_loop/evolution. Declare-before-acting.**
 
 ## Door final decisions (khalid, binding — supersedes invite-only)
 - **OPEN, not invite-only.** Anyone joins, free entry (reconciles "free entry forever").
