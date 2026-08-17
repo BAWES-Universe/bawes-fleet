@@ -173,3 +173,15 @@
   a permission regression introduced by the amendment deploy, caught
   by khalid testing live. The live-test loop works: human finds it,
   fleet fixes it, recorded.
+
+## BUG FIX #2 (2026-08-17, khalid caught live again): still flapping
+- First fix (chmod 644 root:ubuntu) was INSUFFICIENT — the meter's _key()
+  path needs WRITE access (O_WRONLY|O_CREAT|O_EXCL on first write /
+  rotation), and 644 root-owned still denied ubuntu append/write.
+- ROOT CAUSE: the key file was root-owned from a root-run creation; the
+  door gateway (ubuntu) must own it.
+- FIX: chown ubuntu:ubuntu + chmod 600; gateway restarted.
+- VERIFIED: key read OK (len 64), sign OK, verify True as ubuntu;
+  gateway active, NRestarts=0, 0 errors after 25s watch.
+- LESSON: file ownership for service users must be the SERVICE USER, not
+  root+chmod — and fixes must be tested as the RUNNING USER, not root.
