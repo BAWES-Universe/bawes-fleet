@@ -1157,6 +1157,24 @@ jobs:
                   cat_ts = set(_json.loads(cat_path.read_text())["toolsets"])
                   assert cat_ts == baseline_discord - {"kanban"}, \
                       f"broker catalog != baseline: catalog={sorted(cat_ts)} baseline={sorted(baseline_discord)}"
+                  # (d) RE-APPLY IDEMPOTENCY (Finding 1): wire twice more — the
+                  #     captured catalog must stay byte-identical (never
+                  #     re-derived from the broker surface) and the underlying
+                  #     capability count must not change.
+                  from model_tools import get_tool_definitions
+                  cat_before = cat_path.read_text()
+                  for _i in (2, 3):
+                      assert gw7.wire(dry_run=False, force=True) == 0
+                      assert cat_path.read_text() == cat_before, \
+                          f"catalog changed on apply #{_i} (re-derived from broker surface?)"
+                  cap_count_before = len(get_tool_definitions(
+                      enabled_toolsets=sorted(cat_ts), quiet_mode=True,
+                      skip_tool_search_assembly=True))
+                  cap_count_after = len(get_tool_definitions(
+                      enabled_toolsets=sorted(set(_json.loads(cat_path.read_text())["toolsets"])),
+                      quiet_mode=True, skip_tool_search_assembly=True))
+                  assert cap_count_before == cap_count_after, \
+                      f"capability count changed across reapplies: {cap_count_before} -> {cap_count_after}"
                   # (b) signed a2a surface exact
                   a2a_set = set(_get_platform_tools(cfg7, "a2a"))
                   assert a2a_set == {"web", "vision", "session_search"}, a2a_set
@@ -1200,4 +1218,8 @@ jobs:
           git clone --depth 1 --branch v2026.8.13 \
             https://github.com/NousResearch/hermes-agent /tmp/hermes-0201
           python3 brick-profile/brick_broker/tests/run_broker_bprobes.py \
+            --hermes /tmp/hermes-0201 --repo "$PWD"
+      - name: E2E transactional rollback + re-apply idempotency
+        run: |
+          python3 brick-profile/hermes-seam/tests/test_transactional_rollback.py \
             --hermes /tmp/hermes-0201 --repo "$PWD"

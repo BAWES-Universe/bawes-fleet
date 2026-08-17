@@ -13,7 +13,7 @@ duplicating a top-level ``platforms:``/``providers:``/``model:`` key would
 silently drop the user's existing entries). Original files are backed up.
 Fails closed. Never writes secrets to the repo. Dry-run default.
 """
-import json, os, re, sys, pathlib, shutil, datetime
+import hashlib, json, os, re, sys, pathlib, shutil, datetime
 
 try:
     import yaml
@@ -25,6 +25,11 @@ HERMES_DIR = pathlib.Path.home() / ".hermes"
 CONFIG = HERMES_DIR / "config.yaml"
 ENV = HERMES_DIR / ".env"
 BACKUP_SUFFIX = ".bak-" + datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+
+# Rollback manifest: recorded on the FIRST brokerized apply so that rollback
+# restores the exact pre-broker runtime state (config.yaml + .env), never an
+# unrelated older backup. install_seam.py --rollback consumes it.
+ROLLBACK_MANIFEST = "brick-rollback-state.json"
 
 # A2A adapter reads platforms.a2a.extra.{enabled,port,advertised_toolsets}
 # (plugins/platforms/a2a/adapter.py) and env A2A_PORT / A2A_PEER_TOKENS.
@@ -251,31 +256,104 @@ def build_wiring(ident, a2a, model):
     return env_pairs, config_override
 
 
+def _catalog_target():
+    """Path of the broker catalog file (next to the plugin, in-repo)."""
+    return pathlib.Path(__file__).parent / "brick_broker" / "catalog_toolsets.json"
+
+
+def _effective_disabled(existing):
+    """Global agent.disabled_toolsets + the kanban the wiring ALWAYS adds."""
+    disabled = set(existing.get("agent", {}).get("disabled_toolsets") or [])
+    disabled.add("kanban")
+    return {str(d) for d in disabled}
+
+
+def _config_is_brokerized(existing):
+    """True when the current config already routes discord through the broker."""
+    pt = (existing.get("platform_toolsets") or {}).get("discord") or []
+    return "brick_broker" in [str(x) for x in pt]
+
+
+def _read_captured_catalog():
+    """Load + validate the previously captured catalog file.
+
+    Returns (toolsets_list, captured_disabled_set) or fails closed.
+    """
+    target = _catalog_target()
+    if not target.exists():
+        fail(f"config is brokerized but {target.name} is MISSING — the underlying "
+             "owner surface cannot be re-derived from the broker surface. Restore the "
+             "catalog file or remove the broker surface, then re-apply.")
+    try:
+        data = json.loads(target.read_text())
+    except Exception as e:
+        fail(f"catalog file unreadable ({e}) — restore it or remove the broker "
+             "surface and re-apply.")
+    toolsets = data.get("toolsets")
+    if not isinstance(toolsets, list) or not toolsets:
+        fail(f"catalog file {target.name} is empty/corrupt — restore it or remove "
+             "the broker surface and re-apply.")
+    captured_disabled = data.get("captured_disabled_toolsets")
+    if not isinstance(captured_disabled, list):
+        fail(f"catalog file {target.name} has no captured_disabled_toolsets "
+             "metadata — it was not written by gateway_wire (or is a stale "
+             "default). Re-apply from a non-brokerized config to capture.")
+    # The captured catalog must look like a REAL owner surface, never the
+    # small broker/eager set — guards against a collapsed capture being
+    # reused. Anchor: terminal is always enabled for an owner; the broker
+    # surface (brick_broker + clarify + todo) is tiny and never contains it.
+    present = {str(t) for t in toolsets}
+    if "brick_broker" in present:
+        fail(f"captured catalog contains the broker itself ({target.name}) — "
+             "corrupt capture. Remove the broker surface and re-apply.")
+    if "terminal" not in present or len(present) < 5:
+        fail(f"captured catalog is collapsed/incomplete ({len(present)} toolsets, "
+             "missing terminal) — it does not represent the owner surface. "
+             "Remove the broker surface and re-apply to recapture.")
+    return [str(t) for t in toolsets], set(captured_disabled)
+
+
 def _baseline_discord_toolsets():
     """Return the FULL baseline discord toolset list the gateway would resolve
     WITHOUT the broker override (the owner's real effective surface).
 
-    Reads the CURRENT (pre-wiring) config if present; otherwise falls back to
-    the Hermes platform default for discord. Subtracts the global
-    agent.disabled_toolsets (e.g. kanban) so the catalog reflects the
-    EFFECTIVE surface, not the raw composite. Never includes brick_broker.
+    IDEMPOTENT capture (Finding 1):
+      * FIRST apply (config not brokerized): derive from the real pre-broker
+        config and store the result in catalog_toolsets.json WITH the
+        captured disabled_toolsets snapshot.
+      * SUBSEQUENT applies (config already brokerized): do NOT re-derive from
+        the broker surface — reuse + validate the previously captured catalog.
+        If the owner changed global disabled_toolsets since capture, FAIL
+        CLOSED (never silently collapse the catalog).
+    Never includes brick_broker.
     """
     try:
         existing = load_yaml(CONFIG) or {}
     except Exception:
         existing = {}
+    if _config_is_brokerized(existing):
+        toolsets, _captured_disabled = _read_captured_catalog()
+        # Deliberate handling of owner/global disabled-toolset changes: a
+        # captured catalog was derived under a specific disabled set; reusing
+        # it under a DIFFERENT set would silently keep stale capabilities.
+        current_disabled = _effective_disabled(existing)
+        if current_disabled != _captured_disabled:
+            fail(
+                "agent.disabled_toolsets changed since the broker catalog was "
+                f"captured (captured={sorted(_captured_disabled)}, now="
+                f"{sorted(current_disabled)}). Refusing to reuse a stale catalog. "
+                "Remove the broker surface from platform_toolsets.discord, "
+                "re-apply to recapture, then re-add it — or revert the "
+                "disabled_toolsets change."
+            )
+        return toolsets
     try:
         from hermes_cli.tools_config import _get_platform_tools
         toolsets = _get_platform_tools(existing, "discord")
     except Exception:
         toolsets = set()
     toolsets = {str(ts) for ts in toolsets}
-    disabled = set(existing.get("agent", {}).get("disabled_toolsets") or [])
-    # The wiring ALWAYS globally disables kanban (state-mutating) — strip it
-    # even when the pre-wiring config has no disabled_toolsets yet, so the
-    # catalog equals the EFFECTIVE post-wiring surface (baseline minus kanban).
-    disabled.add("kanban")
-    toolsets -= {str(d) for d in disabled}
+    toolsets -= _effective_disabled(existing)
     toolsets.discard("brick_broker")
     return sorted(toolsets)
 
@@ -286,14 +364,79 @@ def _write_broker_catalog(broker_catalog_toolsets):
 
     Path: brick-profile/brick_broker/catalog_toolsets.json (in-repo, next to
     the plugin). The plugin reads it relative to its own __file__.
+
+    The file ALSO records the disabled_toolsets snapshot the capture was
+    derived under, so a later re-apply can detect (and fail closed on) an
+    owner/global disabled-toolset change instead of silently reusing a stale
+    catalog.
     """
     plugin_dir = pathlib.Path(__file__).parent / "brick_broker"
     plugin_dir.mkdir(parents=True, exist_ok=True)
     target = plugin_dir / "catalog_toolsets.json"
     if target.exists():
         shutil.copy2(target, str(target) + BACKUP_SUFFIX)
-    target.write_text(json.dumps({"toolsets": broker_catalog_toolsets}, indent=2) + "\n")
+    try:
+        existing = load_yaml(CONFIG) or {}
+    except Exception:
+        existing = {}
+    captured_disabled = sorted(_effective_disabled(existing))
+    target.write_text(json.dumps({
+        "toolsets": broker_catalog_toolsets,
+        "captured_disabled_toolsets": captured_disabled,
+        "captured_ts": datetime.datetime.utcnow().isoformat() + "Z",
+    }, indent=2) + "\n")
     return target
+
+
+# ---------------------------------------------------------------------------
+# Rollback manifest (Finding 2): record the EXACT pre-broker runtime state so
+# install_seam.py --rollback can restore config.yaml + .env transactionally.
+# ---------------------------------------------------------------------------
+def _manifest_path():
+    return HERMES_DIR / ROLLBACK_MANIFEST
+
+
+def _write_manifest(config_backup, env_backup, config_pre_sha, env_pre_sha,
+                    config_post_sha=None, env_post_sha=None):
+    """Record the pre-broker runtime state + the backups that hold it.
+
+    config_post_sha256 / env_post_sha256 capture the state wiring WROTE, so
+    rollback can detect (and refuse to clobber) user edits made after apply.
+    """
+    manifest = {
+        "installed_by": "gateway_wire.py",
+        "ts": datetime.datetime.utcnow().isoformat() + "Z",
+        "config_backup": str(config_backup),
+        "env_backup": str(env_backup),
+        "config_pre_sha256": config_pre_sha,
+        "env_pre_sha256": env_pre_sha,
+        "config_post_sha256": config_post_sha,
+        "env_post_sha256": env_post_sha,
+    }
+    mp = _manifest_path()
+    if mp.exists():
+        shutil.copy2(mp, str(mp) + BACKUP_SUFFIX)
+    mp.write_text(json.dumps(manifest, indent=2) + "\n")
+    return mp
+
+
+def _read_manifest():
+    mp = _manifest_path()
+    if not mp.exists():
+        return None
+    try:
+        return json.loads(mp.read_text())
+    except Exception:
+        return None
+
+
+def _sha256_file(p):
+    h = hashlib.sha256()
+    if p.exists():
+        with open(p, "rb") as f:
+            for chunk in iter(lambda: f.read(65536), b""):
+                h.update(chunk)
+    return h.hexdigest()
 
 
 def wire(dry_run=True, force=False):
@@ -327,20 +470,59 @@ def wire(dry_run=True, force=False):
         print("[dry] nothing written")
         return 0
 
-    # backup originals, then write (config deep-merged, never key-duplicated)
-    if CONFIG.exists():
-        shutil.copy2(CONFIG, str(CONFIG) + BACKUP_SUFFIX)
-    if ENV.exists():
-        shutil.copy2(ENV, str(ENV) + BACKUP_SUFFIX)
+    # ---- backup + rollback manifest (Finding 2: transactional rollback) ----
+    # FIRST brokerized apply: back up the pre-broker runtime state (config.yaml
+    # + .env) and record the exact backup identities + pre-shas in a manifest.
+    # RE-APPLY: never overwrite those backups with the brokerized state — the
+    # manifest's backups ARE the pre-first-apply state rollback must restore.
+    manifest = _read_manifest()
+    if manifest is None:
+        config_pre_sha = _sha256_file(CONFIG)
+        env_pre_sha = _sha256_file(ENV)
+        config_backup = None
+        env_backup = None
+        if CONFIG.exists():
+            config_backup = str(CONFIG) + BACKUP_SUFFIX
+            shutil.copy2(CONFIG, config_backup)
+        if ENV.exists():
+            env_backup = str(ENV) + BACKUP_SUFFIX
+            shutil.copy2(ENV, env_backup)
+    else:
+        print(f"re-apply: reusing rollback manifest (ts={manifest.get('ts')}) — "
+              "pre-broker backups preserved, nothing re-backed-up")
+        config_backup = manifest.get("config_backup")
+        env_backup = manifest.get("env_backup")
+        for b in (config_backup, env_backup):
+            if b and not pathlib.Path(b).exists():
+                fail(f"recorded rollback backup missing: {b} — restore it or "
+                     "remove the manifest, then re-apply (rollback would be "
+                     "impossible otherwise)")
 
     existing = load_yaml(CONFIG)
     merged = _deep_merge(existing, config_override)
     write_yaml(CONFIG, merged)
     write_env(ENV, env_pairs)
-    catalog_target = _write_broker_catalog(broker_catalog_toolsets)
+    # Catalog written only on the FIRST apply (capture). Re-applies reuse the
+    # validated captured catalog — never rewrite it (captured_ts would churn
+    # and a collapsed capture could be re-derived from the broker surface).
+    if manifest is None:
+        catalog_target = _write_broker_catalog(broker_catalog_toolsets)
+    else:
+        catalog_target = _catalog_target()
+        if not catalog_target.exists():
+            fail("re-apply: captured catalog missing and config is brokerized — "
+                 "restore the catalog or remove the broker surface, then re-apply.")
+
+    # Record the manifest AFTER writing, so it can pin the post-wiring shas
+    # (what rollback refuses to clobber) alongside the pre-broker backups.
+    if manifest is None:
+        _write_manifest(config_backup, env_backup, config_pre_sha, env_pre_sha,
+                        config_post_sha=_sha256_file(CONFIG),
+                        env_post_sha=_sha256_file(ENV))
 
     print(f"wired brick '{brick_id}' -> {HERMES_DIR} (backups: {BACKUP_SUFFIX})")
     print(f"broker catalog: {catalog_target} ({len(broker_catalog_toolsets)} baseline toolsets)")
+    print(f"rollback manifest: {_manifest_path()}")
     print("receipt:", {"brick_id": brick_id, "person_id": person_id,
                        "model": config_override["model"],
                        "a2a_port": env_pairs["A2A_PORT"],

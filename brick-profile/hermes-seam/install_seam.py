@@ -406,9 +406,113 @@ def apply_patch(root: pathlib.Path) -> int:
     return 0
 
 
+def _restore_runtime_from_manifest(hermes_home: pathlib.Path) -> int:
+    """Restore config.yaml + .env from the gateway_wire rollback manifest.
+
+    The manifest records the EXACT pre-broker backup identities + pre-shas.
+    Restores ONLY those recorded backups (never a globbed older backup).
+    Fails closed if:
+      * the manifest is unreadable,
+      * a recorded backup is missing,
+      * a restored file's sha does not match the recorded pre-broker sha,
+      * the CURRENT runtime file was modified after wiring (user edits since
+        apply) — overwriting would destroy unrelated user changes, so refuse
+        and explain instead.
+    Returns 0 on success (or nothing-to-restore), nonzero on failure.
+    """
+    mp = hermes_home / "brick-rollback-state.json"
+    if not mp.exists():
+        print("no gateway_wire rollback manifest found — runtime config/env "
+              "untouched (seam-only rollback)")
+        return 0
+    try:
+        manifest = json.loads(mp.read_text())
+    except Exception as e:
+        print(f"REJECTED: rollback manifest unreadable ({e}) — cannot prove safe "
+              "runtime restoration. Fix or remove the manifest manually, then "
+              "re-run --rollback.")
+        return 1
+
+    config_backup = manifest.get("config_backup")
+    env_backup = manifest.get("env_backup")
+    config_pre = manifest.get("config_pre_sha256")
+    env_pre = manifest.get("env_pre_sha256")
+    config_post = manifest.get("config_post_sha256")
+    env_post = manifest.get("env_post_sha256")
+    cfg_path = hermes_home / "config.yaml"
+    env_path = hermes_home / ".env"
+
+    # Never clobber post-apply user edits: if the current file differs from
+    # the state wiring wrote, someone changed it since — refuse and explain.
+    if config_post and cfg_path.exists() and sha256_of(cfg_path) != config_post:
+        print("REJECTED: config.yaml was modified after gateway_wire --apply "
+              "(sha differs from the recorded post-wiring state). Refusing to "
+              "overwrite your changes with the pre-broker backup. Back up your "
+              "edits or revert them, then re-run --rollback.")
+        return 1
+    if env_post and env_path.exists() and sha256_of(env_path) != env_post:
+        print("REJECTED: .env was modified after gateway_wire --apply. Refusing "
+              "to overwrite your changes. Revert or back them up, then re-run "
+              "--rollback.")
+        return 1
+
+    restored = 0
+    # config.yaml: restore the recorded backup; if there was NO pre-broker
+    # config (backup None), remove the file wiring created.
+    if config_backup and pathlib.Path(config_backup).exists():
+        shutil.copy2(config_backup, cfg_path)
+        if sha256_of(cfg_path) != config_pre:
+            print("REJECTED: restored config.yaml does not match the recorded "
+                  "pre-broker sha — aborting runtime restore (config left in "
+                  "the restored state; re-run after fixing the manifest).")
+            return 1
+        restored += 1
+        print(f"restored {cfg_path} <- {config_backup}")
+    elif config_backup is None:
+        if cfg_path.exists():
+            cfg_path.unlink()
+            print(f"removed {cfg_path} (did not exist before wiring)")
+    else:
+        print(f"REJECTED: recorded config backup missing: {config_backup}")
+        return 1
+
+    if env_backup and pathlib.Path(env_backup).exists():
+        shutil.copy2(env_backup, env_path)
+        if sha256_of(env_path) != env_pre:
+            print("REJECTED: restored .env does not match the recorded pre-broker "
+                  "sha — aborting runtime restore.")
+            return 1
+        restored += 1
+        print(f"restored {env_path} <- {env_backup}")
+    elif env_backup is None:
+        if env_path.exists():
+            env_path.unlink()
+            print(f"removed {env_path} (did not exist before wiring)")
+    else:
+        print(f"REJECTED: recorded env backup missing: {env_backup}")
+        return 1
+
+    mp.unlink()
+    print(f"rollback manifest removed ({restored} runtime files restored)")
+    return 0
+
+
 def rollback(root: pathlib.Path) -> int:
-    """Restore .bak-seam backups and remove installer-owned files. Idempotent
-    and ownership-safe for the plugin directory."""
+    """Transactional rollback across the FULL Brock latency installation.
+
+    Restores the Hermes runtime layer (config.yaml + .env via the
+    gateway_wire rollback manifest) AND the source/plugin layer (seam module,
+    patched run.py, broker plugin). Idempotent. Ownership-safe for the plugin.
+    """
+    # 0. Runtime layer first: if the manifest restore fails, refuse to continue
+    #    (a half-rolled-back brick with a brokerized config + no plugin is
+    #    worse than a fully-brokerized one).
+    rc_runtime = _restore_runtime_from_manifest(hermes_home_dir())
+    if rc_runtime != 0:
+        print("rollback ABORTED: runtime layer could not be restored safely; "
+              "seam/plugin layer NOT touched.")
+        return rc_runtime
+
     backups = sorted(root.rglob("*.bak-seam*"))
     restored = 0
     for bak in backups:
