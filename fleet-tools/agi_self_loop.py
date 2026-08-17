@@ -4,7 +4,7 @@ evolution, and if it is it's the agi that needs to loop").
 
 The cron is only the heartbeat. The AGI decides:
 - what to study next (its own research question, from its own gaps)
-- which lane to reason on (deepseek-pro for heavy reasoning, flash for
+- which lane to reason on (glm-5.2 for heavy reasoning, flash for
   routine, frontier only for what only it can do)
 - what it learned -> writes back to the store -> next cycle builds on it
 
@@ -67,7 +67,7 @@ def main():
     question = q.strip().split("\n")[0][:300]
 
     # 2. AGI ANSWERS IT — with reasoning on deepseek-pro (khalid: reason where needed).
-    os.environ["BRAIN_QUALITY"] = "advanced"  # -> deepseek-pro lane
+    os.environ["BRAIN_QUALITY"] = "advanced"  # -> glm-5.2 lane (khalid: use glm 5.2 not deepseek not gpt)
     prompt = (f"Research question (self-posed): {question}\n\n"
               f"Use this member corpus sample:\n" + "\n".join(msgs[:20]) +
               f"\n\nAnswer with: (1) the finding, (2) what the fleet should "
@@ -92,7 +92,7 @@ def main():
     with open(FEED, "a") as f:
         f.write(f"\n## 🧠 AGI SELF-LOOP — cycle {state['cycles']} ({ts})\n\n"
                 f"**Self-posed question:** {question}\n\n{finding}\n\n"
-                f"_reasoned on deepseek-pro | corpus: {n} msgs_\n")
+                f"_reasoned on glm-5.2 | corpus: {n} msgs_\n")
     os.chmod(FEED, 0o600)
     print(f"cycle {state['cycles']}: {question[:80]}")
 
