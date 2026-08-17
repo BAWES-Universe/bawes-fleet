@@ -86,3 +86,17 @@ Design implication: the cap stop offers multiple paths — team-arranged
 (gift/bill/adjust), user-supplied (own key), or economy (bananas).
 Consensus required on security (user keys never touch the vault/master)
 and banana pricing (bananas as a payment surface).
+
+## KHALID AMENDMENT #5 (2026-08-17): MODEL SUPPLY — THE ROAD TO FREE-FOREVER
+1. USERS CAN RUN LOCAL MODELS — their brick can use their own local
+   model (like Mishari's Brock/Qwen) at $0 fleet cost.
+2. FLEET-BUILT MODELS — the fleet builds and tests its own models on
+   free capacity / Vast credit / optimizations as we go (the
+   fine-tune gate at 100 verified artifacts, distillation, LoRA).
+3. THE HORIZON: give everyone free access FOREVER, or free with
+   limits — the 50/month cap is the current limit; owned models
+   make the marginal cost of a task approach ~$0, so 'free forever'
+   becomes economics, not charity.
+4. Design implication: the model ladder per brick = own local model
+   ($0) → fleet-owned model (as built, ~$0) → sponsored flash lane
+   (50/mo cap) → user key / bananas beyond.
