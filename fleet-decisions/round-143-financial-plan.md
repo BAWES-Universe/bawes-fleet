@@ -36,3 +36,17 @@ refill guidance + the 5-pot transparency dashboard.
    baseline cap and the extra-capacity price list.
 
 ## STATUS: feeding into in-flight pricing round as the funding model.
+
+## KHALID'S BILLING DECISION (2026-08-17, appended — simplifies the plan):
+1. **PAYMENTS LATER.** No gateway to be set up. No billing implementation now.
+2. **CAP + STOP:** every user gets a capacity allowance (sponsored baseline).
+   If they hit the cap, their work STOPS — cleanly — until handled.
+3. **HANDLING (team's job, later):** collect payment OR gift them extra
+   credit OR adjust the model — decided case by case, later.
+4. Design implication: the only thing to build now is the CAP ENFORCER
+   (allowance meter + clean stop at cap). The payment layer, gateway,
+   billing, and reconciliation are ALL deferred.
+5. The pricing round's numbers become the ALLOWANCE design (free 30 tasks
+   baseline etc.), not a billing system.
+
+## STATUS: cap-enforcer only now; payments/gateway/billing deferred.
