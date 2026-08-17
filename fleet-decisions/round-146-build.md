@@ -103,3 +103,15 @@
   real 'a person said yes and their brick answered' as the launch
   milestone."
 - STATUS: consensus CLOSED. Onboarding opens. Brick acks; khalid signs.
+
+## BUG FIX (2026-08-17, khalid caught it live): bilingual canned line
+- SYMPTOM: "Your Brick" bot replied to khalid's English "what's up?" with
+  English + Arabic ("ما الذي تريد أن تفعله أولاً؟").
+- ROOT CAUSE: door_v4.py:865-867 hardcoded a BILINGUAL template that
+  ignored the user's detected language entirely.
+- FIX: reply is now language-aware — English for English speakers, Arabic
+  for Arabic speakers, never mixed (door_v4.py, backup .bak-langfix,
+  door-gateway restarted, py_compile OK, live line count = 0).
+- LESSON: user-facing copy must come from detected language, never
+  hardcoded bilingual. Khalid testing the bot live = the launch milestone
+  working as intended (he caught a real defect).
