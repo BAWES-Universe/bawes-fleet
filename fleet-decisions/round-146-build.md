@@ -185,3 +185,22 @@
   gateway active, NRestarts=0, 0 errors after 25s watch.
 - LESSON: file ownership for service users must be the SERVICE USER, not
   root+chmod — and fixes must be tested as the RUNNING USER, not root.
+
+## BUG FIX #3 (2026-08-17, khalid caught live): online-status flicker
+- SYMPTOM: bot responds but Discord presence flickers online/offline.
+- ROOT CAUSE (gateway defect, not permissions): the receive loop was
+  SYNCHRONOUS — handle_dm() (brain call + meter + profile IO + reply) ran
+  inside the websocket loop; while busy, Discord's heartbeat request went
+  unanswered -> connection killed -> reconnect -> flicker on every DM.
+  Journal: every "DM from khalid" -> "Connection to remote host was lost"
+  -> "presence: online" ~6s later. 22 reconnects/15min.
+- FIX: door_gateway.py rewritten (backup .bak-hbfix):
+  (1) DEDICATED HEARTBEAT THREAD — op 1 sent every heartbeat_interval
+  independent of main-loop load (connection never starves);
+  (2) DM/JOIN handling dispatched to WORKER THREADS — receive loop
+  returns to ws.recv() immediately (never blocks on door logic);
+  (3) presence op 3 kept.
+- VERIFIED: gateway active, same PID across 60s+ watch, NRestarts=0,
+  0 reconnects/0 errors after deploy-time restart. Old behavior was a
+  reconnect every DM; new behavior holds steady.
+- SUBJECT TO: in-flight round deleg_4f2cf448 (fix-then-ratify).
