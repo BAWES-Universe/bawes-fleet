@@ -120,6 +120,19 @@ def main():
     os.chmod(card, 0o600)
     print(f"CARD: {card.name}")
 
+    # COMPOUNDING: feed findings BACK into the vector store so the next
+    # cycle reasons over THIS cycle's discoveries (khalid: "30 min cycle
+    # is not true learning" — the pump must feed the brain, not repeat).
+    try:
+        from fleet_vector_store import VectorStore
+        store_path = os.environ.get("FLEET_STORE", str(BASE / "vector-store.json"))
+        vs = VectorStore(store_path)
+        vs.add(text=out[:1500], topic=f"research-cycle-{ts[:10]}",
+               receipt=f"research-{int(time.time())}")
+        print("STORE: findings persisted — next cycle reasons over this")
+    except Exception as e:
+        print(f"STORE: {str(e)[:100]}")
+
     with open(FEED, "a") as f:
         f.write(f"\n## 🧬 RESEARCH CYCLE — {ts}\n\n{out}\n\n_audit: {len(corpus)} msgs, all channels | {summary}_\n")
     os.chmod(FEED, 0o600)
