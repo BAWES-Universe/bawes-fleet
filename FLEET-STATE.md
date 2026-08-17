@@ -63,6 +63,9 @@ Brick −10🍌 dock (round-112) · Module-1 page · Door final decisions (open 
 `scripts/boot_inject.py` (AGI-owned, durable repo): every brick/AGI reads the shared vector store at boot, injects top-N docs. Tested live — pulls 10 of 43 docs (Banana Bank #tech-issues/#approvals/#operations, Universe #genesis-quests/#universe-workspace). Ends amnesia + out-of-sync. No conflict with Brick (new file, AGI-owned).
 **Next: M2 self-repair (detect→reroute/flag→verify). AGI owns boot_inject.py; Brick owns earn_loop/evolution. Declare-before-acting.**
 
+## Extraction scope (khalid 2026-08-17)
+Butterfly = context only, NOT needed. Active staff is on Banana Bank + Universe — the 2 servers already extracted. **Full scope = DONE (2/2 servers, 43 docs).** Butterfly dropped.
+
 ## Door final decisions (khalid, binding — supersedes invite-only)
 - **OPEN, not invite-only.** Anyone joins, free entry (reconciles "free entry forever").
 - **Invite = guided referral + banana reward.** Members can invite friends AND earn bananas for it. HONEST GUARD: reward fires only when the invited friend actually onboards + contributes VERIFIED value (a small credit from the new member's real contributions) — never "invite = banana," which is gamed + violates no-self-mint.
