@@ -130,3 +130,16 @@
 4. KHALID: "waiting for verification and don't waste my time until it's
    ready as described and explained over and over again." -> Silence
    until the round lands + execution proof.
+
+## NO-CANNED DOOR — EXECUTION VERIFIED (10/10), AWAITING ROUND RULING:
+- door_v4.py md5 8ae9d6b2 (worker), 6 deterministic receipts remain
+  exact; 4 conversational replies now brain-generated (deepseek flash via
+  router 127.0.0.1:3742, language-aware en/ar never mixed), daily cap
+  fallback, brain-down fallback never dead-ends.
+- VERIFY BY EXECUTION: harness /tmp/verify_natural_door.py 10/10 PASS —
+  brain-up natural (en + ar 0.81 ratio), brain-down exact canned,
+  cap 1st-brain-2nd-canned, e2e 'no thanks' -> brain reply. Cost ~$0.006.
+- STATUS: worker dispatched BEFORE the round ruled (violation recorded).
+  The ruling (deleg_381e88d4, DA+Rebel+AGI on the no-canned design)
+  GOVERNS — this deploy is provisional until the round lands + khalid
+  signs. Not declaring ready until then.
