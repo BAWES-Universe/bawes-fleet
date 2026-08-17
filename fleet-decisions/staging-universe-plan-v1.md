@@ -41,6 +41,18 @@ universe.bawes.net (Coolify-deployed, Livekit + bot server).
    measures, reports — the evolving universe khalid asked for.
 6. BENCHMARK vs prod: RAM, cost/bot, boot time, ROI — public numbers.
 
+## AV ARCHITECTURE (khalid: "we have our stack in Coolify having separate
+boxes for Livekit and turn" — round-133, 2026-08-17)
+
+PROD PATTERN (Coolify): Livekit on its OWN box, TURN on its OWN box.
+STAGING FOLLOWS THE SAME SHAPE:
+- The livekit+egress+minio containers on the staging box = STACK-PROOF
+  (18/18 up, verified) — NOT the production AV path.
+- Real AV = dedicated Livekit box + dedicated TURN box, mirroring prod.
+- The 3 confirmed blockers on the single box (no TURN, UDP port mismatch,
+  no traefik UDP entrypoint) are WHY prod uses separate boxes — staging
+  will not fight them; it will replicate the split.
+
 ## TOKEN POLICY (khalid: "forget member messages, don't waste tokens")
 - Member-message research loop: STOPPED. No tokens on Discord corpus.
 - Frontier key + deepseek-pro: evolution + staging deployment only.
