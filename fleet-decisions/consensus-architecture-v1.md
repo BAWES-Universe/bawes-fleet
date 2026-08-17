@@ -7,7 +7,39 @@
 # Folded: AGI (design) + Rebel (DISSENT-block, deleg_b805c89e) + DA
 # (OBJECT, deleg_91fb4470, F1-F6 + cost math). RATIFIED.
 
-## THE CORE INVERSION (Rebel 5 — the model everything hangs on)
+## THE CORRECTION (khalid: "If the door forgets and everyone forgets it's
+## not really the universal AGI solution I'm working towards. You butchered
+## my concept." — round-131, 2026-08-17)
+
+THE UNIVERSAL MIND NEVER FORGETS. That is the concept. Correction to the
+round-128 "door forgets" framing:
+
+1. THE DOOR DOES NOT FORGET — the door's intake conversation flows INTO
+   the universal memory (vector store + brain) the same as everything
+   else. Nothing is deleted. The door's "handoff" is CONTINUITY, not
+   amnesia: the brick wakes ALREADY knowing everything the member said at
+   the door — goal, skills, words, context. Zero context loss, zero
+   restart. One continuous mind from first tap forever.
+2. PRIVACY = ACCESS CONTROL, NOT DELETION. "Member data never public"
+   means: data is remembered by the universe, readable ONLY by the
+   member's own brick + the member + explicitly authorized parties
+   (per-member scope, chahd = strictest). Remembering is not exposure.
+   Amnesia is not privacy — it's a lobotomy, and it's what I wrongly
+   framed.
+3. EVERYONE REMEMBERS (collective hindsight): khalid's concept is one
+   universal AGI with collective memory — the door, the bricks, the
+   brain, the scientists all share ONE memory. A member's full arc —
+   tap, consent, every conversation, every quest, every achievement —
+   is one continuous story the universe holds. No brick starts blank;
+   every brick inherits the whole relationship.
+4. WHAT CHANGES IN THE BUILD: per-brick memory is NOT a fresh thread —
+   it is a SCOPED VIEW of the universal memory for that member. The
+   door doesn't hand off a summary; it hands off the full arc. The
+   brick's "one thread, one memory file" = the member's slice of the
+   one universal store, permissioned, never re-created.
+5. THE ONE-LINE CONCEPT (khalid's, restored): ONE universal mind,
+   many faces, all remembering, privacy by permission — not by
+   forgetting.
 The universe IS the sovereign agent. Bricks are scoped personas/sessions
 ON it. One brain owns the loop, routing, and memory store; per-member
 bricks scope voice, memory, permissions, tools. "Exact same behavior" is
