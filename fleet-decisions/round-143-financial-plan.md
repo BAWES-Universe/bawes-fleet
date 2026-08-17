@@ -56,9 +56,11 @@ refill guidance + the 5-pot transparency dashboard.
 - Hit 50 → clean stop → team handles later (payment/gift/adjust model).
 - Cap enforcer uses 50 as the default allowance.
 
-## KHALID AMENDMENT #2 (2026-08-17): ALLOWANCE ROLLS OVER
-- The 50 free tasks per month ROLL OVER — unused allowance carries
-  forward month to month (never resets to zero at month end).
-- A user who used 10 of 50 in month 1 has 90 available in month 2.
-- Cap enforcer tracks a cumulative allowance balance per user;
-  monthly credit +50, debit usage, clean stop only when balance ≤ 0.
+## KHALID AMENDMENT #2 CORRECTED (2026-08-17): ALLOWANCE RESETS MONTHLY
+- 50 free tasks per month, RESET every month. No rollover.
+- 50 is a HARD CEILING — a user can never have more than 50 free
+  tasks available at any time. Unused free tasks do NOT accumulate.
+- More than 50 in a month requires payment (collected later: payment /
+  gift credit / adjust model).
+- Cap enforcer: monthly bucket of 50, resets at month boundary, clean
+  stop when the month's 50 is exhausted.
