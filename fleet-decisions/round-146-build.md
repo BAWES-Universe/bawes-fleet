@@ -59,3 +59,26 @@
 - WORKERS IN FLIGHT: live-spawn deploy + task-meter (A), alert ladder +
   escape paths (B), M2 self-recovery + cohort self-test (C). All signed,
   all running. Results re-enter as they land.
+
+## ROUND-146 EXECUTION STATUS (2026-08-17, verified by execution):
+- ITEM 1 (live-spawn F-16/F-17): COMPLETE — door_v4 3-way merge deployed
+  (938f761d), brick_hello.py live (only pending->live flip), watchdog
+  mishari-relay removed, heartbeat self-only, door-gateway + heartbeat
+  services active, 15/15 tests + live checks.
+- ITEM 2 (task-meter): VERIFIED — allowance_meter.py live (append-only
+  allowances.jsonl 0600, flock, HMAC-signed rows, month-scoped 50 bucket,
+  exact AGI 80/95/100 lines, gift sponsor_id=khalid idempotent, degraded
+  reply). E2E: 0->50 debits, 40/50 warning, 50/50 exhausted + degraded,
+  gift restores, 51 signed rows. Router restarted with meter merged
+  (401 healthy, port 3742 listening).
+- ITEMS 3+4 (alert ladder + escape paths): CODE DEPLOYED — allowance_
+  notifier.py (khalid DM 189055515819638794 via door bot, retry x3,
+  templates) + allowance_watchdog.py + cron */15 installed. Dry-run ok.
+- ITEM 5 (M2 every-brick): LIVE — brick_guard.py (snapshot->probe->revert,
+  3-strikes->degraded, unit snapshots bawes-worker + brick-heartbeat),
+  watchdog FLAGGING mishari-cloud-001 DEAD (heartbeat 631s+, no relay —
+  F-16 truth-telling working: paper brick no longer faked alive).
+- ITEM 6 (cohort): self-test framing committed (no human blockers).
+- A2A: AGI on 9901 live + verified.
+- Remaining (next wave): notifier live-send test w/ khalid ack, full
+  alert-ladder E2E suite run, fleet_dashboard alerts card.
