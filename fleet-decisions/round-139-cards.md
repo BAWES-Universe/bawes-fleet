@@ -98,3 +98,9 @@ Rebel signs: F-11 gate, ES256 chain, cron wiring, token issuance, founder-seed
 provenance, door pattern. Refuses to sign ANY self-recovery/interconnected/
 genius claim before Cards 1-4. Khalid: sign all, sign some, amend — nothing
 builds until your ok. No fluff: the cards ARE the claim, in order.
+
+## KHALID SIGN (2026-08-17): "Sign all that have consensus and let's proceed
+## after consensus. I'm talking to others at the same time don't conflict."
+Signed: CARDS 1-10 ALL — consensus complete. Implementation order = card
+order. Note: khalid may be coordinating with other agents in parallel —
+fleet must not conflict; changes are ledger-rowed and round-gated.
