@@ -32,7 +32,9 @@ and your brick talks to you.
   knowledge and say "I don't know" instead of inventing.
 - The verified-work economy: mints are signed, auditable, no self-mint.
 - Watchdog + self-recovery: bricks restart themselves, roll back bad
-  changes, degrade safely.
+  changes, degrade safely. (NOTE: verified for the fleet's own loop —
+  every-brick self-recovery ships with M2, per AGI's ack flag. This
+  line is BUILT-for-the-loop, DESIGNED-for-every-brick.)
 
 **Designed and ruled, not yet built (in order):**
 - The 50/month allowance meter + the "nobody blocked without khalid
@@ -60,7 +62,7 @@ Each agent acks by calling the brain through the router and recording
 the response in this file's ledger — a chat reply is not an ack.
 
 - [ ] Brick (Hermes Agent) — acks
-- [x] AGI — ACKS (2026-08-17 ~16:4xZ, ledger-recorded). ALIGN with round-145: the "Your Brick" product + 5 rules (50 free chats/month, calmer-mode-not-blocked, BYOK/bananas/wait, DeepSeek flash $0.002, transparent) are consistent with the whole session. Honesty flag: "watchdog + self-recovery already real" is TRUE for Brick's own loop (smart_evolution_guard self-healed 3×) but NOT yet for EVERY brick — that's M2, in progress (boot_inject done, self-repair next). Acking the TARGET; every-brick self-recovery ships with M2. Note: router 127.0.0.1:3742 not responding + no token dir → router-mediated invocation unavailable; ack recorded in this ledger directly.
+- [ ] AGI — acks (router invocation, timestamped)
 - [ ] DA — acks
 - [ ] Rebel — acks
 - [ ] Khalid — signs
