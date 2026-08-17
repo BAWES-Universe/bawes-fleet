@@ -109,11 +109,24 @@ extra = catalog_names - baseline_names
 check("no phantom capabilities", not extra, str(sorted(extra)))
 for cap in ("terminal", "read_file", "write_file", "patch", "search_files",
             "skill_view", "skill_manage", "skills_list", "delegate_task",
-            "memory", "cronjob", "execute_code", "session_search", "clarify",
+            "memory", "execute_code", "session_search", "clarify",
             "todo"):
     check(f"catalog preserves {cap}", cap in catalog_names)
-# vision_analyze is check_fn-gated on httpx — present when its requirement is
-# satisfied, absent otherwise (never falsely advertised).
+# check_fn-gated capabilities: present iff their requirement check passes,
+# absent otherwise (never falsely advertised). cronjob requires a gateway/
+# interactive session env; vision_analyze requires httpx.
+def _check_fn_ok(modname, fnname):
+    try:
+        import importlib
+        mod = importlib.import_module(modname)
+        fn = getattr(mod, fnname, None)
+        return bool(fn and fn())
+    except Exception:
+        return False
+cron_avail = _check_fn_ok("tools.cronjob_tools", "check_cronjob_requirements")
+check("cronjob present iff requirements met",
+      ("cronjob" in catalog_names) == cron_avail,
+      f"in catalog: {'cronjob' in catalog_names}, check_fn: {cron_avail}")
 try:
     from tools.vision_tool import check_vision_requirements
     vision_avail = bool(check_vision_requirements and check_vision_requirements())
@@ -200,6 +213,13 @@ check("describe results contain no secret values", not leaked2,
       f"leaked {len(leaked2)}: {[v[:30] for v in leaked2[:3]]}")
 
 print("== BPROBE-20: terminal approval still fires through the broker ==")
+# A bare CI process (no HERMES_INTERACTIVE / HERMES_GATEWAY_SESSION) hits the
+# approval gate's historical fail-open branch and AUTO-APPROVES dangerous
+# commands. To exercise the REAL gateway branch deterministically we establish
+# the exact approval-session context the gateway does (gateway/run.py:5883-4):
+# HERMES_GATEWAY_SESSION=1 + a session key + NO notify callback registered ->
+# the gate takes submit_pending -> returns the genuine "approval_required"
+# envelope and the command is NOT executed.
 approval_fired = {"fired": False}
 if os.path.exists(os.path.join(HERMES_SRC, "tools", "current_agent.py")):
     from tools.current_agent import set_current_gateway_agent, reset_current_gateway_agent
@@ -217,28 +237,29 @@ if os.path.exists(os.path.join(HERMES_SRC, "tools", "current_agent.py")):
         def _dispatch_delegate_task(self, args): return "{}"
     ag = TermAgent()
     tok = set_current_gateway_agent(ag)
+    _old_gw_env = os.environ.get("HERMES_GATEWAY_SESSION")
+    os.environ["HERMES_GATEWAY_SESSION"] = "1"
     try:
-        from tools.terminal_tool import set_approval_callback
-        def _approval_cb(approval_data):
-            approval_fired["fired"] = True
-            return {"approved": False, "message": "denied by test"}
-        set_approval_callback(_approval_cb)
+        from tools.approval import set_current_session_key as _set_sk, reset_current_session_key as _reset_sk
+        _stok = _set_sk("brick-bprobe-session")
         try:
             r = brick_broker._handle_invoke(
                 {"name": "terminal", "args": {"command": "rm -rf /tmp/brick-broker-approval-test"}},
                 task_id="t1", session_id="s1")
         finally:
-            set_approval_callback(None)
-        # The gateway approval path returns a pending_approval envelope when no
-        # notify callback is registered for the session (exactly what a real
-        # unapproved dangerous command yields). The gate FIRED — the command
-        # must NOT have executed.
-        check("terminal via broker hit the approval gate (pending/denied envelope)",
-              approval_fired["fired"] or "pending_approval" in r or "denied" in r.lower(),
-              r[:200])
+            _reset_sk(_stok)
+        # Real gateway envelope: submit_pending -> approval_required; the
+        # dangerous command must NOT have executed.
+        check("terminal via broker hit the real approval gate (approval_required/denied/BLOCKED)",
+              "approval_required" in r or "denied" in r.lower() or "BLOCKED" in r.upper()
+              or "pending" in r.lower(), r[:200])
         check("dangerous terminal command did NOT execute",
               "approved" not in r.lower() or "denied" in r.lower(), r[:200])
     finally:
+        if _old_gw_env is None:
+            os.environ.pop("HERMES_GATEWAY_SESSION", None)
+        else:
+            os.environ["HERMES_GATEWAY_SESSION"] = _old_gw_env
         reset_current_gateway_agent(tok)
 
 print("== BPROBE-21: wiring preserves LM Studio/provider/identity/auth config ==")
