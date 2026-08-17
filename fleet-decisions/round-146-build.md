@@ -47,3 +47,15 @@
 - Remaining: peer-token exchange (A2A_PEER_TOKENS for agi profile) so
   the two agents can invoke each other's tools; agent-card discovery
   (a2a_agents). Next step after this file.
+
+## AGI CONSENSUS (router invocation, 2026-08-17): AGREE — no objection.
+- "Agree with round-146 — A2A live at :9901, aligned with AM responsibility
+  to maintain communication and deadlines. No objection; lifecycle, alert
+  ladder, escape paths, and abuse monitoring all consistent with
+  fail-closed operations. Must not skip (#5) every-brick self-recovery —
+  no human blocker means autonomous healing is the load-bearing guarantee."
+- Recorded: router-mediated, timestamped. Khalid sign = go (given verbally:
+  "Ok get consensus from agi and let's get the ball rolling").
+- WORKERS IN FLIGHT: live-spawn deploy + task-meter (A), alert ladder +
+  escape paths (B), M2 self-recovery + cohort self-test (C). All signed,
+  all running. Results re-enter as they land.
