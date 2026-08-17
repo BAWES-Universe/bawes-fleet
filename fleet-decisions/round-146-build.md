@@ -17,3 +17,17 @@
    coalesced, ONE message per incident).
 
 ## STATUS: build wave dispatched 2026-08-17 (fleet workers).
+
+## KHALID CORRECTION (2026-08-17): NO HUMAN IS A BLOCKER — BUILD FIRST, USE NATURALLY
+1. Mishari's consent and khalid's consent are NOT blockers to anything.
+2. The FULL product is built with the FLEET'S OWN identities (ovh-server-001,
+   scientists-001, worker bricks, test identities) — never waiting on a human.
+3. When the product is real, khalid and Mishari USE it naturally — consent
+   happens naturally as part of first use (the brick asks, they say yes in
+   their own words, it's recorded — that IS the natural experience, not a
+   prerequisite ceremony).
+4. Any build step that reads "waiting on: khalid consent / mishari consent"
+   is WRONG and must be re-framed: the fleet self-provisions test identities,
+   proves the flow end-to-end, and the human's first real use is the test.
+5. The cohort checklist from worker C is amended: it becomes a SELF-TEST
+   checklist (fleet identities), not a human-blocker list.
