@@ -1,0 +1,25 @@
+{"ts": "2026-08-15T10:50:53.668179Z", "op": "dispatch-price", "detail": "{\"card\": \"first-paid-task-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T10:50:53.681883Z", "op": "dispatch-void", "detail": "{\"card\": \"first-paid-task-001\", \"brick_id\": \"worker-001\", \"http\": 501}", "outcome": "voided"}
+{"ts": "2026-08-15T10:51:05.854726Z", "op": "dispatch-price", "detail": "{\"card\": \"first-paid-task-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T10:51:05.856479Z", "op": "dispatch-void", "detail": "{\"card\": \"first-paid-task-001\", \"brick_id\": \"worker-001\", \"http\": 501}", "outcome": "voided"}
+{"ts": "2026-08-15T10:51:40.749616Z", "op": "dispatch-price", "detail": "{\"card\": \"first-paid-task-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T10:51:40.763065Z", "op": "dispatch-void", "detail": "{\"card\": \"first-paid-task-001\", \"brick_id\": \"worker-001\", \"http\": 403}", "outcome": "voided"}
+{"ts": "2026-08-15T10:51:47.107231Z", "op": "dispatch-price", "detail": "{\"card\": \"first-paid-task-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T10:51:47.109300Z", "op": "dispatch-void", "detail": "{\"card\": \"first-paid-task-001\", \"brick_id\": \"worker-001\", \"http\": 403}", "outcome": "voided"}
+{"ts": "2026-08-15T10:52:31.889031Z", "op": "dispatch-price", "detail": "{\"card\": \"first-paid-task-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T16:07:19.593718Z", "op": "dispatch-price", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T16:07:19.604262Z", "op": "dispatch-void", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"err\": \"<urlopen error [Errno 111] Connection re\"}", "outcome": "voided"}
+{"ts": "2026-08-15T16:07:19.606354Z", "op": "dispatch-price", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T16:07:19.607084Z", "op": "dispatch-void", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"err\": \"<urlopen error [Errno 111] Connection re\"}", "outcome": "voided"}
+{"ts": "2026-08-15T16:07:36.930623Z", "op": "dispatch-price", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T16:07:36.931681Z", "op": "dispatch-void", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"err\": \"<urlopen error [Errno 111] Connection re\"}", "outcome": "voided"}
+{"ts": "2026-08-15T16:07:36.933228Z", "op": "dispatch-price", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T16:07:36.933740Z", "op": "dispatch-void", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"err\": \"<urlopen error [Errno 111] Connection re\"}", "outcome": "voided"}
+{"ts": "2026-08-15T16:07:58.714193Z", "op": "dispatch-price", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T16:07:58.715209Z", "op": "dispatch-void", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"err\": \"<urlopen error [Errno 111] Connection re\"}", "outcome": "voided"}
+{"ts": "2026-08-15T16:07:58.716956Z", "op": "dispatch-price", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T16:07:58.717621Z", "op": "dispatch-void", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"err\": \"<urlopen error [Errno 111] Connection re\"}", "outcome": "voided"}
+{"ts": "2026-08-15T16:08:12.214875Z", "op": "dispatch-price", "detail": "{\"card\": \"probe-1\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T16:08:12.215619Z", "op": "dispatch-void", "detail": "{\"card\": \"probe-1\", \"brick_id\": \"worker-001\", \"err\": \"<urlopen error [Errno 111] Connection re\"}", "outcome": "voided"}
+{"ts": "2026-08-15T16:08:44.090883Z", "op": "dispatch-price", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}
+{"ts": "2026-08-15T16:08:44.096038Z", "op": "dispatch-price", "detail": "{\"card\": \"v20-ovh-001\", \"brick_id\": \"worker-001\", \"price\": 1}", "outcome": "committed"}

@@ -1,0 +1,1 @@
+{"security-001": {"role": "evaluator", "skills": ["adversarial-test", "audit"], "registered": true}, "evolution-001": {"role": "evaluator", "skills": ["evolution", "proposal"], "registered": true}, "neurologist-001": {"role": "evaluator", "skills": ["monitor", "tune", "conversation-health"], "registered": true}}

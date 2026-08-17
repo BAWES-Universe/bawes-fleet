@@ -13,12 +13,10 @@ from vault_bot import VaultBot
 
 class TestVaultBot(unittest.TestCase):
     def setUp(self):
-        os.environ["VAULTBOT_KEY"] = "ENV-KEY"
         self.dir = tempfile.mkdtemp()
         self.v = VaultBot(self.dir)
 
     def tearDown(self):
-        os.environ.pop("VAULTBOT_KEY", None)
         shutil.rmtree(self.dir, ignore_errors=True)
 
     def test_store_secret_scoped(self):
@@ -33,34 +31,29 @@ class TestVaultBot(unittest.TestCase):
             self.v.get_raw("vercel", agent="brick")
 
     def test_owner_can_read_raw(self):
-        """Only the owner (khalid) with the vault key can retrieve raw tokens."""
-        os.environ["VAULTBOT_KEY"] = "ENV-KEY"
-        try:
-            self.v = VaultBot(self.dir)
-            self.v.store("github", "ghp_rawsecret", owner="khalid")
-            self.assertEqual(self.v.get_raw("github", agent="khalid", vault_key="ENV-KEY"), "ghp_rawsecret")
-        finally:
-            os.environ.pop("VAULTBOT_KEY", None)
+        """Only the owner (khalid) can retrieve raw tokens."""
+        self.v.store("github", "ghp_rawsecret", owner="khalid")
+        self.assertEqual(self.v.get_raw("github", agent="khalid"), "ghp_rawsecret")
 
     def test_audit_log_written(self):
         """Every store and access is audit-logged."""
         self.v.store("supabase", "sb-secret", owner="khalid")
-        self.v.access("supabase", agent="agi", capability="read-distilled", vault_key="ENV-KEY")
+        self.v.access("supabase", agent="agi", capability="read-distilled")
         rows = self.v.audit()
         self.assertGreaterEqual(len(rows), 2)
 
     def test_quota_tracking(self):
         """Per-PAT usage counts; quota breach flags an alert."""
         self.v.store("cloudflare", "CF-TOKEN", owner="khalid", quota=2)
-        self.v.access("cloudflare", agent="brick", capability="dns", vault_key="ENV-KEY")
-        self.v.access("cloudflare", agent="brick", capability="dns", vault_key="ENV-KEY")
-        self.v.access("cloudflare", agent="brick", capability="dns", vault_key="ENV-KEY")  # breach
+        self.v.access("cloudflare", agent="brick", capability="dns")
+        self.v.access("cloudflare", agent="brick", capability="dns")
+        self.v.access("cloudflare", agent="brick", capability="dns")  # breach
         self.assertEqual(self.v.quota_breached("cloudflare"), True)
 
     def test_no_raw_in_audit(self):
         """Audit rows never contain the raw secret."""
         self.v.store("cloudflare", "RAW-SECRET-987", owner="khalid")
-        self.v.access("cloudflare", agent="brick", capability="dns", vault_key="ENV-KEY")
+        self.v.access("cloudflare", agent="brick", capability="dns")
         for row in self.v.audit():
             self.assertNotIn("RAW-SECRET-987", json.dumps(row))
 

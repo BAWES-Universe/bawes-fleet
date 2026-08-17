@@ -1,0 +1,5 @@
+{"brick_id": "worker-001", "skills": ["build", "probe"], "quality": "verified", "ts": 1786790972.939419}
+{"brick_id": "neurologist-001", "skills": ["monitor", "tune", "conversation-health"], "quality": "registered", "role": "neurologist", "ts": 1786825173}
+{"brick_id": "security-001", "skills": ["adversarial-test", "audit"], "quality": "registered", "role": "security", "ts": 1786825173}
+{"brick_id": "evolution-001", "skills": ["evolution", "proposal"], "quality": "registered", "role": "evolution-agent", "ts": 1786825173}
+{"brick_id": "child-001", "parent_brick_id": "ovh-server-001", "skills": ["probe", "verify"], "quality": "registered", "ts": 1786828671}

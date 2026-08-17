@@ -1,0 +1,3 @@
+{"brick": "neurologist-001", "finding": "registered-but-idle bricks", "severity": "HIGH", "detail": "4 bricks registered but no verified work: ['neurologist-001', 'security-001', 'evolution-001', 'child-001']", "ts": 1786881248.8891225}
+{"brick": "security-001", "finding": "self-mint pattern", "severity": "CRITICAL", "detail": "9 earns where brick==person (no-self-mint rule)", "ts": 1786881248.889314}
+{"brick": "evolution-001", "finding": "evolution proposal", "severity": "INFO", "detail": "novel docs=30, earns=9 \u2014 propose next card: browser or discord triage automation #2", "ts": 1786881248.8894372}

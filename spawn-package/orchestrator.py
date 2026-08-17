@@ -26,7 +26,7 @@ F9 NIT   probe_pool chmod 0600 on load; CI runs ORCH-1..9 verbatim
 
 NEVER builds/runs app code. stdlib-only.
 """
-import hashlib, hmac, json, os, pathlib, time, datetime, urllib.request, urllib.error
+import hashlib, hmac, json, os, pathlib, sys, time, datetime, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 MIN_TOKEN = 16
@@ -126,6 +126,17 @@ class Orchestrator:
             d.mkdir(parents=True, exist_ok=True)
         self.lease_s = 3600
         self._chmod_pool()
+        # T-025 vector loop (V-19): attach the fleet knowledge store if present.
+        # Derived, not truth — index dies, ledger rebuilds (V-10 amendment).
+        self.vector_store = None
+        vs_path = pathlib.Path(orch_dir) / "vector-store.json"
+        if vs_path.exists():
+            try:
+                sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+                from fleet_vector_store import VectorStore
+                self.vector_store = VectorStore(str(vs_path))
+            except Exception:
+                self.vector_store = None
 
     # ---------- helpers ----------
     def _chmod_pool(self):
@@ -258,9 +269,18 @@ class Orchestrator:
              json.dumps({"card": card_id, "brick_id": brick.get("brick_id"),
                          "price": price}), "committed")
         grant = self._grant(card, brick, did)
+        # T-025 VECTOR LOOP (round-74 V-19): dispatch retrieves related
+        # knowledge from the fleet store and injects it; receipt carries the
+        # context-hash (V-11). Step 4 of the causal chain, live.
+        injected = {"hits": [], "context_hash": ""}
+        if getattr(self, "vector_store", None) is not None:
+            q = f"{card.get('capability','')} {card.get('probe_id','')}"
+            hits = self.vector_store.search(q, k=2)
+            injected = {"hits": [h["sha"] for h in hits],
+                        "context_hash": self.vector_store.injection_hash(hits)}
         payload = {"card_id": card_id, "probe_id": probe_id,
                    "capability": card.get("capability"), "grant": grant,
-                   "dispatch_id": did}
+                   "dispatch_id": did, "injected_context": injected}
         req = urllib.request.Request(
             f"{self.a2a_url}/dispatch",
             data=json.dumps(payload).encode(),
@@ -302,7 +322,8 @@ class Orchestrator:
         return False
 
     def verify_receipt(self, receipt):
-        """Non-earner verify: exact trace + fields + hash recompute."""
+        """Non-earner verify: exact trace + fields + hash recompute + V-11
+        injected-context echo (the receipt must carry what dispatch gave it)."""
         for fld in ("card_id", "probe_id", "output_hash", "brick_id", "dispatch_id"):
             if not receipt.get(fld):
                 return {"ok": False, "reason": f"missing {fld}"}
@@ -312,6 +333,21 @@ class Orchestrator:
         ok, msg = self._verify_output(receipt["probe_id"], receipt["output_hash"])
         if not ok:
             return {"ok": False, "reason": msg}
+        # V-11 (round-74): if dispatch injected knowledge, the receipt must
+        # echo the context-hash — delivery proof, not comprehension proof.
+        # ROUND-75 SHARPENING: EMPTY retrieval is a VALID recorded outcome —
+        # the injection step always runs and always records its result
+        # (context-hash of the empty set is a real hash). Verification checks
+        # the step ran + result recorded, NOT that knowledge was present.
+        # A young store must not fail the work that creates knowledge.
+        if self.vector_store is not None:
+            dctx = receipt.get("injected_context", {}).get("context_hash")
+            if not dctx:
+                return {"ok": False,
+                        "reason": "injected_context hash missing (V-11)"}
+            if not isinstance(dctx, str) or len(dctx) < 8:
+                return {"ok": False,
+                        "reason": "injected_context hash malformed (V-11)"}
         return {"ok": True, "verified": True}
 
     def mint(self, card, receipt):
@@ -333,8 +369,9 @@ class Orchestrator:
                    and r.get("brick_id") == brick_id for r in ledger):
                 return {"ok": False, "error": "card already minted (F1 dedup)"}
             bananas = self.rate_card.get(probe_id) or self.rate_card.get("default", 1)
-            row = {"card_id": card_id, "probe_id": probe_id,
-                   "brick_id": brick_id, "dispatch_id": receipt["dispatch_id"],
+            row = {"kind": "earn", "card_id": card_id, "probe_id": probe_id,
+                   "brick_id": brick_id, "person_id": brick_id,
+                   "dispatch_id": receipt["dispatch_id"],
                    "bananas": bananas, "ts": _now()}
             _log(self.audit, "mint",
                  f"{card_id} {bananas} bananas before-mutation")
@@ -356,6 +393,10 @@ class Orchestrator:
         costs, _ = _read(self.bank_dir / "ledger-cost-rows.log")
         roi = {}
         for w in wallet:
+            # earned = MINT rows only (card-bearing or kind=earn). Credits,
+            # gifts, seeds are NOT earnings (round-45/79: credit != earn).
+            if not (w.get("kind") == "earn" or "card_id" in w):
+                continue
             b = w.get("brick_id", "?")
             d = roi.setdefault(b, {"earned_bananas": 0, "cost_rows": 0, "roi": 0})
             d["earned_bananas"] += w.get("bananas", 0)

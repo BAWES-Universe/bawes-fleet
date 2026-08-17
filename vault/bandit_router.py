@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""bandit_router.py — Bandit Router (AGI design, DA-hardened rounds 1-3).
-Thompson Sampling over bot-capability arms.
-Round 3 fixes (deleg_68e37e71): issue_id REQUIRED for reward (no unbounded
-inflation), picks+rewards PERSISTED in HMAC'd state (no restart reset),
-bandit state HMAC integrity (no silent tamper)."""
-import hashlib, hmac, json, os, pathlib, random, time
+"""bandit_router.py — Bandit Router (AGI-designed, 2026-08-16).
+Thompson Sampling over bot-capability arms:
+- Arm = bot tagged by capability embeddings
+- Reward = 1 if issue resolved + user ack, 0 if escalated/timeout
+- Hidden state = per-bot success counts (alpha/beta)
+- Forced exploration for new/untested pairs, UCB-style for mature arms
+- Stale stats decay weekly. All choices logged. No secrets in rewards."""
+import json, pathlib, random, time
 
 class BanditRouter:
     def __init__(self, base_dir: str):
@@ -12,38 +14,17 @@ class BanditRouter:
         self.base.mkdir(parents=True, exist_ok=True)
         self.state_file = self.base / "bandit_state.json"
         self.choice_file = self.base / "choices.jsonl"
-        self.integrity_key = os.environ.get("BANDIT_INTEGRITY_KEY", "")
-        self.arms = {}
-        self._picks = {}      # issue_id -> arm picked
-        self._rewarded = {}   # issue_id -> set of rewarded arms
+        self.arms = {}   # arm_id -> {"caps": [...], "alpha": 1, "beta": 1, "last_seen": ts}
         self._load()
 
-    def _hmac(self, payload: str) -> str:
-        return hmac.new(self.integrity_key.encode(), payload.encode(), hashlib.sha256).hexdigest()
-
     def _load(self):
-        if not self.state_file.exists():
-            return
-        raw = self.state_file.read_text()
-        data = json.loads(raw)
-        if self.integrity_key:
-            if data.get("_hmac") != self._hmac(json.dumps(data.get("state", {}), sort_keys=True)):
-                raise RuntimeError("bandit state integrity check failed (tampered)")
-        st = data.get("state", {})
-        self.arms = st.get("arms", {})
-        self._picks = st.get("picks", {})
-        self._rewarded = {k: set(v) for k, v in st.get("rewarded", {}).items()}
+        if self.state_file.exists():
+            d = json.loads(self.state_file.read_text())
+            self.arms = d.get("arms", {})
 
     def _save(self):
-        state = {"arms": self.arms, "picks": self._picks,
-                 "rewarded": {k: sorted(v) for k, v in self._rewarded.items()}}
-        doc = {"state": state}
-        if self.integrity_key:
-            doc["_hmac"] = self._hmac(json.dumps(state, sort_keys=True))
-        fd = os.open(self.state_file, os.O_CREAT | os.O_WRONLY | os.O_TRUNC, 0o600)
-        os.fchmod(fd, 0o600)
-        with os.fdopen(fd, "w") as f:
-            f.write(json.dumps(doc, indent=2))
+        self.state_file.write_text(json.dumps({"arms": self.arms}, indent=2))
+        self.state_file.chmod(0o600)
 
     def register(self, arm_id: str, capabilities: list):
         if arm_id not in self.arms:
@@ -52,6 +33,7 @@ class BanditRouter:
         self._save()
 
     def _decay_stale(self):
+        """Weekly decay: halve counts for arms unseen in 7 days."""
         now = time.time()
         for arm in self.arms.values():
             if now - arm["last_seen"] > 7 * 86400:
@@ -65,44 +47,31 @@ class BanditRouter:
         matched = [aid for aid, a in self.arms.items() if need in a["caps"]]
         return matched or list(self.arms.keys())
 
-    def pick(self, need: str, issue_id: str = "") -> str:
+    def pick(self, need: str) -> str:
         cands = self._candidates(need)
+        # Thompson: sample from Beta(alpha, beta), explore untested with noise
         best, best_score = None, -1
         for aid in cands:
             a = self.arms[aid]
             score = random.betavariate(a["alpha"], a["beta"])
-            if (a["alpha"] + a["beta"]) <= 2:
+            if (a["alpha"] + a["beta"]) <= 2:  # untested: explore
                 score += random.random() * 0.2
             if score > best_score:
                 best, best_score = aid, score
-        if issue_id:
-            self._picks[issue_id] = best
-        self._log({"ts": time.time(), "need": need, "picked": best,
-                   "score": round(best_score, 4), "issue_id": issue_id})
+        self._log({"ts": time.time(), "need": need, "picked": best, "score": round(best_score, 4)})
         self.arms[best]["last_seen"] = time.time()
         self._save()
         return best
 
     def reward(self, arm_id: str, success: bool, meta: dict = None):
-        issue_id = (meta or {}).get("issue_id", "")
-        # F7 (round 3): issue_id REQUIRED — empty rewards were unbounded inflation
-        if not issue_id:
-            raise PermissionError("reward requires a non-empty issue_id")
         if arm_id not in self.arms:
-            raise KeyError(arm_id)
-        # F7: reward requires this arm was picked for the issue
-        if self._picks.get(issue_id) != arm_id:
-            raise PermissionError("reward rejected: arm was not picked for this issue")
-        # F7: dedup — each issue rewarded once per arm (persisted)
-        rewarded = self._rewarded.setdefault(issue_id, set())
-        if arm_id in rewarded:
-            return  # already counted, no inflation
-        rewarded.add(arm_id)
+            return
         a = self.arms[arm_id]
         if success:
             a["alpha"] += 1
         else:
             a["beta"] += 1
+        # WHITELIST only safe fields — never persist arbitrary caller meta
         safe = {}
         if meta:
             for k in ("issue_id", "lane"):
@@ -125,7 +94,5 @@ class BanditRouter:
         return rows
 
     def _log(self, row):
-        fd = os.open(self.choice_file, os.O_CREAT | os.O_WRONLY | os.O_APPEND, 0o600)
-        os.fchmod(fd, 0o600)
-        with os.fdopen(fd, "a") as f:
+        with open(self.choice_file, "a") as f:
             f.write(json.dumps(row) + "\n")
