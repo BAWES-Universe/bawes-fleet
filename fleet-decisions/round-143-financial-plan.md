@@ -64,3 +64,12 @@ refill guidance + the 5-pot transparency dashboard.
   gift credit / adjust model).
 - Cap enforcer: monthly bucket of 50, resets at month boundary, clean
   stop when the month's 50 is exhausted.
+
+## KHALID AMENDMENT #3 (2026-08-17): PER-BRICK NEGOTIATION BEYOND THE CAP
+- The 50/month hard ceiling is the automatic baseline.
+- Beyond it: NO automatic path. Every case is a NEGOTIATION,
+  brick by brick — extra sponsorship or gifting extra credit,
+  decided case by case by khalid/team.
+- No gateway, no self-serve upsell, no standing price list for
+  going over. The stop at 50 is the negotiation trigger: the team
+  talks to the person and decides (sponsor more / gift / adjust).
