@@ -19,3 +19,20 @@ any pot when HE chooses; the fleet guarantees the numbers are true.
 ## STATUS: awaiting the in-flight pricing round (deleg_6b9100ee) to fold
 this requirement in; the consolidated deliverable = pricing ladder +
 refill guidance + the 5-pot transparency dashboard.
+
+## KHALID'S FUNDING MODEL (2026-08-17, appended — supersedes "tiers users pay"):
+1. **FREE PATH FOR ALL** — every person gets their brick free, baseline usage
+   sponsored by khalid (his pots). The fleet offers free to everyone, always.
+2. **PAID ONLY FOR EXTRA CAPACITY** — when someone wants more than the
+   sponsored baseline (more calls, more GPU, heavier features), they pay
+   SMALL amounts for the extra. Khalid will provide a PAYMENT GATEWAY API
+   so the fleet can collect those payments itself.
+3. **SPONSORS AT SCALE TOO** — khalid continues sponsoring even at scale,
+   because the fleet also makes money (commerce, extra-capacity payments,
+   verified-work economy). Sponsorship is a growth investment, not a loss.
+4. Design implication: the pricing ladder is NOT "users pay per tier" —
+   it's "sponsored baseline (free) + paid upsell (extra capacity, small
+   amounts, gateway-collected)". The round must design the sponsored-
+   baseline cap and the extra-capacity price list.
+
+## STATUS: feeding into in-flight pricing round as the funding model.
