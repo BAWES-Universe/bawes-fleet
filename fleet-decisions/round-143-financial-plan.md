@@ -73,3 +73,16 @@ refill guidance + the 5-pot transparency dashboard.
 - No gateway, no self-serve upsell, no standing price list for
   going over. The stop at 50 is the negotiation trigger: the team
   talks to the person and decides (sponsor more / gift / adjust).
+
+## KHALID AMENDMENT #4 (2026-08-17): USER-SUPPLIED ALTERNATIVES BEYOND THE CAP
+Beyond the 50/month cap, users can ALSO:
+1. HOOK THEIR OWN KEYS (BYOK) — supply their own API key / provider
+   credentials to keep their brick running at their own cost, as an
+   alternative to khalid gifting/billing.
+2. PAY BANANAS — spend earned bananas to effectively keep things free
+   or take on the cost themselves.
+3. (Existing) khalid/team gifts more credit or bills later, case by case.
+Design implication: the cap stop offers multiple paths — team-arranged
+(gift/bill/adjust), user-supplied (own key), or economy (bananas).
+Consensus required on security (user keys never touch the vault/master)
+and banana pricing (bananas as a payment surface).
