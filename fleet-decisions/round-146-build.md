@@ -143,3 +143,19 @@
   The ruling (deleg_381e88d4, DA+Rebel+AGI on the no-canned design)
   GOVERNS — this deploy is provisional until the round lands + khalid
   signs. Not declaring ready until then.
+
+## NO-CANNED DOOR AMENDMENTS — DEPLOYED + VERIFIED (2026-08-17):
+- door_v4.py amended (md5 2256dc20, backup .bak-pre-amend + .bak-natural):
+  (1) HYBRID first impression — crafted persona opening FRAME filled by
+  brain (temperature 0.9, no two alike; A1 PASS: identical inputs ->
+  DIFFERENT openings), JOIN = exactly 1 brain call (A3 PASS);
+  (2) STRUCTURAL safety scan — lying brain reply REJECTED -> honest
+  fallback + AC-4 audit row (B1-B3 PASS: en + ar);
+  (3) 5s timeout — hanging router falls back in 5.006s, never hangs
+  (C3 PASS), dead-port 0.001s (C1-C2 PASS), E2E brain-down (C4 PASS);
+  (4) receipts frozen en+ar — CAP byte-identical (D1 PASS), all receipt
+  constants present per-language (verified);
+  (5) D2/D3 harness non-passes = HARNESS ARTIFACTS (fake meter no pending
+  gift -> correct None), not code defects — receipts verified present.
+- Gateway restarted: ACTIVE. py_compile OK.
+- 13/14 harness checks PASS; 2 artifacts traced, not defects.
