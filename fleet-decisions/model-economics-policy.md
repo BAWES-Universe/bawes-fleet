@@ -19,3 +19,10 @@
 4. When admin registers an AI provider for the universe bot-server: use deepseek
    flash (the router lane), NOT glm.
 5. deepseek-pro for intermediate reasoning; gpt-4o only for what others can't do.
+
+## DOOR LANE RULE (khalid, 2026-08-17: "The door isn't glm. It can use deepseek flash only")
+- The door runs on **deepseek flash** ($0.002) — it is member-facing surface,
+  not the AGI. NO GLM in the door, ever.
+- GLM-5.2 = AGI-only: self-loop, evolution proposals, brainstorming.
+- This applies to the smart-brick-door redesign: the door brick reasons on
+  deepseek flash; only the AGI brain behind it uses GLM.
