@@ -82,3 +82,12 @@
 - A2A: AGI on 9901 live + verified.
 - Remaining (next wave): notifier live-send test w/ khalid ack, full
   alert-ladder E2E suite run, fleet_dashboard alerts card.
+
+## ROUND-146 FINAL STATUS (2026-08-17): ALL ITEMS DONE + VERIFIED
+- Full alert-ladder E2E: 80% warning row (HMAC-signed, state open),
+  96%, 100% exhausted + degraded reply, gift idempotent (1 row / 2 calls).
+- Notifier live-send: deliver_alert(dry_run=False) -> {"delivered": True}
+  — real DM to khalid 189055515819638794 confirmed the channel works.
+- Dashboard regenerated: brick-status.json (13 bricks) + fleet-status.html.
+- REMAINING (non-blocking): one-week zero-intervention run before the
+  "it's live" announcement; cohort natural-use onboarding.
