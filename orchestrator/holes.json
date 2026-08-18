@@ -1,0 +1,12 @@
+[
+  {"id": "consensus-gate-enforcement", "file": "gate.py", "probe": "test_sprint", "probe_fn": "probe_gate",
+   "prompt": "Write a Python module with a single function allow(action: dict) -> bool. It enforces a consensus gate: an action is allowed ONLY if action['consensus'] == 'CLOSED'. Any other value must be rejected (return False). Output ONLY the Python code, no explanation, no fences."},
+  {"id": "plaintext-relay-detection", "file": "detect_plaintext.py", "probe": "test_sprint", "probe_fn": "probe_plaintext",
+   "prompt": "Write a Python module with a single function scan(text: str) -> bool. Return True if text contains a bare secret (sk-/ghp_/github_pat_ + 20+ alphanumerics). False for ordinary text. Output ONLY the Python code."},
+  {"id": "non-llm-verification", "file": "non_llm_probe.py", "probe": "test_sprint", "probe_fn": "probe_nonllm",
+   "prompt": "Write a Python module with a single function check() -> str that returns exactly 'PASS' or 'FAIL' as a machine-readable verdict from a deterministic local check (no LLM). Output ONLY the Python code."},
+  {"id": "abuse-monitor-spend-spike", "file": "abuse_monitor.py", "probe": "test_sprint", "probe_fn": "probe_abuse",
+   "prompt": "Write a Python module with a single function detect(record: dict) -> bool. Return True if record['spend_1h'] > 10 * record['baseline_1h']. Output ONLY the Python code."},
+  {"id": "brick-self-recover", "file": "self_recover.py", "probe": "test_sprint", "probe_fn": "probe_selfrecover",
+   "prompt": "Write a Python module with a class Watchdog. Constructor takes target (callable returning a pid). Methods start(), stop(), integer attribute restart_count. Background thread polling 0.5s. IMPORTANT: _is_alive(pid) must detect ZOMBIE/dead processes — use os.waitpid(pid, os.WNOHANG) or /proc/<pid>/status, NOT just os.kill(pid,0). Output ONLY the Python code."}
+]
