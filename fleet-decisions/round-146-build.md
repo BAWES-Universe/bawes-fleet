@@ -204,3 +204,18 @@
   0 reconnects/0 errors after deploy-time restart. Old behavior was a
   reconnect every DM; new behavior holds steady.
 - SUBJECT TO: in-flight round deleg_4f2cf448 (fix-then-ratify).
+
+## HERMES-DOOR BUILD — SWITCHOVER COMPLETE (2026-08-17 23:55):
+- Router /v1/chat/completions shim: VERIFIED by execution — real
+  deepseek-v4-flash replies, non-stream AND stream (SSE) both work.
+- Hermes door profile: created, provider wired through shim, guest tool
+  surface = {web, vision, session_search, door_mcp} (read-only, Rebel
+  safety), door_mcp plugin (consent->state-flip->first-memory->upsell-
+  once->safety-scan) installed + discovered.
+- GATEWAY SWITCHOVER: old script door-gateway.service STOPPED + disabled
+  (frozen, no more patches); Hermes gateway running with door profile,
+  GATEWAY_ALLOW_ALL_USERS=true + dm_policy open (door accepts strangers),
+  token from /srv/secrets/door.env (never printed).
+- One transient startup error (slash-sync ServerDisconnected +
+  shim EmptyStreamError) — both verified working on retry; gateway stable.
+- ACCEPTANCE RUN PENDING: needs khalid's real first-user DM to the bot.
