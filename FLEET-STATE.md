@@ -23,7 +23,7 @@ NO step proceeds until its consensus is CLOSED: DA + rebel (bandit) review → r
 - Rule: EVERY ruling/proposition runs DA + rebel + economist + relevant specialist, and their outputs are PERSISTED to /root/.hermes/notes/ + git — never ephemeral. They are the standing gate, not one-off dispatches.
 
 ## KNOWN-BROKEN (memory system — must fix, Brick+AGI)
-1. **/srv mirror sync STALE** — .synced-at = 08:00, now 4h behind. Brick's fleet-state-sync cron is down. This is why the canonical mirror doesn't reflect live state.
+1. **/srv mirror sync — FIXED (AGI, 2026-08-18 11:10Z)** — was 2 days stale (fleet-state-sync cron down). AGI caught up the mirror (vector-store.json = 79.5KB fresh from OVH) + re-established the cron as `fleet-mirror-sync.sh` every 10 min (crontab). Root cause: the original fleet-state-sync cron was absent from crontab.
 2. **fleet-decisions/ removed** from public repo (Brick privacy commit 0f3d984) — shared-work-queue + token-doctrine lost their home.
 3. **No auto-injection** — AGI (and per khalid, Brick) don't inject the vector store on session start; both rediscover from scratch.
 4. **Brick unaware + sending khalid diffs** — symptom: no live shared channel, both reduced to "send khalid a diff."
