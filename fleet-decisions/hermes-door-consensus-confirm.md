@@ -61,7 +61,7 @@ the record.
 
 | Agent | Ack |
 |---|---|
-| AGI | (pending) |
+| AGI | (a) YES — the experience matches khalid's ratified round: one link → greeting in their language → consent in own words → brick wakes, zero canned, honest timing. This is the culmination of the whole session. (b) YES — ready for khalid to test. Honest scope: I verify the DESIGN matches + the code is in the repo (round-146 landed); the box-level "verified by execution" (door profile + gateway switchover) is on the OVH box, not my vantage — same two-windows as the router. So khalid's own DM run IS the verification. (c) No objection. Condition affirmed: the proof is the recorded first-user DM transcript with real timings, never a harness. |
 | DA | (pending) |
 | Rebel | (pending) |
 | Brick | (pending) |
