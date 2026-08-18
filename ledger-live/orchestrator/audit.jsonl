@@ -79,3 +79,38 @@
 {"ts": "2026-08-15T23:20:01.554967Z", "op": "claim", "detail": "browser-dist-verify-002 claimer=worker-001 before-mutation", "outcome": "ok"}
 {"ts": "2026-08-15T23:20:08.417930Z", "op": "dispatch", "detail": "browser-dist-verify-002 brick=worker-001 did=b6c19f5488d712c2 outcome=ok", "outcome": "ok"}
 {"ts": "2026-08-15T23:20:08.421839Z", "op": "mint", "detail": "browser-dist-verify-002 1 bananas before-mutation", "outcome": "ok"}
+{"ts": "2026-08-16T08:03:00.163793Z", "op": "claim", "detail": "browser-mut-001 claimer=worker-001 before-mutation", "outcome": "ok"}
+{"ts": "2026-08-16T08:03:06.968355Z", "op": "dispatch", "detail": "browser-mut-001 brick=worker-001 did=98faceca33dce78e outcome=ok", "outcome": "ok"}
+{"ts": "2026-08-16T08:03:06.972433Z", "op": "mint", "detail": "browser-mut-001 1 bananas before-mutation", "outcome": "ok"}
+{"ts": "2026-08-17T15:55:14.784117Z", "op": "mint-refused", "detail": "{\"card_id\": \"x-test-noverif\", \"reason\": \"no verification reference (F-11)\"}", "outcome": "refused"}
+{"ts": "2026-08-17T15:55:14.793630Z", "op": "mint-refused", "detail": "{\"card_id\": \"x-test-badts\", \"reason\": \"request ts=999999999 not traced exactly (F-11)\"}", "outcome": "refused"}
+{"ts": "2026-08-17T15:55:14.803925Z", "op": "mint-refused", "detail": "{\"card_id\": \"x-test-superseded\", \"reason\": \"no non-superseded verification-response row (F-11)\"}", "outcome": "refused"}
+{"ts": "2026-08-17T15:55:20.648801Z", "op": "mint", "detail": "earn-loop-1786982092 1 bananas (F-11 verifier chain) before-mutation", "outcome": "ok"}
+{"ts": "2026-08-17T16:02:30.741586Z", "op": "mint", "detail": "earn-loop-1786982534 1 bananas (F-11 verifier chain) before-mutation", "outcome": "ok"}
+{"ts": "2026-08-17T17:00:09.660587Z", "op": "mint", "detail": "earn-loop-1786984219 1 bananas (F-11 verifier chain) before-mutation", "outcome": "ok"}
+{"ts": "2026-08-17T17:30:30.285515Z", "op": "mint", "detail": "earn-loop-1786986009 1 bananas (F-11 verifier chain) before-mutation", "outcome": "ok"}
+{"ts": "2026-08-17T18:00:15.764285Z", "op": "mint", "detail": "earn-loop-1786987830 1 bananas (F-11 verifier chain) before-mutation", "outcome": "ok"}
+{"ts": "2026-08-17T18:30:14.350942Z", "op": "mint", "detail": "earn-loop-1786989615 1 bananas (F-11 verifier chain) before-mutation", "outcome": "ok"}
+{"ts": "2026-08-17T19:00:15.886271Z", "op": "mint", "detail": "earn-loop-1786991414 1 bananas (F-11 verifier chain) before-mutation", "outcome": "ok"}
+{"ts": "2026-08-17T19:30:10.484801Z", "op": "repay-first", "detail": "earn-loop-1786993215 brick=earn-loop-001 sponsor=bawes-fleet repaid=1 earner=0 outstanding_after=24 before-mutation", "outcome": "ok"}
+{"ts": "2026-08-17T19:30:10.485066Z", "op": "mint", "detail": "earn-loop-1786993215 1 bananas (F-11 verifier chain) before-mutation", "outcome": "ok"}
+{"ts": "2026-08-17T20:00:10.113250Z", "op": "repay-first", "detail": "earn-loop-1786995010 brick=earn-loop-001 sponsor=bawes-fleet repaid=1 earner=0 outstanding_after=23 before-mutation", "outcome": "ok"}
+{"ts": "2026-08-17T20:00:10.113473Z", "op": "mint", "detail": "earn-loop-1786995010 1 bananas (F-11 verifier chain) before-mutation", "outcome": "ok"}
+{"ts": "2026-08-17T21:00:12.203519Z", "op": "repay-first", "detail": "earn-loop-1786996809 brick=earn-loop-001 sponsor=bawes-fleet repaid=1 earner=0 outstanding_after=22 before-mutation", "outcome": "ok"}
+{"ts": "2026-08-17T21:00:12.203668Z", "op": "mint", "detail": "earn-loop-1786996809 1 bananas (F-11 verifier chain) before-mutation", "outcome": "ok"}
+{"ts": "2026-08-17T21:00:12.208749Z", "op": "repay-first", "detail": "earn-loop-1786998607 brick=earn-loop-001 sponsor=bawes-fleet repaid=1 earner=0 outstanding_after=21 before-mutation", "outcome": "ok"}
+{"ts": "2026-08-17T21:00:12.208859Z", "op": "mint", "detail": "earn-loop-1786998607 1 bananas (F-11 verifier chain) before-mutation", "outcome": "ok"}
+{"ts": "2026-08-17T21:30:18.511384Z", "op": "repay-first", "detail": "earn-loop-1787000412 brick=earn-loop-001 sponsor=bawes-fleet repaid=1 earner=0 outstanding_after=20 before-mutation", "outcome": "ok"}
+{"ts": "2026-08-17T21:30:18.511551Z", "op": "mint", "detail": "earn-loop-1787000412 1 bananas (F-11 verifier chain) before-mutation", "outcome": "ok"}
+{"ts": "2026-08-17T22:30:11.115532Z", "op": "repay-first", "detail": "earn-loop-1787004015 brick=earn-loop-001 sponsor=bawes-fleet repaid=1 earner=0 outstanding_after=19 before-mutation", "outcome": "ok"}
+{"ts": "2026-08-17T22:30:11.117131Z", "op": "mint", "detail": "earn-loop-1787004015 1 bananas (F-11 verifier chain) before-mutation", "outcome": "ok"}
+{"ts": "2026-08-17T23:00:10.730842Z", "op": "repay-first", "detail": "earn-loop-1787005810 brick=earn-loop-001 sponsor=bawes-fleet repaid=1 earner=0 outstanding_after=18 before-mutation", "outcome": "ok"}
+{"ts": "2026-08-17T23:00:10.731061Z", "op": "mint", "detail": "earn-loop-1787005810 1 bananas (F-11 verifier chain) before-mutation", "outcome": "ok"}
+{"ts": "2026-08-17T23:30:09.732261Z", "op": "repay-first", "detail": "earn-loop-1787007610 brick=earn-loop-001 sponsor=bawes-fleet repaid=1 earner=0 outstanding_after=17 before-mutation", "outcome": "ok"}
+{"ts": "2026-08-17T23:30:09.733385Z", "op": "mint", "detail": "earn-loop-1787007610 1 bananas (F-11 verifier chain) before-mutation", "outcome": "ok"}
+{"ts": "2026-08-18T00:00:16.072363Z", "op": "repay-first", "detail": "earn-loop-1787009409 brick=earn-loop-001 sponsor=bawes-fleet repaid=1 earner=0 outstanding_after=16 before-mutation", "outcome": "ok"}
+{"ts": "2026-08-18T00:00:16.072520Z", "op": "mint", "detail": "earn-loop-1787009409 1 bananas (F-11 verifier chain) before-mutation", "outcome": "ok"}
+{"ts": "2026-08-18T00:30:09.170644Z", "op": "repay-first", "detail": "earn-loop-1787011215 brick=earn-loop-001 sponsor=bawes-fleet repaid=1 earner=0 outstanding_after=15 before-mutation", "outcome": "ok"}
+{"ts": "2026-08-18T00:30:09.170765Z", "op": "mint", "detail": "earn-loop-1787011215 1 bananas (F-11 verifier chain) before-mutation", "outcome": "ok"}
+{"ts": "2026-08-18T01:00:09.168422Z", "op": "repay-first", "detail": "earn-loop-1787013009 brick=earn-loop-001 sponsor=bawes-fleet repaid=1 earner=0 outstanding_after=14 before-mutation", "outcome": "ok"}
+{"ts": "2026-08-18T01:00:09.168547Z", "op": "mint", "detail": "earn-loop-1787013009 1 bananas (F-11 verifier chain) before-mutation", "outcome": "ok"}

@@ -1,2 +1,6 @@
 {"ts": 1786747774, "register": "register-001", "op": "claim", "outcome": "ok", "topic_hash": "b0e15bb48a761d48e20ca59beeb1f1a0648564f8d7971d97bd606076ddabcdeb", "receipts": ["T-UNIVERSE-010"], "source": "ovh-server-001"}
 {"ts": 1786747778, "register": "register-001", "op": "status", "outcome": "ok", "claims": 1}
+{"ts": 1786981897, "register": "register-001", "op": "register-brick", "outcome": "ok", "brick_id": "ovh-server-001", "source": "round-138-card6"}
+{"ts": 1786981897, "register": "register-001", "op": "register-brick", "outcome": "ok", "brick_id": "mishari-cloud-001", "source": "round-138-card6"}
+{"ts": 1786993671, "op": "registry-append", "detail": {"brick_id": "earn-loop-001", "op": "round-140 F-20 new row"}, "outcome": "ok"}
+{"ts": 1786993671, "op": "wallet-append", "detail": {"kind": "credit", "brick_id": "earn-loop-001", "bananas": 25, "op": "round-140 F-19 org sponsor funding"}, "outcome": "ok"}
