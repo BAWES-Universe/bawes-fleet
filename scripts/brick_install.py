@@ -15,11 +15,30 @@ Round-33 review fixes (pair-DA OBJECT -> all blockers/highs closed):
     under SKILLS_SRC (finding 4)
   - private keys generated OUTSIDE the brick repo root (finding 5)
 """
-import json, os, shutil, subprocess, sys, hashlib, time, argparse, base64, re
+import json, os, shutil, subprocess, sys, hashlib, time, argparse, base64, re, stat
 
 BRICK_ROOT = "/opt/brick"          # where the brick lives (volume/home); overridden by --root
 SKILLS_SRC = "/root/.hermes/skills"  # verified local skill refs (bawes-fleet)
 ROOT = BRICK_ROOT                   # effective root, set in main()
+
+# Round-149: the device-brick 3-file package (Mishari pilot, ratified in
+# /srv/bricks/router/state/second-node-prep.md). A device brick's ONE command
+# consumes these three artifacts, then starts heartbeat + tunnel + handshake.
+# All three are overridable via env so the flow is testable without a real box.
+DEVICE_APPEND_KEY = os.environ.get("BAWES_APPEND_KEY",
+                                   os.path.expanduser("~/.ssh/bawes-device-append"))
+DEVICE_TUNNEL_KEY = os.environ.get("BAWES_TUNNEL_KEY",
+                                   os.path.expanduser("~/.ssh/bawes-device-tunnel"))
+REGISTRY_HOST = os.environ.get("BAWES_REGISTRY_HOST", "ubuntu@51.75.74.214")
+MESH_PORT = int(os.environ.get("BAWES_MESH_PORT", "3738"))
+
+def device_token_path(brick_id):
+    return os.environ.get("BAWES_PEER_TOKEN",
+                          os.path.expanduser(f"~/.bawes/{brick_id}/peer.token"))
+
+def is_device_brick(m):
+    """host_class.device present => device brick => the 3-file package is REQUIRED."""
+    return bool((m.get("host_class") or {}).get("device"))
 
 # Pinned issuer public keys (round-33 blocker 1): verify ES256 over the payload.
 # khalid's key is set at his sign-off; installs fail CLOSED until a key is pinned
@@ -182,6 +201,156 @@ def write_identity(m, pubkey):
         json.dump(ident, f, indent=2)
     log(f"identity written: {m['brick_id']} (owner {m.get('owner')}, kill-switch {m.get('kill_switch')})")
 
+def _device_paths(brick_id):
+    """Resolve the 3-file package paths at CALL time (env-overridable for tests;
+    module-level constants are only the defaults, bound at import)."""
+    return {
+        "append_key": os.environ.get("BAWES_APPEND_KEY",
+                                     os.path.expanduser("~/.ssh/bawes-device-append")),
+        "tunnel_key": os.environ.get("BAWES_TUNNEL_KEY",
+                                     os.path.expanduser("~/.ssh/bawes-device-tunnel")),
+        "token_path": device_token_path(brick_id),
+    }
+
+def consume_device_package(m):
+    """Round-149: consume the device-brick 3-file package (append key, tunnel
+    key, peer.token). FAILS CLOSED on any missing/misconfigured artifact —
+    a device brick that can't heartbeat/tunnel/handshake is not installed.
+    Returns {'append_key','tunnel_key','token','token_path'}."""
+    if not is_device_brick(m):
+        log("host_class.device absent — not a device brick, no 3-file package required")
+        return None
+    pkg = _device_paths(m.get("brick_id", "brick"))
+    missing = [name for name, p in (
+        ("append key", pkg["append_key"]),
+        ("tunnel key", pkg["tunnel_key"]),
+        ("peer.token", pkg["token_path"]),
+    ) if not os.path.exists(p)]
+    if missing:
+        raise SystemExit("REJECTED: device package incomplete — missing: "
+                         + ", ".join(missing) + " (operator must place the 3 files: "
+                         "~/.ssh/bawes-device-append, ~/.ssh/bawes-device-tunnel, "
+                         f"~/.bawes/{m.get('brick_id','brick')}/peer.token)")
+    # mode-600 discipline: keys and tokens must be 0600 or ssh/compare_digest
+    # security is theater (a 0644 token file is readable by any local user)
+    for name, p in (("append key", pkg["append_key"]),
+                    ("tunnel key", pkg["tunnel_key"]),
+                    ("peer.token", pkg["token_path"])):
+        mode = stat.S_IMODE(os.stat(p).st_mode)
+        if mode & 0o077:
+            raise SystemExit(f"REJECTED: {name} {p} must be mode 0600 (got {oct(mode)}) "
+                             f"— chmod 600 before install")
+    with open(pkg["token_path"]) as f:
+        token = f.read().strip()
+    if len(token) < 16:
+        raise SystemExit("REJECTED: peer.token too short (<16 chars) or empty — "
+                         "empty tokens authenticate anything (round-61 finding)")
+    pkg["token"] = token
+    log(f"device package consumed: append={os.path.basename(pkg['append_key'])} "
+        f"tunnel={os.path.basename(pkg['tunnel_key'])} token={os.path.basename(pkg['token_path'])} "
+        f"({len(token)} chars, 0600)")
+    return pkg
+
+def write_device_scripts(m, pkg):
+    """Round-149: write the device-brick runtime scripts into the brick root.
+    heartbeat.py pushes rows through the append-only SSH key (forced command
+    `cat >> heartbeat-registry.jsonl`); tunnel.sh dials OUT to the A2A mesh
+    directory (permitopen 127.0.0.1:3738, port-forwarding)."""
+    brick = m.get("brick_id", "brick")
+    wallet = m.get("wallet_ref", f"banana-bank/wallet-{brick}.jsonl")
+    # heartbeat: local row + push through the append key (spec: second-node-prep.md)
+    hb = f'''#!/usr/bin/env python3
+import json, os, subprocess, time, pathlib
+BRICK = {json.dumps(brick)}
+WALLET = {json.dumps(wallet)}
+APPEND_KEY = {json.dumps(pkg["append_key"])}
+REGISTRY_HOST = {json.dumps(REGISTRY_HOST)}
+LOCAL = pathlib.Path.home() / ".bawes/heartbeat-registry.jsonl"
+INTERVAL = int(os.environ.get("BRICK_HEARTBEAT_S", 60))
+while True:
+    row = {{"brick_id": BRICK, "status": "alive", "ts": int(time.time()),
+           "wallet_ref": WALLET, "registry": str(LOCAL)}}
+    LOCAL.parent.mkdir(parents=True, exist_ok=True)
+    with open(LOCAL, "a") as f:
+        f.write(json.dumps(row) + "\\n")
+    try:
+        subprocess.run(["ssh", "-i", APPEND_KEY,
+                        "-o", "BatchMode=yes", "-o", "ConnectTimeout=10",
+                        REGISTRY_HOST],
+                       input=(json.dumps(row) + "\\n").encode(), timeout=25, check=False)
+    except Exception:
+        pass
+    time.sleep(INTERVAL)
+'''
+    with open(f"{ROOT}/heartbeat.py", "w") as f:
+        f.write(hb)
+    os.chmod(f"{ROOT}/heartbeat.py", 0o750)
+    tun = f'''#!/bin/sh
+# dial-OUT tunnel to the A2A mesh directory (:3738). The tunnel key's forced
+# command is `sleep infinity` with port-forwarding + permitopen=127.0.0.1:3738.
+if command -v autossh >/dev/null 2>&1; then
+  exec autossh -M 0 -N -L 127.0.0.1:{MESH_PORT}:127.0.0.1:{MESH_PORT} \\
+    -i {pkg["tunnel_key"]} \\
+    -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes \\
+    {REGISTRY_HOST}
+else
+  exec ssh -N -L 127.0.0.1:{MESH_PORT}:127.0.0.1:{MESH_PORT} \\
+    -i {pkg["tunnel_key"]} \\
+    -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes \\
+    {REGISTRY_HOST}
+fi
+'''
+    with open(f"{ROOT}/tunnel.sh", "w") as f:
+        f.write(tun)
+    os.chmod(f"{ROOT}/tunnel.sh", 0o750)
+    log(f"device scripts written: {ROOT}/heartbeat.py + {ROOT}/tunnel.sh (0750)")
+
+def start_device_services(m, pkg):
+    """Round-149: start heartbeat + tunnel detached, then run the registration
+    handshake and REPORT THE REAL RESULT (ok:true only if the mesh says so).
+    Never claims 'on the mesh' without a 200 from /a2a/handshake."""
+    brick = m.get("brick_id", "brick")
+    # heartbeat (python, detached, logs to brick root)
+    with open(f"{ROOT}/heartbeat.log", "ab") as lf:
+        subprocess.Popen([sys.executable, f"{ROOT}/heartbeat.py"],
+                         stdin=subprocess.DEVNULL, stdout=lf, stderr=lf,
+                         start_new_session=True)
+    log("heartbeat started — first fleet row within 60s (append-only key)")
+    # tunnel: autossh (auto-reconnect); fall back to plain ssh if not installed
+    tunnel_cmd = [f"{ROOT}/tunnel.sh"]
+    if shutil.which("autossh") is None:
+        tunnel_cmd = ["ssh", "-N", "-L", f"127.0.0.1:{MESH_PORT}:127.0.0.1:{MESH_PORT}",
+                      "-i", pkg["tunnel_key"],
+                      "-o", "ServerAliveInterval=30", "-o", "ServerAliveCountMax=3",
+                      "-o", "ExitOnForwardFailure=yes", REGISTRY_HOST]
+    with open(f"{ROOT}/tunnel.log", "ab") as lf:
+        subprocess.Popen(tunnel_cmd, stdin=subprocess.DEVNULL, stdout=lf, stderr=lf,
+                         start_new_session=True)
+    log(f"tunnel started — dial-out -L 127.0.0.1:{MESH_PORT} (permitopen, restricted key)")
+    # registration handshake: wait for the tunnel, then ask the mesh directory
+    import urllib.request
+    deadline = time.time() + 20
+    result = None
+    while time.time() < deadline:
+        try:
+            req = urllib.request.Request(
+                f"http://127.0.0.1:{MESH_PORT}/a2a/handshake",
+                headers={"Authorization": f"Bearer {pkg['token']}"})
+            with urllib.request.urlopen(req, timeout=5) as r:
+                result = (r.status, r.read().decode(errors="replace"))
+            break
+        except Exception as e:
+            result = ("ERR", str(e)[:120])
+            time.sleep(2)
+    if result and result[0] == 200:
+        log(f"REGISTRATION HANDSHAKE OK (HTTP 200): {result[1][:160]}")
+        print(f"[install] MESH: joined — handshake 200 from the A2A directory ({brick} on the mesh)")
+    else:
+        print(f"[install] MESH: HANDSHAKE NOT CONFIRMED ({result[1] if result else 'timeout'}) — "
+              f"brick installed, but the mesh join is NOT verified. Check tunnel.log "
+              f"and re-run the handshake: curl -H 'Authorization: Bearer $("
+              f"cat {pkg['token_path']})' http://127.0.0.1:{MESH_PORT}/a2a/handshake")
+
 def main():
     ap = argparse.ArgumentParser(description="brick-install v1 — manifest -> live brick")
     ap.add_argument("manifest", help="path to the signed brick manifest (JSON)")
@@ -212,6 +381,13 @@ def main():
         m.setdefault("consent", {})["status"] = "signed"
         m["consent"]["signed_by"] = name
         m["consent"]["ts"] = time.time()
+        m["consent"]["version"] = "V-5"
+        # V-5 evidence pointer: the human's own words are recorded in the
+        # door consent transcript (never invented here). Operator passes the
+        # record location; the manifest carries it as M-7 evidence.
+        words_ref = os.environ.get("BAWES_CONSENT_WORDS_REF", "").strip()
+        if words_ref:
+            m["consent"]["words_ref"] = words_ref
         # re-sign: the issuer key lives beside this script's repo? No — it must
         # NOT ship to devices. Fail closed: consent can only be re-signed where
         # the issuer key is available (khalid's signing box or relay).
@@ -270,12 +446,24 @@ def main():
         json.dump(m.get("resource_links", []), f, indent=2)
     log(f"resource links: {len(m.get('resource_links', []))}")
 
+    # Round-149: device-brick 3-file package. Fail-closed BEFORE any service
+    # start: a device brick without append/tunnel/peer.token is not installable.
+    pkg = consume_device_package(m)
+    if pkg:
+        write_device_scripts(m, pkg)
+
     print(f"\n[install] BRICK ALIVE: {m.get('brick_id')}")
     print(f"[install] root: {ROOT} · identity + skills + backlog + death warrant + keys (outside repo)")
     print(f"[install] death warrant armed: lifetime={m.get('death_warrant',{}).get('lifetime_max_s',7200)}s "
           f"spend=${m.get('death_warrant',{}).get('spend_max_usd',1.00)} "
           f"idle={m.get('death_warrant',{}).get('idle_max_s',300)}s seeder={m.get('death_warrant',{}).get('seeder_mode',False)}")
-    print(f"[install] next: boot the headless worker (headless_worker.py) as this brick's ENTRYPOINT")
+    if pkg:
+        print(f"[install] device package: consumed (append + tunnel + peer.token, 0600) — "
+              f"starting heartbeat + tunnel + registration handshake")
+        start_device_services(m, pkg)
+        print(f"[install] next: hermes gateway wiring (per-brick Discord token) for min-alive 4/4")
+    else:
+        print(f"[install] next: boot the headless worker (headless_worker.py) as this brick's ENTRYPOINT")
 
 if __name__ == "__main__":
     main()

@@ -1178,3 +1178,17 @@ jobs:
                 "preserved, resolve_requested_provider->lmstudio, no-cloud-key, "
                 "mock chat completion OK, discord footprint recorded)")
           BPROBES
+      - name: Round-149 — device-brick 3-file package (append/tunnel/peer.token) + V-5 consent
+        run: |
+          pip install -q cryptography
+          python3 - <<'R149'
+          import os, subprocess, sys
+          # needs the issuer private key to sign fixture manifests — CI runner has none,
+          # so run the fixture-agnostic probes only; R149-9 real-manifest check runs
+          # wherever the key lives. Probe file asserts this split itself.
+          os.environ["BAWES_ISSUER_KEY_MISSING_CI"] = "1"
+          r = subprocess.run([sys.executable, "scripts/test_round149.py"],
+                             capture_output=True, text=True)
+          print(r.stdout[-3000:])
+          sys.exit(r.returncode)
+          R149
