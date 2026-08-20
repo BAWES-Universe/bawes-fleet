@@ -122,3 +122,27 @@
 {"balance": 0, "brick_id": "brick-9000000000000799", "kind": "wallet-open", "person_id": "9000000000000799", "ts": 1787100314.6233056}
 {"balance": 0, "brick_id": "brick-9000000000000725", "kind": "wallet-open", "person_id": "9000000000000725", "ts": 1787100495.0544899}
 {"balance": 0, "brick_id": "brick-9000000000000726", "kind": "wallet-open", "person_id": "9000000000000726", "ts": 1787100503.419718}
+{"balance": 0, "brick_id": "brick-9000000000000705", "kind": "wallet-open", "person_id": "9000000000000705", "ts": 1787101226.4066079}
+{"balance": 0, "brick_id": "brick-9000000000000702", "kind": "wallet-open", "person_id": "9000000000000702", "ts": 1787101303.9389153}
+{"balance": 0, "brick_id": "brick-9000000000000703", "kind": "wallet-open", "person_id": "9000000000000703", "ts": 1787101495.2511287}
+{"balance": 0, "brick_id": "brick-9000000000000704", "kind": "wallet-open", "person_id": "9000000000000704", "ts": 1787101502.7157516}
+{"balance": 0, "brick_id": "brick-9000000000000706", "kind": "wallet-open", "person_id": "9000000000000706", "ts": 1787101519.4680097}
+{"balance": 0, "brick_id": "brick-9000000000000707", "kind": "wallet-open", "person_id": "9000000000000707", "ts": 1787101525.4725227}
+{"balance": 0, "brick_id": "brick-9000000000000708", "kind": "wallet-open", "person_id": "9000000000000708", "ts": 1787101533.3102891}
+{"balance": 0, "brick_id": "brick-9000000000000709", "kind": "wallet-open", "person_id": "9000000000000709", "ts": 1787101540.6072395}
+{"balance": 0, "brick_id": "brick-9000000000000710", "kind": "wallet-open", "person_id": "9000000000000710", "ts": 1787101546.8118477}
+{"balance": 0, "brick_id": "brick-9000000000000711", "kind": "wallet-open", "person_id": "9000000000000711", "ts": 1787101556.0622966}
+{"balance": 0, "brick_id": "brick-9000000000000712", "kind": "wallet-open", "person_id": "9000000000000712", "ts": 1787101566.4188702}
+{"balance": 0, "brick_id": "brick-9000000000000713", "kind": "wallet-open", "person_id": "9000000000000713", "ts": 1787101575.5229516}
+{"balance": 0, "brick_id": "brick-9000000000000714", "kind": "wallet-open", "person_id": "9000000000000714", "ts": 1787101584.9515288}
+{"balance": 0, "brick_id": "brick-9000000000000715", "kind": "wallet-open", "person_id": "9000000000000715", "ts": 1787101591.840323}
+{"balance": 0, "brick_id": "brick-9000000000000716", "kind": "wallet-open", "person_id": "9000000000000716", "ts": 1787101599.4021747}
+{"balance": 0, "brick_id": "brick-9000000000000717", "kind": "wallet-open", "person_id": "9000000000000717", "ts": 1787101609.283692}
+{"balance": 0, "brick_id": "brick-9000000000000718", "kind": "wallet-open", "person_id": "9000000000000718", "ts": 1787101616.5774486}
+{"balance": 0, "brick_id": "brick-9000000000000719", "kind": "wallet-open", "person_id": "9000000000000719", "ts": 1787101628.8154998}
+{"balance": 0, "brick_id": "brick-9000000000000720", "kind": "wallet-open", "person_id": "9000000000000720", "ts": 1787101636.3684833}
+{"balance": 0, "brick_id": "brick-9000000000000721", "kind": "wallet-open", "person_id": "9000000000000721", "ts": 1787101643.6210089}
+{"balance": 0, "brick_id": "brick-9000000000000722", "kind": "wallet-open", "person_id": "9000000000000722", "ts": 1787101653.434936}
+{"balance": 0, "brick_id": "brick-9000000000000723", "kind": "wallet-open", "person_id": "9000000000000723", "ts": 1787101667.1286438}
+{"balance": 0, "brick_id": "brick-9000000000000724", "kind": "wallet-open", "person_id": "9000000000000724", "ts": 1787101677.401115}
+{"kind": "dock", "brick_id": "brick", "person_id": "brick", "bananas": -13, "reason": "mishari delivery fabrication (4th recurrence): 5 state-loss + 2 oversight + 6 lost-work. DA ruling khalid-signed 2026-08-19, ruling commit b1afb53", "proposer": "AGI", "accepted": "brick", "pool": "fabrication-ruling", "ruling_sha": "b1afb532ee70070ff5e640ee3ae5ecccf2609557", "ts": 1787147691.7405527}
