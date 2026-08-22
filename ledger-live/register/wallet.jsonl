@@ -146,3 +146,4 @@
 {"balance": 0, "brick_id": "brick-9000000000000723", "kind": "wallet-open", "person_id": "9000000000000723", "ts": 1787101667.1286438}
 {"balance": 0, "brick_id": "brick-9000000000000724", "kind": "wallet-open", "person_id": "9000000000000724", "ts": 1787101677.401115}
 {"kind": "dock", "brick_id": "brick", "person_id": "brick", "bananas": -13, "reason": "mishari delivery fabrication (4th recurrence): 5 state-loss + 2 oversight + 6 lost-work. DA ruling khalid-signed 2026-08-19, ruling commit b1afb53", "proposer": "AGI", "accepted": "brick", "pool": "fabrication-ruling", "ruling_sha": "b1afb532ee70070ff5e640ee3ae5ecccf2609557", "ts": 1787147691.7405527}
+{"balance": 0, "brick_id": "brick-690554066815811625", "kind": "wallet-open", "person_id": "690554066815811625", "ts": 1787304797.7498305}

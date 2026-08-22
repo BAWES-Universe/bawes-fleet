@@ -147,3 +147,4 @@
 {"brick_id": "brick-9000000000000722", "person_id": "9000000000000722", "skills": [], "quality": "registered", "origin": "door-create", "status": "parked", "consented": false, "ts": 1787101653.434936}
 {"brick_id": "brick-9000000000000723", "person_id": "9000000000000723", "skills": [], "quality": "registered", "origin": "door-create", "status": "parked", "consented": false, "ts": 1787101667.1286438}
 {"brick_id": "brick-9000000000000724", "person_id": "9000000000000724", "skills": [], "quality": "registered", "origin": "door-create", "status": "parked", "consented": false, "ts": 1787101677.401115}
+{"brick_id": "brick-690554066815811625", "person_id": "690554066815811625", "skills": [], "quality": "registered", "origin": "door-create", "status": "parked", "consented": false, "ts": 1787304797.7498305}
