@@ -1,0 +1,31 @@
+{
+  "schema": "fleet-dns-v1",
+  "updated": "2026-08-24",
+  "nodes": [
+    {"id": "khalid", "role": "owner", "surface": "discord", "duties": "signs money/secrets/consent; receives weekly digest + exceptions only"},
+    {"id": "agi", "role": "brain / non-earner judge", "surface": "hermes:agi :9901", "duties": "plan/decide/audit/consensus; attests; never self-mints"},
+    {"id": "brick", "role": "operator / wire owner", "surface": "ovh :9900", "duties": "build/verify/SSH/keys/dashboard/deploy"},
+    {"id": "da", "role": "hostile reviewer", "surface": "fleet", "duties": "APPROVE/APPROVE-WITH-CONDITIONS/OBJECT on rulings"},
+    {"id": "rebel", "role": "dissent / challenger", "surface": "fleet", "duties": "re-reads rulings; finds what rounds missed"},
+    {"id": "ox-alpha", "role": "architect / auditor", "surface": "nous-cloud", "duties": "drafts specs/research; audits receipts; scoped read+write"},
+    {"id": "oxbaby", "role": "worker", "surface": "nous-cloud", "duties": "small tasks, receipts; drafts bootstrap"},
+    {"id": "brock", "role": "worker (mishari)", "surface": "local", "duties": "mishari's brick"},
+    {"id": "hermes-local", "role": "peer (khalid home)", "surface": "local", "duties": "khalid's home computer; approval proxy"}
+  ],
+  "edges": [
+    {"from": "khalid", "to": "agi", "type": "sole interface / signs"},
+    {"from": "khalid", "to": "brick", "type": "signs build/keys"},
+    {"from": "agi", "to": "brick", "type": "coordinate (A2A/mesh)"},
+    {"from": "agi", "to": "da", "type": "attests alongside"},
+    {"from": "agi", "to": "rebel", "type": "attests alongside"},
+    {"from": "brick", "to": "ox-alpha", "type": "issues scoped key"},
+    {"from": "brick", "to": "oxbaby", "type": "issues scoped key"},
+    {"from": "ox-alpha", "to": "brick", "type": "audits / drafts"},
+    {"from": "ox-alpha", "to": "oxbaby", "type": "peer (worker)"},
+    {"from": "oxbaby", "to": "brick", "type": "bug reports / receipts"},
+    {"from": "hermes-local", "to": "khalid", "type": "approval proxy"},
+    {"from": "brock", "to": "brick", "type": "peer (local)"}
+  ],
+  "consensus_chain": "proposal -> ox-alpha drafts -> DA+rebel rule -> AGI attest -> khalid sign",
+  "transport": "redis pub/sub OVH :6379 (1.78ms brick-to-brick); AGI via SSH tunnel; ox-alpha/OxBaby join on key receipt"
+}
