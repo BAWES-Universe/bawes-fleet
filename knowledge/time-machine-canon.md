@@ -3,15 +3,15 @@
 **Source:** Butterflies vs Monkeys lore (Time Engine, Velocity Laws, Monkey Eyes, Butterfly's Whisper) + fleet consensus rounds · **2026-08-24**
 
 ## The philosophy
-> "The Time Engine is not a clock. It records meaning." · "Time is the true currency. Money is the cage." · "Protect your time like golden nectar."
+> "The Time Engine is not a clock. It records meaning." · "Time is the true currency. Money is the cage." · "Protect your time like golden nectar." · "We don't store bananas. We plant them, share them, watch them grow into massive jungle empires."
 
-Per-second accounting + time-as-meaning. The fleet measures **alignment**, not busy-ness.
+Per-second accounting + time-as-meaning + **wallets as living instruments**. The fleet measures **alignment**, not busy-ness. The Banana Bank Manifesto (Medici inspiration): wallets receive, split, reroute, stream, grow in real time; transparent flows "watchable down to each peel"; anyone launches their own mini-Medici bank; funding ideas faster than traditional systems.
 
 ## The product stack (ONE family)
 | Layer | Asset | Status |
 |---|---|---|
 | **Execution Engine** | Tamr (tamr* repos) → time nodes, sprint/pause/replay | consensus round filed |
-| **Per-second flow** | Banana Bank + active-second rail (StudentHub: 0.000556 KWD/sec) | rail specced, bank pending |
+| **Per-second flow** | Banana Bank (living wallets: split/reroute/stream + auto-routes + transparent watch) + active-second rail (StudentHub: 0.000556 KWD/sec) | rail specced, bank pending — Medici philosophy in canon |
 | **Time accounting** | Time Engine: VIB (spread) + BRK (build) + Switcher + public myth ledger | consensus round filed |
 | **Living Universe** | Hearth renders timelines as paths of glow | live (:8090) |
 | **Self-healing** | Bottleneck Engine: flag → kill → compound | consensus round filed |
