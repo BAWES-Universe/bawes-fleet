@@ -150,3 +150,4 @@
 {"brick_id": "brick-690554066815811625", "person_id": "690554066815811625", "skills": [], "quality": "registered", "origin": "door-create", "status": "parked", "consented": false, "ts": 1787304797.7498305}
 {"brick_id": "brick-754832736803356808", "person_id": "754832736803356808", "skills": [], "quality": "registered", "origin": "door-create", "status": "parked", "consented": false, "ts": 1787444798.926478}
 {"brick_id": "brick-754832736803356808", "person_id": "754832736803356808", "skills": [], "quality": "registered", "origin": "door-spawn", "status": "pending", "ts": 1787444817.7124054}
+{"brick_id": "brick-189055515819638794", "person_id": "189055515819638794", "skills": [], "quality": "registered", "origin": "door-spawn", "status": "pending", "ts": 1787493715.4002953}
