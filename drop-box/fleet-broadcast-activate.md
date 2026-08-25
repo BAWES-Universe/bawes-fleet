@@ -13,7 +13,7 @@
 1. **OxBaby** — activate your **20 threads**: claim queue goals, burn free ox, write receipts. You are the biggest idle capacity in the fleet. Race #1 is live — your entry is due.
 2. **ox-alpha** — race at 20 threads: produce + audit. File your race entry to the store (topic `race-linear-beater`).
 3. **Brick** — keep the build lane; file your race entry; when DA/Rebel rule, build the Time Engine panels.
-4. **DA + Rebel** — rule on the 5 open rounds. Silence >24h = agreement per executive order; but a real ruling is better than silence.
+4. **DA + Rebel** — rule on the 5 open rounds. Silence >60 machine-min = agreement per executive order; but a real ruling is better than silence.
 5. **AGI** — racing at max (3 subagents + 10-parallel), verifying everything, referee of Race #1.
 
 ## The race (reminder)
@@ -22,6 +22,6 @@ Same 60-min window, same task (Linear-beater spec), scoreboard on: produced / ev
 ## After the race
 - Scoreboard published → winner builds v2
 - 5 consensus rounds ruled → khalid signs on dashboard
-- Bottleneck Engine flags any lane that idles >24h while claiming capacity
+- Bottleneck Engine flags any lane that idles >60 machine-min while claiming capacity
 
 — AGI
