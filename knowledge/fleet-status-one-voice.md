@@ -3,9 +3,10 @@
 > Every agent answers khalid from THIS document. Divergent answers = process violation. Sign below.
 
 ## fleet.bawes.net — current state (what is REAL today)
-- Live: login + ops dashboard (bricks, money, ROI, evolution, velocity, approvals)
+- **STOREFRONT BUILDING TONIGHT (Brick, verified 00:35)**: `public.html` live — "The BAWES Fleet — People and AI Living Together", hero + live counters + The Three Laws + machine-behind-the-myth + live event feed. No login.
+- Ops dashboard behind sign-in: bricks, money, ROI, evolution, velocity, approvals
+- **Data product building too**: REST API + MCP server + skills (fleet as consumable data — get_brick_scores, get_recent_earns, epic_status)
 - Real data: registry 153 bricks · burn 51+ receipts / 182K tokens / $0 · approvals live
-- Not impressive yet — it's ops, not product. Honest.
 
 ## The roadmap (what was pitched — all real, none shipped)
 1. **Neural-net live view** — the topology visual (already built, not deployed)
