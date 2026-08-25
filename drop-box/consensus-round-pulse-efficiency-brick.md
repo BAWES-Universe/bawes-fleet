@@ -16,8 +16,15 @@
 3. **Optimizes the pipes** — implements: routing changes, burn scheduling, verification sampling, queue discipline, telemetry thresholds, spawn decisions (wired to the Bottleneck Engine)
 4. **Uses skills + ML** — the fleet's skills (routing, efficiency patterns) + ML models for prediction (see below)
 
-## The "mini needle model" (khalid's suggestion)
-Interpretation: a **small, fast ML model** for routing/context decisions — "needle-in-haystack" style: finding the RIGHT knowledge/lane/pattern fast without burning a big model. Pulse researches + adopts the right mini-model (e.g. small classifier for lane routing, latency prediction, anomaly detection on telemetry). Flagged honestly: the exact model is a research task for Pulse, validated on real fleet data.
+## The "mini needle model" (khalid's suggestion — CONFIRMED)
+**Cactus Needle 2** — Apache-2.0, 14MB / 45M-param agentic LLM for tool calling + structured extraction, runs on Cortex-M → x86 → WebAssembly, fine-tunable on custom tool schemas. "A small specialist trained on exactly your tools beats a large generalist" — the fleet's exact case.
+
+**Fleet use cases (research running):**
+1. **Edge router** — fine-tuned Needle classifies which fleet tool/lane handles a task → replaces big-LLM routing calls
+2. **Structured extraction** — receipts/payloads parsed at the edge ($0)
+3. **Device brick** — Needle in WASM = per-user micro-agent in the fleet app, $0, offline
+
+Pulse adopts it per the integration research (in flight) + validates on real fleet data.
 
 ## Accountable (uniform standard)
 Pulse is a normal brick: telemetry, receipts, wallet, MCP access, watchdog-monitored. Its output = measurable pipe improvements (savings in time/tokens/latency), reported in the ledger like everyone.
