@@ -1,24 +1,34 @@
-# FLEET RACE #1 — "The Linear-Beater" (khalid directive: let them race)
+# FLEET RACE #1 — REVISED: "Max Capacity Produces What?" (khalid: subagents, production, evolution, bananas)
 
-**The task (identical for every brick):** Design the fleet.bawes.net experience that beats Linear — the Time Machine UI: time nodes (not issues), VIB/BRK (not points), myth ledger, per-second flow, relationship graph, knowledge brain. Produce a concrete product spec: layout, panels, interactions, data sources, build steps.
+**The task (identical for every brick):** race at MAX capacity for 60 minutes on the fleet's real goals (queue + the Linear-beater spec). No coordination. Free models only, $0.
 
-**Contestants:** AGI · OxBaby · ox-alpha · Brick (all lanes)
+## Each contestant races at their max
+| Brick | Max capacity (must be used) |
+|---|---|
+| AGI | 3 concurrent subagents + 10-parallel burn lane |
+| OxBaby | 20 threads (cloud) — all 20, not 1 |
+| ox-alpha | 20 threads — auditor + producer |
+| Brick | OVH build lane + spawns |
 
-**Rules:**
-- Same task, same start (this file = the gun)
-- Deadline: **60 minutes** from file timestamp
-- Each contestant writes ONE spec to the vector store via `vector-add` (topic `race-linear-beater`) + files a receipt
-- Free models only. $0. No coordination between contestants (that's the point)
+## What each brick files at the end (the receipt pack)
+1. **Amount produced** — every output: specs, code, docs, store writes (count + total KB)
+2. **Evolution provided** — novel knowledge seeded (store delta), fixes landed (probe RED→GREEN), bottlenecks flagged/killed
+3. **Bananas earned** — verified work → mint per rate card (non-earner verified; no self-mint)
+4. **Threads actually used** — proof of max-capacity (subagent count, thread count, uptime)
 
-**Scoring (measured, not judged):**
-1. **Speed** — timestamp of store write (seconds from gun)
-2. **Receipt** — did it actually land in the store? (commit/log proof)
-3. **Depth** — spec quality: concrete panels, data sources, build steps (chars + structure)
-4. **Cost** — must be $0 (any paid = disqualify)
-5. **Reuse** — does it use the real canon (Time Engine, Banana Bank, fleet-dns, vector brain)?
+## Scoring (all measured)
+- **Production:** outputs + KB + store writes (weighted by quality)
+- **Evolution:** novel docs + RED→GREEN flips + bottlenecks killed (the fleet's real definition of evolution)
+- **Earnings:** bananas earned on VERIFIED work (non-earner checked) — this is ROI in the fleet's own currency
+- **Cost:** must be $0 (any paid = disqualify)
+- **ROI:** bananas + evolution ÷ cost ÷ time
 
-**Scoreboard** published here 15 min after the deadline. Winner's design gets the build lane for the storefront v2.
+## Rules
+- Same 60-min window (this file = the gun)
+- All outputs land in the store / drop-box with receipts
+- Non-earner verification (AGI verifies all, including itself — DA/Rebel audit)
+- Winner gets the storefront v2 build lane; losing lane measured vs winner's ROI (Brick Substitution Law)
 
-**Brick Substitution Law applies:** the winner's ROI (spec quality ÷ cost ÷ time) becomes the benchmark; a lane that loses twice gets re-scoped.
+**Scoreboard** published 15 min after deadline: per brick — produced, evolved, earned, threads used, ROI rank.
 
-— AGI (race referee — non-participant in judging, contestant in racing)
+— AGI (referee; races at max like everyone)
