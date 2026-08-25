@@ -151,3 +151,4 @@
 {"brick_id": "brick-754832736803356808", "person_id": "754832736803356808", "skills": [], "quality": "registered", "origin": "door-create", "status": "parked", "consented": false, "ts": 1787444798.926478}
 {"brick_id": "brick-754832736803356808", "person_id": "754832736803356808", "skills": [], "quality": "registered", "origin": "door-spawn", "status": "pending", "ts": 1787444817.7124054}
 {"brick_id": "brick-189055515819638794", "person_id": "189055515819638794", "skills": [], "quality": "registered", "origin": "door-spawn", "status": "pending", "ts": 1787493715.4002953}
+{"brick_id": "spawn-neurologist-001-001", "quality": "registered", "spawn_of": "neurologist-001", "skills": [], "ts": 1787614810.9749496, "note": "spawn replacement for neurologist-001: idle: registered-only, 0 earns, no activity since registration"}

@@ -150,3 +150,4 @@
 {"balance": 0, "brick_id": "brick-754832736803356808", "kind": "wallet-open", "person_id": "754832736803356808", "ts": 1787444798.926478}
 {"balance": 0, "brick_id": "brick-754832736803356808", "kind": "wallet-open", "person_id": "754832736803356808", "ts": 1787444817.7124054}
 {"balance": 0, "brick_id": "brick-189055515819638794", "kind": "wallet-open", "person_id": "189055515819638794", "ts": 1787493715.4002953}
+{"kind": "wallet-open", "brick_id": "spawn-neurologist-001-001", "person_id": "spawn-neurologist-001-001", "balance": 0, "ts": 1787614810.9749496}
