@@ -1,0 +1,18 @@
+[
+ {
+  "id": "relic-200docs",
+  "ts": 1787705602,
+  "kind": "RELIC",
+  "title": "The Brain holds 200+ records",
+  "detail": "Vector store at 264 docs \u2014 the collective memory is growing.",
+  "xp": 20
+ },
+ {
+  "id": "durable-fleet",
+  "ts": 1787705602,
+  "kind": "SYSTEM",
+  "title": "The fleet is durable \u2014 snapshots running",
+  "detail": "Full state snapshot + off-box copy every 6h. A box can die; the fleet survives.",
+  "xp": 15
+ }
+]

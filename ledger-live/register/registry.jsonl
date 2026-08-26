@@ -152,3 +152,9 @@
 {"brick_id": "brick-754832736803356808", "person_id": "754832736803356808", "skills": [], "quality": "registered", "origin": "door-spawn", "status": "pending", "ts": 1787444817.7124054}
 {"brick_id": "brick-189055515819638794", "person_id": "189055515819638794", "skills": [], "quality": "registered", "origin": "door-spawn", "status": "pending", "ts": 1787493715.4002953}
 {"brick_id": "spawn-neurologist-001-001", "quality": "registered", "spawn_of": "neurologist-001", "skills": [], "ts": 1787614810.9749496, "note": "spawn replacement for neurologist-001: idle: registered-only, 0 earns, no activity since registration"}
+{"brick_id": "clone-worker-001-07a7072d", "skills": ["build", "probe"], "quality": "verified", "ts": 1787701961.8969152, "parent_brick_id": "worker-001", "status": "registered", "role": "worker", "owner": "khalid"}
+{"brick_id": "clone-worker-001-1cd7f4f1", "skills": ["build", "probe"], "quality": "verified", "ts": 1787701961.8970602, "parent_brick_id": "worker-001", "status": "registered", "role": "worker", "owner": "khalid"}
+{"brick_id": "scientist-001", "role": "scientist", "status": "live", "owner": "khalid", "skills": ["scientist"], "ts": 1787705802.5447195}
+{"brick_id": "neurologist-001", "role": "neurologist", "status": "live", "owner": "khalid", "skills": ["neurologist"], "ts": 1787705802.544741}
+{"brick_id": "evolution-001", "role": "evolution", "status": "live", "owner": "khalid", "skills": ["evolution"], "ts": 1787705802.544748}
+{"brick_id": "security-001", "role": "security", "status": "live", "owner": "khalid", "skills": ["security"], "ts": 1787705802.5447526}

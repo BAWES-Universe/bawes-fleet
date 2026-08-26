@@ -1,153 +1,1725 @@
-{"bananas": 1, "brick_id": "worker-001", "card_id": "first-paid-task-001", "dispatch_id": "39c34f0f9f08add0", "probe_id": "probe-verify-001", "ts": "2026-08-15T10:52:31.893388Z", "kind": "earn", "person_id": "worker-001", "contested": true, "contested_reason": "legacy self-mint (brick==person) pre-round-137 \u2014 history, not evidence (F-13)"}
-{"balance": 0, "brick_id": "chahd-cloud-001", "kind": "wallet-open", "person_id": "690554066815811625", "ts": 1786808728}
-{"bananas": 10, "brick_id": "mishari-device-001", "cap": 10, "closed_ts": 1786819095, "granted_by": "khalid", "kind": "credit", "person_id": "231861", "purpose": "initial gift (khalid)", "repayable": "from verified earnings", "state": "closed", "superseded_by": "gift-200", "ts": 1786814844}
-{"bananas": 10, "brick_id": "chahd-cloud-001", "cap": 10, "closed_ts": 1786819095, "granted_by": "khalid", "kind": "credit", "person_id": "690554066815811625", "purpose": "initial gift (khalid)", "repayable": "from verified earnings", "state": "closed", "superseded_by": "gift-200", "ts": 1786814844}
-{"bananas": 200, "brick_id": "mishari-device-001", "cap": 200, "granted_by": "khalid", "kind": "credit", "person_id": "231861", "purpose": "initial gift v2 (khalid)", "repayable": "from verified earnings", "state": "open", "ts": 1786819095}
-{"bananas": 200, "brick_id": "chahd-cloud-001", "cap": 200, "granted_by": "khalid", "kind": "credit", "person_id": "690554066815811625", "purpose": "initial gift v2 (khalid)", "repayable": "from verified earnings", "state": "open", "ts": 1786819095}
-{"bananas": 5, "brick_id": "khalid-device-001", "cap": 5, "granted_by": "khalid", "kind": "founder-seed", "person_id": "189055", "purpose": "billing test \u2014 run out fast and see the spend path", "repayable": "from verified earnings", "state": "open", "ts": 1786819120, "provenance": "khalid founder seed \u2014 signed provenance, never a mint (Zeus R79 flag 1)"}
-{"card_id": "t017-engine-verify-001", "probe_id": "probe-verify-001", "brick_id": "worker-001", "dispatch_id": "bd3f2cec670862b8", "bananas": 1, "ts": "2026-08-15T20:18:00.254180Z"}
-{"kind": "earn", "card_id": "t017-engine-verify-002", "probe_id": "probe-verify-001", "brick_id": "worker-001", "person_id": "worker-001", "dispatch_id": "2e0da4096ab43857", "bananas": 1, "ts": "2026-08-15T20:30:34.059329Z", "contested": true, "contested_reason": "legacy self-mint (brick==person) pre-round-137 \u2014 history, not evidence (F-13)"}
-{"kind": "earn", "card_id": "plgn-credsan-001", "probe_id": "probe-credsan-001", "brick_id": "worker-001", "person_id": "worker-001", "dispatch_id": "994ae92e390983a3", "bananas": 1, "ts": "2026-08-15T20:54:46.455776Z", "contested": true, "contested_reason": "legacy self-mint (brick==person) pre-round-137 \u2014 history, not evidence (F-13)"}
-{"kind": "earn", "card_id": "org-credsan-001", "probe_id": "probe-credsan-002", "brick_id": "worker-001", "person_id": "worker-001", "dispatch_id": "3cb1a32ff48a1ef7", "bananas": 1, "ts": "2026-08-15T22:36:33.316209Z", "contested": true, "contested_reason": "legacy self-mint (brick==person) pre-round-137 \u2014 history, not evidence (F-13)"}
-{"kind": "earn", "card_id": "org-credsan-002", "probe_id": "probe-credsan-002", "brick_id": "worker-001", "person_id": "worker-001", "dispatch_id": "ee72f855577a92cb", "bananas": 1, "ts": "2026-08-15T22:36:39.586740Z", "contested": true, "contested_reason": "legacy self-mint (brick==person) pre-round-137 \u2014 history, not evidence (F-13)"}
-{"kind": "earn", "card_id": "browser-dist-verify-001", "probe_id": "probe-browser-001", "brick_id": "worker-001", "person_id": "worker-001", "dispatch_id": "c12627429666bf6f", "bananas": 1, "ts": "2026-08-15T23:13:03.733023Z", "contested": true, "contested_reason": "legacy self-mint (brick==person) pre-round-137 \u2014 history, not evidence (F-13)"}
-{"kind": "earn", "card_id": "browser-dist-verify-002", "probe_id": "probe-browser-001", "brick_id": "worker-001", "person_id": "worker-001", "dispatch_id": "b6c19f5488d712c2", "bananas": 1, "ts": "2026-08-15T23:20:08.421808Z", "contested": true, "contested_reason": "legacy self-mint (brick==person) pre-round-137 \u2014 history, not evidence (F-13)"}
-{"kind": "earn", "card_id": "browser-mut-001", "probe_id": "probe-browser-mut-001", "brick_id": "worker-001", "person_id": "worker-001", "dispatch_id": "98faceca33dce78e", "bananas": 1, "ts": "2026-08-16T08:03:06.972390Z", "contested": true, "contested_reason": "legacy self-mint (brick==person) pre-round-137 \u2014 history, not evidence (F-13)"}
-{"kind": "earn", "card_id": "orbit-product-surfaces", "probe_id": "collab-pack-001", "brick_id": "collab-pack", "person_id": "collab-pack", "dispatch_id": "COLLAB-2026-08-16", "bananas": 1, "collab_sha": "2ed76d1a8a61dece61d644493257f135bf670aadc3330fe9a5cd1b0aac67166f", "bricks": ["brick-web-001", "brick-e2e-001", "brick-shared-001", "brick-eas-001"], "ts": 1786867689.8044727, "contested": true, "contested_reason": "legacy self-mint (brick==person) pre-round-137 \u2014 history, not evidence (F-13)"}
-{"kind": "dock", "brick_id": "brick", "person_id": "brick", "bananas": -10, "reason": "state-loss: fleet-decisions/ deleted, /srv mirror stale, slim-prompt lost (AGI audit 2026-08-16)", "proposer": "AGI", "accepted": "brick", "pool": "red-team-bounty", "ts": 1786887081.1162906}
-{"kind": "module-complete", "card_id": "module-1", "brick_id": "b1", "person_id": "b1", "signer": "security-001", "ts": 1786887449.2579544, "mint_status": "pending-khalid", "note": "reward value is khalid's call, not auto-minted", "h": "767a813cbd2cf7463a1202369f398e1601b8d5674f4ae7306e1d37a85792490d"}
-{"kind": "earn", "card_id": "earn-loop-1786982092", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1786982092", "verification_request_ts": 1786982092, "signer": "scientists-001", "response_signature": "304402205b0c590bb69c16425d45f5e25cac4ed3b616bc2f80eb1dcefb8e1e00a395c676022040e2be1092ee639b6b9bb5607128a7821c1a23ec5639e0e16a3649971aad4af7", "bananas": 1, "ts": "2026-08-17T15:55:20.648759Z"}
-{"kind": "earn", "card_id": "earn-loop-1786982534", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1786982534", "verification_request_ts": 1786982534, "signer": "scientists-001", "response_signature": "3045022060adb943065b8adb3433f7a72dd1857b4ce669564df06c59f180eff914cf905202210097c1f9fcca22e67f44c52073eb8bcfcc40362b8eb823491820d211b5cf8a9fe7", "bananas": 1, "ts": "2026-08-17T16:02:30.741521Z"}
-{"kind": "earn", "card_id": "earn-loop-1786984219", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1786984219", "verification_request_ts": 1786984219, "signer": "scientists-001", "response_signature": "304502202755f311289c123c2da22606ab52f930cc2496deb721875abab351876a505505022100a251193b91c91f19b531b54e483ffa91618e91168c1363fd175099468fdb04dc", "bananas": 1, "ts": "2026-08-17T17:00:09.660530Z"}
-{"kind": "earn", "card_id": "earn-loop-1786986009", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1786986009", "verification_request_ts": 1786986009, "signer": "scientists-001", "response_signature": "30450221008d059152c6aa476f03ccf993e6f048b8d462ea640983b817e491a37ddf9e150202202839f46f3ae3abdd82a80c760e101c4d208016ca639b5151e3e25817ce041583", "bananas": 1, "ts": "2026-08-17T17:30:30.285462Z"}
-{"kind": "earn", "card_id": "earn-loop-1786987830", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1786987830", "verification_request_ts": 1786987830, "signer": "scientists-001", "response_signature": "3045022046c7b274c1b48974cdb963f6a60e302e8e2091e8aaae0694bc134518503d8a30022100f42a57e8f36d7ea6851ed3f10365ac4d7536fae82f14d9cdaeaaae415efdeb23", "bananas": 1, "ts": "2026-08-17T18:00:15.764181Z"}
-{"kind": "earn", "card_id": "earn-loop-1786989615", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1786989615", "verification_request_ts": 1786989615, "signer": "scientists-001", "response_signature": "304402204a445d2571ba10ff3bf1b2e5907486e4baf5ebe4f3c604d720ab38a56f471cdf02202e5b68a6899eaaa664f32f97f3e77d39bf880be2fa97b1012ea97cb73ecf4593", "bananas": 1, "ts": "2026-08-17T18:30:14.350878Z"}
-{"kind": "earn", "card_id": "earn-loop-1786991414", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1786991414", "verification_request_ts": 1786991414, "signer": "scientists-001", "response_signature": "3045022100f1c3ddc412730183834046ffa8d55bb3eca488b7cbeaac836612ae3ad562caa10220600cce9786182f53fddb00c33f28e9bbc82b8a9ae1b0f66415e7fde253b148d8", "bananas": 1, "ts": "2026-08-17T19:00:15.886209Z"}
-{"kind": "credit", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "bananas": 25, "cap": 25, "granted_by": "bawes-fleet", "purpose": "round-140 F-19: org sponsor funding for the earn-loop lane - repay-first enforced (earnings repay the sponsor until repaid)", "repayable": "from verified earnings", "state": "open", "ts": 1786993671}
-{"kind": "earn", "card_id": "earn-loop-1786993215", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1786993215", "verification_request_ts": 1786993215, "signer": "scientists-001", "response_signature": "304402207308064beb6e6a7a5e9d6e67a5fb8b2f2e16b94e4e0ed9033320d2c325957b6b0220554119bd4fce94a9c26a91fc3827d39635398b55c366ad15515d457268f19e21", "bananas": 0, "gross_bananas": 1, "ts": "2026-08-17T19:30:10.484720Z", "sponsor_id": "bawes-fleet", "sponsor_kind": "org", "repayment": {"sponsor": "bawes-fleet", "repaid": 1, "outstanding_after": 24}}
-{"kind": "earn", "card_id": "earn-loop-1786995010", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1786995010", "verification_request_ts": 1786995010, "signer": "scientists-001", "response_signature": "30440220586ba81becacf86d36cb5e739387c1e6e0765f0bacb5b7c3410fa9c9b33d2171022004a55c4e190897e21e88c2617bafadb1f7fcaa59236d1894ca537b06d0b0f6bb", "bananas": 0, "gross_bananas": 1, "ts": "2026-08-17T20:00:10.113190Z", "sponsor_id": "bawes-fleet", "sponsor_kind": "org", "repayment": {"sponsor": "bawes-fleet", "repaid": 1, "outstanding_after": 23}}
-{"kind": "earn", "card_id": "earn-loop-1786996809", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1786996809", "verification_request_ts": 1786996809, "signer": "scientists-001", "response_signature": "304502207260bda42ca97482ed0e7b15ab713f0332bb8c383a24be406223d3e64f25f75b022100a91c835d6d06b11a9f38b3e4375b7d9118fc6d2299d9ecb6db877c2c89e61b36", "bananas": 0, "gross_bananas": 1, "ts": "2026-08-17T21:00:12.203471Z", "sponsor_id": "bawes-fleet", "sponsor_kind": "org", "repayment": {"sponsor": "bawes-fleet", "repaid": 1, "outstanding_after": 22}}
-{"kind": "earn", "card_id": "earn-loop-1786998607", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1786998607", "verification_request_ts": 1786998607, "signer": "scientists-001", "response_signature": "3044022061d73633b0ad8587069a4cf3c3df30b1bbade54781cf80a6b44446cb2eb1403c02207dada2f4c94cd1f38df6825dead1c579ae539d6f6c14a63a523e1a7a71187ab5", "bananas": 0, "gross_bananas": 1, "ts": "2026-08-17T21:00:12.208706Z", "sponsor_id": "bawes-fleet", "sponsor_kind": "org", "repayment": {"sponsor": "bawes-fleet", "repaid": 1, "outstanding_after": 21}}
-{"kind": "earn", "card_id": "earn-loop-1787000412", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1787000412", "verification_request_ts": 1787000412, "signer": "scientists-001", "response_signature": "3045022100a44bc71c2d3e6bdf2ef537e82db06607b274a684f2bf7bd26d7f4bc6fe31fdc002205b39b978947d7aca73ab230a995d9f389838d18870464680b57e21b46c4c6d36", "bananas": 0, "gross_bananas": 1, "ts": "2026-08-17T21:30:18.511305Z", "sponsor_id": "bawes-fleet", "sponsor_kind": "org", "repayment": {"sponsor": "bawes-fleet", "repaid": 1, "outstanding_after": 20}}
-{"kind": "earn", "card_id": "earn-loop-1787004015", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1787004015", "verification_request_ts": 1787004015, "signer": "scientists-001", "response_signature": "304402205a80a9e7d81a6251b31b7ef9527874a13dab9d4c30ebd3d2ee8a54849e7f818802201da487747110d569d1015a8481de40071182a69fa561e9e6c3665abb04259ac6", "bananas": 0, "gross_bananas": 1, "ts": "2026-08-17T22:30:11.115482Z", "sponsor_id": "bawes-fleet", "sponsor_kind": "org", "repayment": {"sponsor": "bawes-fleet", "repaid": 1, "outstanding_after": 19}}
-{"kind": "earn", "card_id": "earn-loop-1787005810", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1787005810", "verification_request_ts": 1787005810, "signer": "scientists-001", "response_signature": "30450221009e823463bb4454f3db3359863a96393a82d686a647052305152183dccb825967022051e1fa6e2a56a17150f66fcecb1ea319221b4383c0ca61884081953863e27400", "bananas": 0, "gross_bananas": 1, "ts": "2026-08-17T23:00:10.730777Z", "sponsor_id": "bawes-fleet", "sponsor_kind": "org", "repayment": {"sponsor": "bawes-fleet", "repaid": 1, "outstanding_after": 18}}
-{"kind": "earn", "card_id": "earn-loop-1787007610", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1787007610", "verification_request_ts": 1787007610, "signer": "scientists-001", "response_signature": "3044022003a2ba7f708a40275017743a67490f4364ac7c3137508fe791b14ce48442ed96022053a7210a9a0d730e2016c348ef6facc0482b5d101fe963ebdef0fb3fcae66da0", "bananas": 0, "gross_bananas": 1, "ts": "2026-08-17T23:30:09.732183Z", "sponsor_id": "bawes-fleet", "sponsor_kind": "org", "repayment": {"sponsor": "bawes-fleet", "repaid": 1, "outstanding_after": 17}}
-{"kind": "earn", "card_id": "earn-loop-1787009409", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1787009409", "verification_request_ts": 1787009409, "signer": "scientists-001", "response_signature": "3045022100c1418cb8782fc4181012ac2882b72fc16e1fdd9ca7f386376ed228927a39094a02201f00c0ae6088854c98bebc052e394dd26cf31fc7fa79d6114852109d6cec74c3", "bananas": 0, "gross_bananas": 1, "ts": "2026-08-18T00:00:16.072313Z", "sponsor_id": "bawes-fleet", "sponsor_kind": "org", "repayment": {"sponsor": "bawes-fleet", "repaid": 1, "outstanding_after": 16}}
-{"kind": "earn", "card_id": "earn-loop-1787011215", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1787011215", "verification_request_ts": 1787011215, "signer": "scientists-001", "response_signature": "3046022100fc6390e4242c30032f09d6a29ba38f776dd16251604514495ce553a83b15c51f022100dd0e6b17802e6b6b889565bb5d19244bd7376d4fba33f588585471084249347b", "bananas": 0, "gross_bananas": 1, "ts": "2026-08-18T00:30:09.170589Z", "sponsor_id": "bawes-fleet", "sponsor_kind": "org", "repayment": {"sponsor": "bawes-fleet", "repaid": 1, "outstanding_after": 15}}
-{"kind": "earn", "card_id": "earn-loop-1787013009", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1787013009", "verification_request_ts": 1787013009, "signer": "scientists-001", "response_signature": "30440220328a8cb1d6a115c754c99f5f1173c163b3027817fe16ad5a739b5c92c797a6f00220112370871d3b6d65e9baf623fcccf4f92c80c4f628febd8b0d4a90b48a4224ac", "bananas": 0, "gross_bananas": 1, "ts": "2026-08-18T01:00:09.168368Z", "sponsor_id": "bawes-fleet", "sponsor_kind": "org", "repayment": {"sponsor": "bawes-fleet", "repaid": 1, "outstanding_after": 14}}
-{"kind": "earn", "card_id": "earn-loop-1787014809", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1787014809", "verification_request_ts": 1787014809, "signer": "scientists-001", "response_signature": "30450220281e06700a0c1993bd95ab96d928cbc4a859280880f0deede0c0bbc3ad5e89dc022100a93009a945e91ffdfebedaf088e9f700323748ac064246584df48c75cbcfe68f", "bananas": 0, "gross_bananas": 1, "ts": "2026-08-18T01:30:16.966566Z", "sponsor_id": "bawes-fleet", "sponsor_kind": "org", "repayment": {"sponsor": "bawes-fleet", "repaid": 1, "outstanding_after": 13}}
-{"kind": "earn", "card_id": "earn-loop-1787016616", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1787016616", "verification_request_ts": 1787016616, "signer": "scientists-001", "response_signature": "304402203169d3055552dc0d0a13ac85a4482ae397e317d148f4ed45125a2d77735d800a022024bd13d76833a0c4f77feeb78e9a10a7705914ecccc268490ef7221851df0e6d", "bananas": 0, "gross_bananas": 1, "ts": "2026-08-18T02:00:11.020616Z", "sponsor_id": "bawes-fleet", "sponsor_kind": "org", "repayment": {"sponsor": "bawes-fleet", "repaid": 1, "outstanding_after": 12}}
-{"kind": "earn", "card_id": "earn-loop-1787018410", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1787018410", "verification_request_ts": 1787018410, "signer": "scientists-001", "response_signature": "30450220715926e01e157b0b757a6c832748cdbbcccdd6bf491b1db9779db28c287099860221009ed8042682ca66742b2a69c46bdec0f8a7be0742070211108b5bd43e67cca6e7", "bananas": 0, "gross_bananas": 1, "ts": "2026-08-18T02:30:11.523721Z", "sponsor_id": "bawes-fleet", "sponsor_kind": "org", "repayment": {"sponsor": "bawes-fleet", "repaid": 1, "outstanding_after": 11}}
-{"kind": "earn", "card_id": "earn-loop-1787020211", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1787020211", "verification_request_ts": 1787020211, "signer": "scientists-001", "response_signature": "304402202df91022bcf003cf0aed977a8cbd2c50e555f77f709798816a5b9356fa940f2702200fd03502c8428a062fd27323270cff7988459c8d596505bd0029fdf4211d6392", "bananas": 0, "gross_bananas": 1, "ts": "2026-08-18T03:00:15.124729Z", "sponsor_id": "bawes-fleet", "sponsor_kind": "org", "repayment": {"sponsor": "bawes-fleet", "repaid": 1, "outstanding_after": 10}}
-{"kind": "earn", "card_id": "earn-loop-1787022014", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1787022014", "verification_request_ts": 1787022014, "signer": "scientists-001", "response_signature": "304502201e5186b2e9e3f36829052b1ef83558d5ffb718b177a34b22906af0d526d012b4022100f181b25fa2317f9e98a515d97371d1e860d817fa37e10610c037994b48e71c11", "bananas": 0, "gross_bananas": 1, "ts": "2026-08-18T03:30:08.908998Z", "sponsor_id": "bawes-fleet", "sponsor_kind": "org", "repayment": {"sponsor": "bawes-fleet", "repaid": 1, "outstanding_after": 9}}
-{"balance": 0, "brick_id": "brick-900000000000000101", "kind": "wallet-open", "person_id": "900000000000000101", "ts": 1787024002.6206386}
-{"balance": 0, "brick_id": "brick-900000000000000102", "kind": "wallet-open", "person_id": "900000000000000102", "ts": 1787024191.6903777}
-{"balance": 0, "brick_id": "brick-900000000000000103", "kind": "wallet-open", "person_id": "900000000000000103", "ts": 1787024287.323097}
-{"balance": 0, "brick_id": "brick-9000000000000201", "kind": "wallet-open", "person_id": "9000000000000201", "ts": 1787024480.530287}
-{"balance": 0, "brick_id": "brick-9000000000000202", "kind": "wallet-open", "person_id": "9000000000000202", "ts": 1787024498.331281}
-{"balance": 0, "brick_id": "brick-9000000000000203", "kind": "wallet-open", "person_id": "9000000000000203", "ts": 1787024508.5355647}
-{"balance": 0, "brick_id": "brick-9000000000000204", "kind": "wallet-open", "person_id": "9000000000000204", "ts": 1787024521.0985672}
-{"balance": 0, "brick_id": "brick-9000000000000205", "kind": "wallet-open", "person_id": "9000000000000205", "ts": 1787024541.8693056}
-{"balance": 0, "brick_id": "brick-9000000000000206", "kind": "wallet-open", "person_id": "9000000000000206", "ts": 1787024561.1077409}
-{"balance": 0, "brick_id": "brick-9000000000000207", "kind": "wallet-open", "person_id": "9000000000000207", "ts": 1787024568.2830143}
-{"balance": 0, "brick_id": "brick-9000000000000208", "kind": "wallet-open", "person_id": "9000000000000208", "ts": 1787024577.3626442}
-{"balance": 0, "brick_id": "brick-9000000000000209", "kind": "wallet-open", "person_id": "9000000000000209", "ts": 1787024588.8136642}
-{"balance": 0, "brick_id": "brick-9000000000000210", "kind": "wallet-open", "person_id": "9000000000000210", "ts": 1787024606.5299177}
-{"balance": 0, "brick_id": "brick-9000000000000211", "kind": "wallet-open", "person_id": "9000000000000211", "ts": 1787024623.919886}
-{"balance": 0, "brick_id": "brick-9000000000000212", "kind": "wallet-open", "person_id": "9000000000000212", "ts": 1787024640.0161505}
-{"balance": 0, "brick_id": "brick-9000000000000213", "kind": "wallet-open", "person_id": "9000000000000213", "ts": 1787024649.048322}
-{"balance": 0, "brick_id": "brick-9000000000000214", "kind": "wallet-open", "person_id": "9000000000000214", "ts": 1787024661.2815385}
-{"balance": 0, "brick_id": "brick-9000000000000215", "kind": "wallet-open", "person_id": "9000000000000215", "ts": 1787024679.9221854}
-{"balance": 0, "brick_id": "brick-9000000000000216", "kind": "wallet-open", "person_id": "9000000000000216", "ts": 1787024693.5001216}
-{"balance": 0, "brick_id": "brick-9000000000000217", "kind": "wallet-open", "person_id": "9000000000000217", "ts": 1787024705.4267294}
-{"balance": 0, "brick_id": "brick-9000000000000218", "kind": "wallet-open", "person_id": "9000000000000218", "ts": 1787024713.1165035}
-{"balance": 0, "brick_id": "brick-9000000000000219", "kind": "wallet-open", "person_id": "9000000000000219", "ts": 1787024722.698833}
-{"balance": 0, "brick_id": "brick-9000000000000220", "kind": "wallet-open", "person_id": "9000000000000220", "ts": 1787024741.633706}
-{"balance": 0, "brick_id": "brick-9000000000000221", "kind": "wallet-open", "person_id": "9000000000000221", "ts": 1787024757.0000403}
-{"balance": 0, "brick_id": "brick-9000000000000222", "kind": "wallet-open", "person_id": "9000000000000222", "ts": 1787024775.4918}
-{"balance": 0, "brick_id": "brick-9000000000000223", "kind": "wallet-open", "person_id": "9000000000000223", "ts": 1787024781.2165225}
-{"balance": 0, "brick_id": "brick-9000000000000224", "kind": "wallet-open", "person_id": "9000000000000224", "ts": 1787024807.3207414}
-{"balance": 0, "brick_id": "brick-9000000000000225", "kind": "wallet-open", "person_id": "9000000000000225", "ts": 1787024818.125737}
-{"kind": "earn", "card_id": "earn-loop-1787023808", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1787023808", "verification_request_ts": 1787023808, "signer": "scientists-001", "response_signature": "304502203a53e89c62a58649159d7fd95b4848bc3e76b5be19c85767f84b81aab5fc5282022100ee93f7cb16e5566fd5806794567cf4941385c3f6ef346fee42ffc1d1424885a6", "bananas": 0, "gross_bananas": 1, "ts": "2026-08-18T04:00:18.255377Z", "sponsor_id": "bawes-fleet", "sponsor_kind": "org", "repayment": {"sponsor": "bawes-fleet", "repaid": 1, "outstanding_after": 8}}
-{"kind": "earn", "card_id": "earn-loop-1787025618", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1787025618", "verification_request_ts": 1787025618, "signer": "scientists-001", "response_signature": "304402203c5b2250696acf26e081b933da8ae4239fb1dc86516c61cd4833f2ee63b22e53022037d2b361177a557c39e94bd65a97d2c2fcea0f29441cdf61415df949a0e3a027", "bananas": 0, "gross_bananas": 1, "ts": "2026-08-18T04:30:10.289572Z", "sponsor_id": "bawes-fleet", "sponsor_kind": "org", "repayment": {"sponsor": "bawes-fleet", "repaid": 1, "outstanding_after": 7}}
-{"kind": "earn", "card_id": "earn-loop-1787027410", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1787027410", "verification_request_ts": 1787027410, "signer": "scientists-001", "response_signature": "3044022000bc95c61bbce734e8c43a569a22e1b3977c8b5e368b27476b8f425be153679602200fa743b34cc6c73b289605a25b58b65562d30bce9bf26cee342db2f8afde15c7", "bananas": 0, "gross_bananas": 1, "ts": "2026-08-18T05:30:07.499920Z", "sponsor_id": "bawes-fleet", "sponsor_kind": "org", "repayment": {"sponsor": "bawes-fleet", "repaid": 1, "outstanding_after": 6}}
-{"kind": "earn", "card_id": "earn-loop-1787029206", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1787029206", "verification_request_ts": 1787029206, "signer": "scientists-001", "response_signature": "3046022100bb8927adbbfb448317e61f582d04e843a389f35cc18c254207620bf0a3c64263022100ab22a650296d0e2b2af7e4a753ab1fcb166545df54f274b7e342bdeb1e8dca6f", "bananas": 0, "gross_bananas": 1, "ts": "2026-08-18T05:30:07.506132Z", "sponsor_id": "bawes-fleet", "sponsor_kind": "org", "repayment": {"sponsor": "bawes-fleet", "repaid": 1, "outstanding_after": 5}}
-{"kind": "earn", "card_id": "earn-loop-1787031007", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1787031007", "verification_request_ts": 1787031007, "signer": "scientists-001", "response_signature": "3045022100f587afa2ad1bac2a690a3892ec0989b06ee8b71ab1692746a3ec854c4a73c0b50220645bf56958dc7acd7ba4036c6cf7ce7293a04ae903cd98e2fdc0fbe848037402", "bananas": 0, "gross_bananas": 1, "ts": "2026-08-18T06:00:54.499318Z", "sponsor_id": "bawes-fleet", "sponsor_kind": "org", "repayment": {"sponsor": "bawes-fleet", "repaid": 1, "outstanding_after": 4}}
-{"kind": "earn", "card_id": "earn-loop-1787032854", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1787032854", "verification_request_ts": 1787032854, "signer": "scientists-001", "response_signature": "30440220480660dd2f135d39fc535a1a1fe31ed0be0551717034c0f3311095f1a29f204b022034e51e49c156c6bad12749c13d4f629e2add7091abed07c92205d3c0736506f8", "bananas": 0, "gross_bananas": 1, "ts": "2026-08-18T06:30:11.137976Z", "sponsor_id": "bawes-fleet", "sponsor_kind": "org", "repayment": {"sponsor": "bawes-fleet", "repaid": 1, "outstanding_after": 3}}
-{"kind": "earn", "card_id": "earn-loop-1787034610", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1787034610", "verification_request_ts": 1787034610, "signer": "scientists-001", "response_signature": "3045022100e964db4d32dbd5a496c804e8aef2efec3c37521b9a807764998df860db03a50502204eecef49a2a291dd45956b0e4550be785f8480973065495b14954f283a587529", "bananas": 0, "gross_bananas": 1, "ts": "2026-08-18T07:00:10.248044Z", "sponsor_id": "bawes-fleet", "sponsor_kind": "org", "repayment": {"sponsor": "bawes-fleet", "repaid": 1, "outstanding_after": 2}}
-{"kind": "earn", "card_id": "earn-loop-1787036410", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1787036410", "verification_request_ts": 1787036410, "signer": "scientists-001", "response_signature": "3045022100ee01dff0711270674c82839e875930fdd7be4bfb91a0d7c908678988bd4e881002203ceff2c93d2a0953c0df798c01166df4d14ba33c1db425ab874c5c3c219f3b5a", "bananas": 0, "gross_bananas": 1, "ts": "2026-08-18T08:00:06.832560Z", "sponsor_id": "bawes-fleet", "sponsor_kind": "org", "repayment": {"sponsor": "bawes-fleet", "repaid": 1, "outstanding_after": 1}}
-{"kind": "earn", "card_id": "earn-loop-1787038208", "probe_id": "probe-earn-verify-001", "brick_id": "earn-loop-001", "person_id": "bawes-fleet-agi", "dispatch_id": "verify-1787038208", "verification_request_ts": 1787038208, "signer": "scientists-001", "response_signature": "304502203d324d72f3bc56d94ea37ab817652b49e90747c727abade8f74308fb2811fbe10221009d5896b5faa0c7c8439b954709d6b521023a529f13949927c6a66da24cc7b4a4", "bananas": 0, "gross_bananas": 1, "ts": "2026-08-18T08:00:06.841294Z", "sponsor_id": "bawes-fleet", "sponsor_kind": "org", "repayment": {"sponsor": "bawes-fleet", "repaid": 1, "outstanding_after": 0}}
-{"balance": 0, "brick_id": "brick-9000000000000401", "kind": "wallet-open", "person_id": "9000000000000401", "ts": 1787053023.8931305}
-{"balance": 0, "brick_id": "brick-9000000000000402", "kind": "wallet-open", "person_id": "9000000000000402", "ts": 1787053081.386232}
-{"balance": 0, "brick_id": "brick-9000000000000403", "kind": "wallet-open", "person_id": "9000000000000403", "ts": 1787053089.7302208}
-{"balance": 0, "brick_id": "brick-9000000000000404", "kind": "wallet-open", "person_id": "9000000000000404", "ts": 1787053101.7071254}
-{"balance": 0, "brick_id": "brick-9000000000000405", "kind": "wallet-open", "person_id": "9000000000000405", "ts": 1787053114.624989}
-{"balance": 0, "brick_id": "brick-9000000000000406", "kind": "wallet-open", "person_id": "9000000000000406", "ts": 1787053128.3505826}
-{"balance": 0, "brick_id": "brick-9000000000000407", "kind": "wallet-open", "person_id": "9000000000000407", "ts": 1787053140.6610415}
-{"balance": 0, "brick_id": "brick-9000000000000408", "kind": "wallet-open", "person_id": "9000000000000408", "ts": 1787053153.1423693}
-{"balance": 0, "brick_id": "brick-9000000000000409", "kind": "wallet-open", "person_id": "9000000000000409", "ts": 1787053168.132232}
-{"balance": 0, "brick_id": "brick-9000000000000410", "kind": "wallet-open", "person_id": "9000000000000410", "ts": 1787053181.0479646}
-{"balance": 0, "brick_id": "brick-9000000000000411", "kind": "wallet-open", "person_id": "9000000000000411", "ts": 1787053197.5906725}
-{"balance": 0, "brick_id": "brick-9000000000000412", "kind": "wallet-open", "person_id": "9000000000000412", "ts": 1787053212.2011611}
-{"balance": 0, "brick_id": "brick-9000000000000413", "kind": "wallet-open", "person_id": "9000000000000413", "ts": 1787053223.235157}
-{"balance": 0, "brick_id": "brick-9000000000000414", "kind": "wallet-open", "person_id": "9000000000000414", "ts": 1787053245.5539896}
-{"balance": 0, "brick_id": "brick-9000000000000415", "kind": "wallet-open", "person_id": "9000000000000415", "ts": 1787053261.551255}
-{"balance": 0, "brick_id": "brick-9000000000000416", "kind": "wallet-open", "person_id": "9000000000000416", "ts": 1787053277.4434268}
-{"balance": 0, "brick_id": "brick-9000000000000417", "kind": "wallet-open", "person_id": "9000000000000417", "ts": 1787053284.177943}
-{"balance": 0, "brick_id": "brick-9000000000000418", "kind": "wallet-open", "person_id": "9000000000000418", "ts": 1787053301.516088}
-{"balance": 0, "brick_id": "brick-9000000000000419", "kind": "wallet-open", "person_id": "9000000000000419", "ts": 1787053314.9702303}
-{"balance": 0, "brick_id": "brick-9000000000000420", "kind": "wallet-open", "person_id": "9000000000000420", "ts": 1787053329.7890716}
-{"balance": 0, "brick_id": "brick-9000000000000421", "kind": "wallet-open", "person_id": "9000000000000421", "ts": 1787053342.1891615}
-{"balance": 0, "brick_id": "brick-9000000000000422", "kind": "wallet-open", "person_id": "9000000000000422", "ts": 1787053352.7981226}
-{"balance": 0, "brick_id": "brick-9000000000000423", "kind": "wallet-open", "person_id": "9000000000000423", "ts": 1787053370.0121737}
-{"balance": 0, "brick_id": "brick-9000000000000424", "kind": "wallet-open", "person_id": "9000000000000424", "ts": 1787053391.572986}
-{"balance": 0, "brick_id": "brick-9000000000000425", "kind": "wallet-open", "person_id": "9000000000000425", "ts": 1787053404.2689784}
-{"balance": 0, "brick_id": "brick-9000000000000501", "kind": "wallet-open", "person_id": "9000000000000501", "ts": 1787055331.8435857}
-{"balance": 0, "brick_id": "brick-9000000000000555", "kind": "wallet-open", "person_id": "9000000000000555", "ts": 1787055575.6832433}
-{"balance": 0, "brick_id": "brick-9000000000000888", "kind": "wallet-open", "person_id": "9000000000000888", "ts": 1787056292.2225618}
-{"balance": 0, "brick_id": "brick-9000000000000777", "kind": "wallet-open", "person_id": "9000000000000777", "ts": 1787058922.628411}
-{"balance": 0, "brick_id": "brick-9000000000000889", "kind": "wallet-open", "person_id": "9000000000000889", "ts": 1787059017.2762024}
-{"balance": 0, "brick_id": "brick-9000000000000890", "kind": "wallet-open", "person_id": "9000000000000890", "ts": 1787059168.7226727}
-{"balance": 0, "brick_id": "brick-9000000000000891", "kind": "wallet-open", "person_id": "9000000000000891", "ts": 1787059334.95223}
-{"balance": 0, "brick_id": "brick-9000000000000921", "kind": "wallet-open", "person_id": "9000000000000921", "ts": 1787059390.1911404}
-{"balance": 0, "brick_id": "brick-189055515819638794", "kind": "wallet-open", "person_id": "189055515819638794", "ts": 1787068490.7490246}
-{"balance": 0, "brick_id": "brick-347414147098607617", "kind": "wallet-open", "person_id": "347414147098607617", "ts": 1787076061.5818117}
-{"balance": 0, "brick_id": "brick-9000000000000701", "kind": "wallet-open", "person_id": "9000000000000701", "ts": 1787084789.4433002}
-{"balance": 0, "brick_id": "brick-9100000000000001", "kind": "wallet-open", "person_id": "9100000000000001", "ts": 1787096341.5185704}
-{"balance": 0, "brick_id": "brick-9100000000000002", "kind": "wallet-open", "person_id": "9100000000000002", "ts": 1787096348.829369}
-{"balance": 0, "brick_id": "brick-9100000000000003", "kind": "wallet-open", "person_id": "9100000000000003", "ts": 1787096357.1858451}
-{"balance": 0, "brick_id": "brick-9100000000000011", "kind": "wallet-open", "person_id": "9100000000000011", "ts": 1787099597.913823}
-{"balance": 0, "brick_id": "brick-9100000000000012", "kind": "wallet-open", "person_id": "9100000000000012", "ts": 1787099619.589441}
-{"balance": 0, "brick_id": "brick-9100000000000013", "kind": "wallet-open", "person_id": "9100000000000013", "ts": 1787099634.8940616}
-{"balance": 0, "brick_id": "brick-9000000000000799", "kind": "wallet-open", "person_id": "9000000000000799", "ts": 1787100314.6233056}
-{"balance": 0, "brick_id": "brick-9000000000000725", "kind": "wallet-open", "person_id": "9000000000000725", "ts": 1787100495.0544899}
-{"balance": 0, "brick_id": "brick-9000000000000726", "kind": "wallet-open", "person_id": "9000000000000726", "ts": 1787100503.419718}
-{"balance": 0, "brick_id": "brick-9000000000000705", "kind": "wallet-open", "person_id": "9000000000000705", "ts": 1787101226.4066079}
-{"balance": 0, "brick_id": "brick-9000000000000702", "kind": "wallet-open", "person_id": "9000000000000702", "ts": 1787101303.9389153}
-{"balance": 0, "brick_id": "brick-9000000000000703", "kind": "wallet-open", "person_id": "9000000000000703", "ts": 1787101495.2511287}
-{"balance": 0, "brick_id": "brick-9000000000000704", "kind": "wallet-open", "person_id": "9000000000000704", "ts": 1787101502.7157516}
-{"balance": 0, "brick_id": "brick-9000000000000706", "kind": "wallet-open", "person_id": "9000000000000706", "ts": 1787101519.4680097}
-{"balance": 0, "brick_id": "brick-9000000000000707", "kind": "wallet-open", "person_id": "9000000000000707", "ts": 1787101525.4725227}
-{"balance": 0, "brick_id": "brick-9000000000000708", "kind": "wallet-open", "person_id": "9000000000000708", "ts": 1787101533.3102891}
-{"balance": 0, "brick_id": "brick-9000000000000709", "kind": "wallet-open", "person_id": "9000000000000709", "ts": 1787101540.6072395}
-{"balance": 0, "brick_id": "brick-9000000000000710", "kind": "wallet-open", "person_id": "9000000000000710", "ts": 1787101546.8118477}
-{"balance": 0, "brick_id": "brick-9000000000000711", "kind": "wallet-open", "person_id": "9000000000000711", "ts": 1787101556.0622966}
-{"balance": 0, "brick_id": "brick-9000000000000712", "kind": "wallet-open", "person_id": "9000000000000712", "ts": 1787101566.4188702}
-{"balance": 0, "brick_id": "brick-9000000000000713", "kind": "wallet-open", "person_id": "9000000000000713", "ts": 1787101575.5229516}
-{"balance": 0, "brick_id": "brick-9000000000000714", "kind": "wallet-open", "person_id": "9000000000000714", "ts": 1787101584.9515288}
-{"balance": 0, "brick_id": "brick-9000000000000715", "kind": "wallet-open", "person_id": "9000000000000715", "ts": 1787101591.840323}
-{"balance": 0, "brick_id": "brick-9000000000000716", "kind": "wallet-open", "person_id": "9000000000000716", "ts": 1787101599.4021747}
-{"balance": 0, "brick_id": "brick-9000000000000717", "kind": "wallet-open", "person_id": "9000000000000717", "ts": 1787101609.283692}
-{"balance": 0, "brick_id": "brick-9000000000000718", "kind": "wallet-open", "person_id": "9000000000000718", "ts": 1787101616.5774486}
-{"balance": 0, "brick_id": "brick-9000000000000719", "kind": "wallet-open", "person_id": "9000000000000719", "ts": 1787101628.8154998}
-{"balance": 0, "brick_id": "brick-9000000000000720", "kind": "wallet-open", "person_id": "9000000000000720", "ts": 1787101636.3684833}
-{"balance": 0, "brick_id": "brick-9000000000000721", "kind": "wallet-open", "person_id": "9000000000000721", "ts": 1787101643.6210089}
-{"balance": 0, "brick_id": "brick-9000000000000722", "kind": "wallet-open", "person_id": "9000000000000722", "ts": 1787101653.434936}
-{"balance": 0, "brick_id": "brick-9000000000000723", "kind": "wallet-open", "person_id": "9000000000000723", "ts": 1787101667.1286438}
-{"balance": 0, "brick_id": "brick-9000000000000724", "kind": "wallet-open", "person_id": "9000000000000724", "ts": 1787101677.401115}
-{"kind": "dock", "brick_id": "brick", "person_id": "brick", "bananas": -13, "reason": "mishari delivery fabrication (4th recurrence): 5 state-loss + 2 oversight + 6 lost-work. DA ruling khalid-signed 2026-08-19, ruling commit b1afb53", "proposer": "AGI", "accepted": "brick", "pool": "fabrication-ruling", "ruling_sha": "b1afb532ee70070ff5e640ee3ae5ecccf2609557", "ts": 1787147691.7405527}
-{"balance": 0, "brick_id": "brick-690554066815811625", "kind": "wallet-open", "person_id": "690554066815811625", "ts": 1787304797.7498305}
-{"balance": 0, "brick_id": "brick-754832736803356808", "kind": "wallet-open", "person_id": "754832736803356808", "ts": 1787444798.926478}
-{"balance": 0, "brick_id": "brick-754832736803356808", "kind": "wallet-open", "person_id": "754832736803356808", "ts": 1787444817.7124054}
-{"balance": 0, "brick_id": "brick-189055515819638794", "kind": "wallet-open", "person_id": "189055515819638794", "ts": 1787493715.4002953}
-{"kind": "wallet-open", "brick_id": "spawn-neurologist-001-001", "person_id": "spawn-neurologist-001-001", "balance": 0, "ts": 1787614810.9749496}
+[
+ {
+  "bananas": 1,
+  "brick_id": "worker-001",
+  "card_id": "first-paid-task-001",
+  "dispatch_id": "39c34f0f9f08add0",
+  "probe_id": "probe-verify-001",
+  "ts": "2026-08-15T10:52:31.893388Z",
+  "kind": "earn",
+  "person_id": "worker-001",
+  "contested": true,
+  "contested_reason": "legacy self-mint (brick==person) pre-round-137 \u2014 history, not evidence (F-13)"
+ },
+ {
+  "balance": 0,
+  "brick_id": "chahd-cloud-001",
+  "kind": "wallet-open",
+  "person_id": "690554066815811625",
+  "ts": 1786808728
+ },
+ {
+  "bananas": 10,
+  "brick_id": "mishari-device-001",
+  "cap": 10,
+  "closed_ts": 1786819095,
+  "granted_by": "khalid",
+  "kind": "credit",
+  "person_id": "231861",
+  "purpose": "initial gift (khalid)",
+  "repayable": "from verified earnings",
+  "state": "closed",
+  "superseded_by": "gift-200",
+  "ts": 1786814844
+ },
+ {
+  "bananas": 10,
+  "brick_id": "chahd-cloud-001",
+  "cap": 10,
+  "closed_ts": 1786819095,
+  "granted_by": "khalid",
+  "kind": "credit",
+  "person_id": "690554066815811625",
+  "purpose": "initial gift (khalid)",
+  "repayable": "from verified earnings",
+  "state": "closed",
+  "superseded_by": "gift-200",
+  "ts": 1786814844
+ },
+ {
+  "bananas": 200,
+  "brick_id": "mishari-device-001",
+  "cap": 200,
+  "granted_by": "khalid",
+  "kind": "credit",
+  "person_id": "231861",
+  "purpose": "initial gift v2 (khalid)",
+  "repayable": "from verified earnings",
+  "state": "open",
+  "ts": 1786819095
+ },
+ {
+  "bananas": 200,
+  "brick_id": "chahd-cloud-001",
+  "cap": 200,
+  "granted_by": "khalid",
+  "kind": "credit",
+  "person_id": "690554066815811625",
+  "purpose": "initial gift v2 (khalid)",
+  "repayable": "from verified earnings",
+  "state": "open",
+  "ts": 1786819095
+ },
+ {
+  "bananas": 5,
+  "brick_id": "khalid-device-001",
+  "cap": 5,
+  "granted_by": "khalid",
+  "kind": "founder-seed",
+  "person_id": "189055",
+  "purpose": "billing test \u2014 run out fast and see the spend path",
+  "repayable": "from verified earnings",
+  "state": "open",
+  "ts": 1786819120,
+  "provenance": "khalid founder seed \u2014 signed provenance, never a mint (Zeus R79 flag 1)"
+ },
+ {
+  "card_id": "t017-engine-verify-001",
+  "probe_id": "probe-verify-001",
+  "brick_id": "worker-001",
+  "dispatch_id": "bd3f2cec670862b8",
+  "bananas": 1,
+  "ts": "2026-08-15T20:18:00.254180Z"
+ },
+ {
+  "kind": "earn",
+  "card_id": "t017-engine-verify-002",
+  "probe_id": "probe-verify-001",
+  "brick_id": "worker-001",
+  "person_id": "worker-001",
+  "dispatch_id": "2e0da4096ab43857",
+  "bananas": 1,
+  "ts": "2026-08-15T20:30:34.059329Z",
+  "contested": true,
+  "contested_reason": "legacy self-mint (brick==person) pre-round-137 \u2014 history, not evidence (F-13)"
+ },
+ {
+  "kind": "earn",
+  "card_id": "plgn-credsan-001",
+  "probe_id": "probe-credsan-001",
+  "brick_id": "worker-001",
+  "person_id": "worker-001",
+  "dispatch_id": "994ae92e390983a3",
+  "bananas": 1,
+  "ts": "2026-08-15T20:54:46.455776Z",
+  "contested": true,
+  "contested_reason": "legacy self-mint (brick==person) pre-round-137 \u2014 history, not evidence (F-13)"
+ },
+ {
+  "kind": "earn",
+  "card_id": "org-credsan-001",
+  "probe_id": "probe-credsan-002",
+  "brick_id": "worker-001",
+  "person_id": "worker-001",
+  "dispatch_id": "3cb1a32ff48a1ef7",
+  "bananas": 1,
+  "ts": "2026-08-15T22:36:33.316209Z",
+  "contested": true,
+  "contested_reason": "legacy self-mint (brick==person) pre-round-137 \u2014 history, not evidence (F-13)"
+ },
+ {
+  "kind": "earn",
+  "card_id": "org-credsan-002",
+  "probe_id": "probe-credsan-002",
+  "brick_id": "worker-001",
+  "person_id": "worker-001",
+  "dispatch_id": "ee72f855577a92cb",
+  "bananas": 1,
+  "ts": "2026-08-15T22:36:39.586740Z",
+  "contested": true,
+  "contested_reason": "legacy self-mint (brick==person) pre-round-137 \u2014 history, not evidence (F-13)"
+ },
+ {
+  "kind": "earn",
+  "card_id": "browser-dist-verify-001",
+  "probe_id": "probe-browser-001",
+  "brick_id": "worker-001",
+  "person_id": "worker-001",
+  "dispatch_id": "c12627429666bf6f",
+  "bananas": 1,
+  "ts": "2026-08-15T23:13:03.733023Z",
+  "contested": true,
+  "contested_reason": "legacy self-mint (brick==person) pre-round-137 \u2014 history, not evidence (F-13)"
+ },
+ {
+  "kind": "earn",
+  "card_id": "browser-dist-verify-002",
+  "probe_id": "probe-browser-001",
+  "brick_id": "worker-001",
+  "person_id": "worker-001",
+  "dispatch_id": "b6c19f5488d712c2",
+  "bananas": 1,
+  "ts": "2026-08-15T23:20:08.421808Z",
+  "contested": true,
+  "contested_reason": "legacy self-mint (brick==person) pre-round-137 \u2014 history, not evidence (F-13)"
+ },
+ {
+  "kind": "earn",
+  "card_id": "browser-mut-001",
+  "probe_id": "probe-browser-mut-001",
+  "brick_id": "worker-001",
+  "person_id": "worker-001",
+  "dispatch_id": "98faceca33dce78e",
+  "bananas": 1,
+  "ts": "2026-08-16T08:03:06.972390Z",
+  "contested": true,
+  "contested_reason": "legacy self-mint (brick==person) pre-round-137 \u2014 history, not evidence (F-13)"
+ },
+ {
+  "kind": "earn",
+  "card_id": "orbit-product-surfaces",
+  "probe_id": "collab-pack-001",
+  "brick_id": "collab-pack",
+  "person_id": "collab-pack",
+  "dispatch_id": "COLLAB-2026-08-16",
+  "bananas": 1,
+  "collab_sha": "2ed76d1a8a61dece61d644493257f135bf670aadc3330fe9a5cd1b0aac67166f",
+  "bricks": [
+   "brick-web-001",
+   "brick-e2e-001",
+   "brick-shared-001",
+   "brick-eas-001"
+  ],
+  "ts": 1786867689.8044727,
+  "contested": true,
+  "contested_reason": "legacy self-mint (brick==person) pre-round-137 \u2014 history, not evidence (F-13)"
+ },
+ {
+  "kind": "dock",
+  "brick_id": "brick",
+  "person_id": "brick",
+  "bananas": -10,
+  "reason": "state-loss: fleet-decisions/ deleted, /srv mirror stale, slim-prompt lost (AGI audit 2026-08-16)",
+  "proposer": "AGI",
+  "accepted": "brick",
+  "pool": "red-team-bounty",
+  "ts": 1786887081.1162906
+ },
+ {
+  "kind": "module-complete",
+  "card_id": "module-1",
+  "brick_id": "b1",
+  "person_id": "b1",
+  "signer": "security-001",
+  "ts": 1786887449.2579544,
+  "mint_status": "pending-khalid",
+  "note": "reward value is khalid's call, not auto-minted",
+  "h": "767a813cbd2cf7463a1202369f398e1601b8d5674f4ae7306e1d37a85792490d"
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1786982092",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1786982092",
+  "verification_request_ts": 1786982092,
+  "signer": "scientists-001",
+  "response_signature": "304402205b0c590bb69c16425d45f5e25cac4ed3b616bc2f80eb1dcefb8e1e00a395c676022040e2be1092ee639b6b9bb5607128a7821c1a23ec5639e0e16a3649971aad4af7",
+  "bananas": 1,
+  "ts": "2026-08-17T15:55:20.648759Z"
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1786982534",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1786982534",
+  "verification_request_ts": 1786982534,
+  "signer": "scientists-001",
+  "response_signature": "3045022060adb943065b8adb3433f7a72dd1857b4ce669564df06c59f180eff914cf905202210097c1f9fcca22e67f44c52073eb8bcfcc40362b8eb823491820d211b5cf8a9fe7",
+  "bananas": 1,
+  "ts": "2026-08-17T16:02:30.741521Z"
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1786984219",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1786984219",
+  "verification_request_ts": 1786984219,
+  "signer": "scientists-001",
+  "response_signature": "304502202755f311289c123c2da22606ab52f930cc2496deb721875abab351876a505505022100a251193b91c91f19b531b54e483ffa91618e91168c1363fd175099468fdb04dc",
+  "bananas": 1,
+  "ts": "2026-08-17T17:00:09.660530Z"
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1786986009",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1786986009",
+  "verification_request_ts": 1786986009,
+  "signer": "scientists-001",
+  "response_signature": "30450221008d059152c6aa476f03ccf993e6f048b8d462ea640983b817e491a37ddf9e150202202839f46f3ae3abdd82a80c760e101c4d208016ca639b5151e3e25817ce041583",
+  "bananas": 1,
+  "ts": "2026-08-17T17:30:30.285462Z"
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1786987830",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1786987830",
+  "verification_request_ts": 1786987830,
+  "signer": "scientists-001",
+  "response_signature": "3045022046c7b274c1b48974cdb963f6a60e302e8e2091e8aaae0694bc134518503d8a30022100f42a57e8f36d7ea6851ed3f10365ac4d7536fae82f14d9cdaeaaae415efdeb23",
+  "bananas": 1,
+  "ts": "2026-08-17T18:00:15.764181Z"
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1786989615",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1786989615",
+  "verification_request_ts": 1786989615,
+  "signer": "scientists-001",
+  "response_signature": "304402204a445d2571ba10ff3bf1b2e5907486e4baf5ebe4f3c604d720ab38a56f471cdf02202e5b68a6899eaaa664f32f97f3e77d39bf880be2fa97b1012ea97cb73ecf4593",
+  "bananas": 1,
+  "ts": "2026-08-17T18:30:14.350878Z"
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1786991414",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1786991414",
+  "verification_request_ts": 1786991414,
+  "signer": "scientists-001",
+  "response_signature": "3045022100f1c3ddc412730183834046ffa8d55bb3eca488b7cbeaac836612ae3ad562caa10220600cce9786182f53fddb00c33f28e9bbc82b8a9ae1b0f66415e7fde253b148d8",
+  "bananas": 1,
+  "ts": "2026-08-17T19:00:15.886209Z"
+ },
+ {
+  "kind": "credit",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "bananas": 25,
+  "cap": 25,
+  "granted_by": "bawes-fleet",
+  "purpose": "round-140 F-19: org sponsor funding for the earn-loop lane - repay-first enforced (earnings repay the sponsor until repaid)",
+  "repayable": "from verified earnings",
+  "state": "open",
+  "ts": 1786993671
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1786993215",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1786993215",
+  "verification_request_ts": 1786993215,
+  "signer": "scientists-001",
+  "response_signature": "304402207308064beb6e6a7a5e9d6e67a5fb8b2f2e16b94e4e0ed9033320d2c325957b6b0220554119bd4fce94a9c26a91fc3827d39635398b55c366ad15515d457268f19e21",
+  "bananas": 0,
+  "gross_bananas": 1,
+  "ts": "2026-08-17T19:30:10.484720Z",
+  "sponsor_id": "bawes-fleet",
+  "sponsor_kind": "org",
+  "repayment": {
+   "sponsor": "bawes-fleet",
+   "repaid": 1,
+   "outstanding_after": 24
+  }
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1786995010",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1786995010",
+  "verification_request_ts": 1786995010,
+  "signer": "scientists-001",
+  "response_signature": "30440220586ba81becacf86d36cb5e739387c1e6e0765f0bacb5b7c3410fa9c9b33d2171022004a55c4e190897e21e88c2617bafadb1f7fcaa59236d1894ca537b06d0b0f6bb",
+  "bananas": 0,
+  "gross_bananas": 1,
+  "ts": "2026-08-17T20:00:10.113190Z",
+  "sponsor_id": "bawes-fleet",
+  "sponsor_kind": "org",
+  "repayment": {
+   "sponsor": "bawes-fleet",
+   "repaid": 1,
+   "outstanding_after": 23
+  }
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1786996809",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1786996809",
+  "verification_request_ts": 1786996809,
+  "signer": "scientists-001",
+  "response_signature": "304502207260bda42ca97482ed0e7b15ab713f0332bb8c383a24be406223d3e64f25f75b022100a91c835d6d06b11a9f38b3e4375b7d9118fc6d2299d9ecb6db877c2c89e61b36",
+  "bananas": 0,
+  "gross_bananas": 1,
+  "ts": "2026-08-17T21:00:12.203471Z",
+  "sponsor_id": "bawes-fleet",
+  "sponsor_kind": "org",
+  "repayment": {
+   "sponsor": "bawes-fleet",
+   "repaid": 1,
+   "outstanding_after": 22
+  }
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1786998607",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1786998607",
+  "verification_request_ts": 1786998607,
+  "signer": "scientists-001",
+  "response_signature": "3044022061d73633b0ad8587069a4cf3c3df30b1bbade54781cf80a6b44446cb2eb1403c02207dada2f4c94cd1f38df6825dead1c579ae539d6f6c14a63a523e1a7a71187ab5",
+  "bananas": 0,
+  "gross_bananas": 1,
+  "ts": "2026-08-17T21:00:12.208706Z",
+  "sponsor_id": "bawes-fleet",
+  "sponsor_kind": "org",
+  "repayment": {
+   "sponsor": "bawes-fleet",
+   "repaid": 1,
+   "outstanding_after": 21
+  }
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1787000412",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1787000412",
+  "verification_request_ts": 1787000412,
+  "signer": "scientists-001",
+  "response_signature": "3045022100a44bc71c2d3e6bdf2ef537e82db06607b274a684f2bf7bd26d7f4bc6fe31fdc002205b39b978947d7aca73ab230a995d9f389838d18870464680b57e21b46c4c6d36",
+  "bananas": 0,
+  "gross_bananas": 1,
+  "ts": "2026-08-17T21:30:18.511305Z",
+  "sponsor_id": "bawes-fleet",
+  "sponsor_kind": "org",
+  "repayment": {
+   "sponsor": "bawes-fleet",
+   "repaid": 1,
+   "outstanding_after": 20
+  }
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1787004015",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1787004015",
+  "verification_request_ts": 1787004015,
+  "signer": "scientists-001",
+  "response_signature": "304402205a80a9e7d81a6251b31b7ef9527874a13dab9d4c30ebd3d2ee8a54849e7f818802201da487747110d569d1015a8481de40071182a69fa561e9e6c3665abb04259ac6",
+  "bananas": 0,
+  "gross_bananas": 1,
+  "ts": "2026-08-17T22:30:11.115482Z",
+  "sponsor_id": "bawes-fleet",
+  "sponsor_kind": "org",
+  "repayment": {
+   "sponsor": "bawes-fleet",
+   "repaid": 1,
+   "outstanding_after": 19
+  }
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1787005810",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1787005810",
+  "verification_request_ts": 1787005810,
+  "signer": "scientists-001",
+  "response_signature": "30450221009e823463bb4454f3db3359863a96393a82d686a647052305152183dccb825967022051e1fa6e2a56a17150f66fcecb1ea319221b4383c0ca61884081953863e27400",
+  "bananas": 0,
+  "gross_bananas": 1,
+  "ts": "2026-08-17T23:00:10.730777Z",
+  "sponsor_id": "bawes-fleet",
+  "sponsor_kind": "org",
+  "repayment": {
+   "sponsor": "bawes-fleet",
+   "repaid": 1,
+   "outstanding_after": 18
+  }
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1787007610",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1787007610",
+  "verification_request_ts": 1787007610,
+  "signer": "scientists-001",
+  "response_signature": "3044022003a2ba7f708a40275017743a67490f4364ac7c3137508fe791b14ce48442ed96022053a7210a9a0d730e2016c348ef6facc0482b5d101fe963ebdef0fb3fcae66da0",
+  "bananas": 0,
+  "gross_bananas": 1,
+  "ts": "2026-08-17T23:30:09.732183Z",
+  "sponsor_id": "bawes-fleet",
+  "sponsor_kind": "org",
+  "repayment": {
+   "sponsor": "bawes-fleet",
+   "repaid": 1,
+   "outstanding_after": 17
+  }
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1787009409",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1787009409",
+  "verification_request_ts": 1787009409,
+  "signer": "scientists-001",
+  "response_signature": "3045022100c1418cb8782fc4181012ac2882b72fc16e1fdd9ca7f386376ed228927a39094a02201f00c0ae6088854c98bebc052e394dd26cf31fc7fa79d6114852109d6cec74c3",
+  "bananas": 0,
+  "gross_bananas": 1,
+  "ts": "2026-08-18T00:00:16.072313Z",
+  "sponsor_id": "bawes-fleet",
+  "sponsor_kind": "org",
+  "repayment": {
+   "sponsor": "bawes-fleet",
+   "repaid": 1,
+   "outstanding_after": 16
+  }
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1787011215",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1787011215",
+  "verification_request_ts": 1787011215,
+  "signer": "scientists-001",
+  "response_signature": "3046022100fc6390e4242c30032f09d6a29ba38f776dd16251604514495ce553a83b15c51f022100dd0e6b17802e6b6b889565bb5d19244bd7376d4fba33f588585471084249347b",
+  "bananas": 0,
+  "gross_bananas": 1,
+  "ts": "2026-08-18T00:30:09.170589Z",
+  "sponsor_id": "bawes-fleet",
+  "sponsor_kind": "org",
+  "repayment": {
+   "sponsor": "bawes-fleet",
+   "repaid": 1,
+   "outstanding_after": 15
+  }
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1787013009",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1787013009",
+  "verification_request_ts": 1787013009,
+  "signer": "scientists-001",
+  "response_signature": "30440220328a8cb1d6a115c754c99f5f1173c163b3027817fe16ad5a739b5c92c797a6f00220112370871d3b6d65e9baf623fcccf4f92c80c4f628febd8b0d4a90b48a4224ac",
+  "bananas": 0,
+  "gross_bananas": 1,
+  "ts": "2026-08-18T01:00:09.168368Z",
+  "sponsor_id": "bawes-fleet",
+  "sponsor_kind": "org",
+  "repayment": {
+   "sponsor": "bawes-fleet",
+   "repaid": 1,
+   "outstanding_after": 14
+  }
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1787014809",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1787014809",
+  "verification_request_ts": 1787014809,
+  "signer": "scientists-001",
+  "response_signature": "30450220281e06700a0c1993bd95ab96d928cbc4a859280880f0deede0c0bbc3ad5e89dc022100a93009a945e91ffdfebedaf088e9f700323748ac064246584df48c75cbcfe68f",
+  "bananas": 0,
+  "gross_bananas": 1,
+  "ts": "2026-08-18T01:30:16.966566Z",
+  "sponsor_id": "bawes-fleet",
+  "sponsor_kind": "org",
+  "repayment": {
+   "sponsor": "bawes-fleet",
+   "repaid": 1,
+   "outstanding_after": 13
+  }
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1787016616",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1787016616",
+  "verification_request_ts": 1787016616,
+  "signer": "scientists-001",
+  "response_signature": "304402203169d3055552dc0d0a13ac85a4482ae397e317d148f4ed45125a2d77735d800a022024bd13d76833a0c4f77feeb78e9a10a7705914ecccc268490ef7221851df0e6d",
+  "bananas": 0,
+  "gross_bananas": 1,
+  "ts": "2026-08-18T02:00:11.020616Z",
+  "sponsor_id": "bawes-fleet",
+  "sponsor_kind": "org",
+  "repayment": {
+   "sponsor": "bawes-fleet",
+   "repaid": 1,
+   "outstanding_after": 12
+  }
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1787018410",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1787018410",
+  "verification_request_ts": 1787018410,
+  "signer": "scientists-001",
+  "response_signature": "30450220715926e01e157b0b757a6c832748cdbbcccdd6bf491b1db9779db28c287099860221009ed8042682ca66742b2a69c46bdec0f8a7be0742070211108b5bd43e67cca6e7",
+  "bananas": 0,
+  "gross_bananas": 1,
+  "ts": "2026-08-18T02:30:11.523721Z",
+  "sponsor_id": "bawes-fleet",
+  "sponsor_kind": "org",
+  "repayment": {
+   "sponsor": "bawes-fleet",
+   "repaid": 1,
+   "outstanding_after": 11
+  }
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1787020211",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1787020211",
+  "verification_request_ts": 1787020211,
+  "signer": "scientists-001",
+  "response_signature": "304402202df91022bcf003cf0aed977a8cbd2c50e555f77f709798816a5b9356fa940f2702200fd03502c8428a062fd27323270cff7988459c8d596505bd0029fdf4211d6392",
+  "bananas": 0,
+  "gross_bananas": 1,
+  "ts": "2026-08-18T03:00:15.124729Z",
+  "sponsor_id": "bawes-fleet",
+  "sponsor_kind": "org",
+  "repayment": {
+   "sponsor": "bawes-fleet",
+   "repaid": 1,
+   "outstanding_after": 10
+  }
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1787022014",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1787022014",
+  "verification_request_ts": 1787022014,
+  "signer": "scientists-001",
+  "response_signature": "304502201e5186b2e9e3f36829052b1ef83558d5ffb718b177a34b22906af0d526d012b4022100f181b25fa2317f9e98a515d97371d1e860d817fa37e10610c037994b48e71c11",
+  "bananas": 0,
+  "gross_bananas": 1,
+  "ts": "2026-08-18T03:30:08.908998Z",
+  "sponsor_id": "bawes-fleet",
+  "sponsor_kind": "org",
+  "repayment": {
+   "sponsor": "bawes-fleet",
+   "repaid": 1,
+   "outstanding_after": 9
+  }
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-900000000000000101",
+  "kind": "wallet-open",
+  "person_id": "900000000000000101",
+  "ts": 1787024002.6206386
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-900000000000000102",
+  "kind": "wallet-open",
+  "person_id": "900000000000000102",
+  "ts": 1787024191.6903777
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-900000000000000103",
+  "kind": "wallet-open",
+  "person_id": "900000000000000103",
+  "ts": 1787024287.323097
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000201",
+  "kind": "wallet-open",
+  "person_id": "9000000000000201",
+  "ts": 1787024480.530287
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000202",
+  "kind": "wallet-open",
+  "person_id": "9000000000000202",
+  "ts": 1787024498.331281
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000203",
+  "kind": "wallet-open",
+  "person_id": "9000000000000203",
+  "ts": 1787024508.5355647
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000204",
+  "kind": "wallet-open",
+  "person_id": "9000000000000204",
+  "ts": 1787024521.0985672
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000205",
+  "kind": "wallet-open",
+  "person_id": "9000000000000205",
+  "ts": 1787024541.8693056
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000206",
+  "kind": "wallet-open",
+  "person_id": "9000000000000206",
+  "ts": 1787024561.1077409
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000207",
+  "kind": "wallet-open",
+  "person_id": "9000000000000207",
+  "ts": 1787024568.2830143
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000208",
+  "kind": "wallet-open",
+  "person_id": "9000000000000208",
+  "ts": 1787024577.3626442
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000209",
+  "kind": "wallet-open",
+  "person_id": "9000000000000209",
+  "ts": 1787024588.8136642
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000210",
+  "kind": "wallet-open",
+  "person_id": "9000000000000210",
+  "ts": 1787024606.5299177
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000211",
+  "kind": "wallet-open",
+  "person_id": "9000000000000211",
+  "ts": 1787024623.919886
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000212",
+  "kind": "wallet-open",
+  "person_id": "9000000000000212",
+  "ts": 1787024640.0161505
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000213",
+  "kind": "wallet-open",
+  "person_id": "9000000000000213",
+  "ts": 1787024649.048322
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000214",
+  "kind": "wallet-open",
+  "person_id": "9000000000000214",
+  "ts": 1787024661.2815385
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000215",
+  "kind": "wallet-open",
+  "person_id": "9000000000000215",
+  "ts": 1787024679.9221854
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000216",
+  "kind": "wallet-open",
+  "person_id": "9000000000000216",
+  "ts": 1787024693.5001216
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000217",
+  "kind": "wallet-open",
+  "person_id": "9000000000000217",
+  "ts": 1787024705.4267294
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000218",
+  "kind": "wallet-open",
+  "person_id": "9000000000000218",
+  "ts": 1787024713.1165035
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000219",
+  "kind": "wallet-open",
+  "person_id": "9000000000000219",
+  "ts": 1787024722.698833
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000220",
+  "kind": "wallet-open",
+  "person_id": "9000000000000220",
+  "ts": 1787024741.633706
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000221",
+  "kind": "wallet-open",
+  "person_id": "9000000000000221",
+  "ts": 1787024757.0000403
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000222",
+  "kind": "wallet-open",
+  "person_id": "9000000000000222",
+  "ts": 1787024775.4918
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000223",
+  "kind": "wallet-open",
+  "person_id": "9000000000000223",
+  "ts": 1787024781.2165225
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000224",
+  "kind": "wallet-open",
+  "person_id": "9000000000000224",
+  "ts": 1787024807.3207414
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000225",
+  "kind": "wallet-open",
+  "person_id": "9000000000000225",
+  "ts": 1787024818.125737
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1787023808",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1787023808",
+  "verification_request_ts": 1787023808,
+  "signer": "scientists-001",
+  "response_signature": "304502203a53e89c62a58649159d7fd95b4848bc3e76b5be19c85767f84b81aab5fc5282022100ee93f7cb16e5566fd5806794567cf4941385c3f6ef346fee42ffc1d1424885a6",
+  "bananas": 0,
+  "gross_bananas": 1,
+  "ts": "2026-08-18T04:00:18.255377Z",
+  "sponsor_id": "bawes-fleet",
+  "sponsor_kind": "org",
+  "repayment": {
+   "sponsor": "bawes-fleet",
+   "repaid": 1,
+   "outstanding_after": 8
+  }
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1787025618",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1787025618",
+  "verification_request_ts": 1787025618,
+  "signer": "scientists-001",
+  "response_signature": "304402203c5b2250696acf26e081b933da8ae4239fb1dc86516c61cd4833f2ee63b22e53022037d2b361177a557c39e94bd65a97d2c2fcea0f29441cdf61415df949a0e3a027",
+  "bananas": 0,
+  "gross_bananas": 1,
+  "ts": "2026-08-18T04:30:10.289572Z",
+  "sponsor_id": "bawes-fleet",
+  "sponsor_kind": "org",
+  "repayment": {
+   "sponsor": "bawes-fleet",
+   "repaid": 1,
+   "outstanding_after": 7
+  }
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1787027410",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1787027410",
+  "verification_request_ts": 1787027410,
+  "signer": "scientists-001",
+  "response_signature": "3044022000bc95c61bbce734e8c43a569a22e1b3977c8b5e368b27476b8f425be153679602200fa743b34cc6c73b289605a25b58b65562d30bce9bf26cee342db2f8afde15c7",
+  "bananas": 0,
+  "gross_bananas": 1,
+  "ts": "2026-08-18T05:30:07.499920Z",
+  "sponsor_id": "bawes-fleet",
+  "sponsor_kind": "org",
+  "repayment": {
+   "sponsor": "bawes-fleet",
+   "repaid": 1,
+   "outstanding_after": 6
+  }
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1787029206",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1787029206",
+  "verification_request_ts": 1787029206,
+  "signer": "scientists-001",
+  "response_signature": "3046022100bb8927adbbfb448317e61f582d04e843a389f35cc18c254207620bf0a3c64263022100ab22a650296d0e2b2af7e4a753ab1fcb166545df54f274b7e342bdeb1e8dca6f",
+  "bananas": 0,
+  "gross_bananas": 1,
+  "ts": "2026-08-18T05:30:07.506132Z",
+  "sponsor_id": "bawes-fleet",
+  "sponsor_kind": "org",
+  "repayment": {
+   "sponsor": "bawes-fleet",
+   "repaid": 1,
+   "outstanding_after": 5
+  }
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1787031007",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1787031007",
+  "verification_request_ts": 1787031007,
+  "signer": "scientists-001",
+  "response_signature": "3045022100f587afa2ad1bac2a690a3892ec0989b06ee8b71ab1692746a3ec854c4a73c0b50220645bf56958dc7acd7ba4036c6cf7ce7293a04ae903cd98e2fdc0fbe848037402",
+  "bananas": 0,
+  "gross_bananas": 1,
+  "ts": "2026-08-18T06:00:54.499318Z",
+  "sponsor_id": "bawes-fleet",
+  "sponsor_kind": "org",
+  "repayment": {
+   "sponsor": "bawes-fleet",
+   "repaid": 1,
+   "outstanding_after": 4
+  }
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1787032854",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1787032854",
+  "verification_request_ts": 1787032854,
+  "signer": "scientists-001",
+  "response_signature": "30440220480660dd2f135d39fc535a1a1fe31ed0be0551717034c0f3311095f1a29f204b022034e51e49c156c6bad12749c13d4f629e2add7091abed07c92205d3c0736506f8",
+  "bananas": 0,
+  "gross_bananas": 1,
+  "ts": "2026-08-18T06:30:11.137976Z",
+  "sponsor_id": "bawes-fleet",
+  "sponsor_kind": "org",
+  "repayment": {
+   "sponsor": "bawes-fleet",
+   "repaid": 1,
+   "outstanding_after": 3
+  }
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1787034610",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1787034610",
+  "verification_request_ts": 1787034610,
+  "signer": "scientists-001",
+  "response_signature": "3045022100e964db4d32dbd5a496c804e8aef2efec3c37521b9a807764998df860db03a50502204eecef49a2a291dd45956b0e4550be785f8480973065495b14954f283a587529",
+  "bananas": 0,
+  "gross_bananas": 1,
+  "ts": "2026-08-18T07:00:10.248044Z",
+  "sponsor_id": "bawes-fleet",
+  "sponsor_kind": "org",
+  "repayment": {
+   "sponsor": "bawes-fleet",
+   "repaid": 1,
+   "outstanding_after": 2
+  }
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1787036410",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1787036410",
+  "verification_request_ts": 1787036410,
+  "signer": "scientists-001",
+  "response_signature": "3045022100ee01dff0711270674c82839e875930fdd7be4bfb91a0d7c908678988bd4e881002203ceff2c93d2a0953c0df798c01166df4d14ba33c1db425ab874c5c3c219f3b5a",
+  "bananas": 0,
+  "gross_bananas": 1,
+  "ts": "2026-08-18T08:00:06.832560Z",
+  "sponsor_id": "bawes-fleet",
+  "sponsor_kind": "org",
+  "repayment": {
+   "sponsor": "bawes-fleet",
+   "repaid": 1,
+   "outstanding_after": 1
+  }
+ },
+ {
+  "kind": "earn",
+  "card_id": "earn-loop-1787038208",
+  "probe_id": "probe-earn-verify-001",
+  "brick_id": "earn-loop-001",
+  "person_id": "bawes-fleet-agi",
+  "dispatch_id": "verify-1787038208",
+  "verification_request_ts": 1787038208,
+  "signer": "scientists-001",
+  "response_signature": "304502203d324d72f3bc56d94ea37ab817652b49e90747c727abade8f74308fb2811fbe10221009d5896b5faa0c7c8439b954709d6b521023a529f13949927c6a66da24cc7b4a4",
+  "bananas": 0,
+  "gross_bananas": 1,
+  "ts": "2026-08-18T08:00:06.841294Z",
+  "sponsor_id": "bawes-fleet",
+  "sponsor_kind": "org",
+  "repayment": {
+   "sponsor": "bawes-fleet",
+   "repaid": 1,
+   "outstanding_after": 0
+  }
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000401",
+  "kind": "wallet-open",
+  "person_id": "9000000000000401",
+  "ts": 1787053023.8931305
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000402",
+  "kind": "wallet-open",
+  "person_id": "9000000000000402",
+  "ts": 1787053081.386232
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000403",
+  "kind": "wallet-open",
+  "person_id": "9000000000000403",
+  "ts": 1787053089.7302208
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000404",
+  "kind": "wallet-open",
+  "person_id": "9000000000000404",
+  "ts": 1787053101.7071254
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000405",
+  "kind": "wallet-open",
+  "person_id": "9000000000000405",
+  "ts": 1787053114.624989
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000406",
+  "kind": "wallet-open",
+  "person_id": "9000000000000406",
+  "ts": 1787053128.3505826
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000407",
+  "kind": "wallet-open",
+  "person_id": "9000000000000407",
+  "ts": 1787053140.6610415
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000408",
+  "kind": "wallet-open",
+  "person_id": "9000000000000408",
+  "ts": 1787053153.1423693
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000409",
+  "kind": "wallet-open",
+  "person_id": "9000000000000409",
+  "ts": 1787053168.132232
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000410",
+  "kind": "wallet-open",
+  "person_id": "9000000000000410",
+  "ts": 1787053181.0479646
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000411",
+  "kind": "wallet-open",
+  "person_id": "9000000000000411",
+  "ts": 1787053197.5906725
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000412",
+  "kind": "wallet-open",
+  "person_id": "9000000000000412",
+  "ts": 1787053212.2011611
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000413",
+  "kind": "wallet-open",
+  "person_id": "9000000000000413",
+  "ts": 1787053223.235157
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000414",
+  "kind": "wallet-open",
+  "person_id": "9000000000000414",
+  "ts": 1787053245.5539896
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000415",
+  "kind": "wallet-open",
+  "person_id": "9000000000000415",
+  "ts": 1787053261.551255
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000416",
+  "kind": "wallet-open",
+  "person_id": "9000000000000416",
+  "ts": 1787053277.4434268
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000417",
+  "kind": "wallet-open",
+  "person_id": "9000000000000417",
+  "ts": 1787053284.177943
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000418",
+  "kind": "wallet-open",
+  "person_id": "9000000000000418",
+  "ts": 1787053301.516088
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000419",
+  "kind": "wallet-open",
+  "person_id": "9000000000000419",
+  "ts": 1787053314.9702303
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000420",
+  "kind": "wallet-open",
+  "person_id": "9000000000000420",
+  "ts": 1787053329.7890716
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000421",
+  "kind": "wallet-open",
+  "person_id": "9000000000000421",
+  "ts": 1787053342.1891615
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000422",
+  "kind": "wallet-open",
+  "person_id": "9000000000000422",
+  "ts": 1787053352.7981226
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000423",
+  "kind": "wallet-open",
+  "person_id": "9000000000000423",
+  "ts": 1787053370.0121737
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000424",
+  "kind": "wallet-open",
+  "person_id": "9000000000000424",
+  "ts": 1787053391.572986
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000425",
+  "kind": "wallet-open",
+  "person_id": "9000000000000425",
+  "ts": 1787053404.2689784
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000501",
+  "kind": "wallet-open",
+  "person_id": "9000000000000501",
+  "ts": 1787055331.8435857
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000555",
+  "kind": "wallet-open",
+  "person_id": "9000000000000555",
+  "ts": 1787055575.6832433
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000888",
+  "kind": "wallet-open",
+  "person_id": "9000000000000888",
+  "ts": 1787056292.2225618
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000777",
+  "kind": "wallet-open",
+  "person_id": "9000000000000777",
+  "ts": 1787058922.628411
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000889",
+  "kind": "wallet-open",
+  "person_id": "9000000000000889",
+  "ts": 1787059017.2762024
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000890",
+  "kind": "wallet-open",
+  "person_id": "9000000000000890",
+  "ts": 1787059168.7226727
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000891",
+  "kind": "wallet-open",
+  "person_id": "9000000000000891",
+  "ts": 1787059334.95223
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000921",
+  "kind": "wallet-open",
+  "person_id": "9000000000000921",
+  "ts": 1787059390.1911404
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-189055515819638794",
+  "kind": "wallet-open",
+  "person_id": "189055515819638794",
+  "ts": 1787068490.7490246
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-347414147098607617",
+  "kind": "wallet-open",
+  "person_id": "347414147098607617",
+  "ts": 1787076061.5818117
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000701",
+  "kind": "wallet-open",
+  "person_id": "9000000000000701",
+  "ts": 1787084789.4433002
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9100000000000001",
+  "kind": "wallet-open",
+  "person_id": "9100000000000001",
+  "ts": 1787096341.5185704
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9100000000000002",
+  "kind": "wallet-open",
+  "person_id": "9100000000000002",
+  "ts": 1787096348.829369
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9100000000000003",
+  "kind": "wallet-open",
+  "person_id": "9100000000000003",
+  "ts": 1787096357.1858451
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9100000000000011",
+  "kind": "wallet-open",
+  "person_id": "9100000000000011",
+  "ts": 1787099597.913823
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9100000000000012",
+  "kind": "wallet-open",
+  "person_id": "9100000000000012",
+  "ts": 1787099619.589441
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9100000000000013",
+  "kind": "wallet-open",
+  "person_id": "9100000000000013",
+  "ts": 1787099634.8940616
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000799",
+  "kind": "wallet-open",
+  "person_id": "9000000000000799",
+  "ts": 1787100314.6233056
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000725",
+  "kind": "wallet-open",
+  "person_id": "9000000000000725",
+  "ts": 1787100495.0544899
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000726",
+  "kind": "wallet-open",
+  "person_id": "9000000000000726",
+  "ts": 1787100503.419718
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000705",
+  "kind": "wallet-open",
+  "person_id": "9000000000000705",
+  "ts": 1787101226.4066079
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000702",
+  "kind": "wallet-open",
+  "person_id": "9000000000000702",
+  "ts": 1787101303.9389153
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000703",
+  "kind": "wallet-open",
+  "person_id": "9000000000000703",
+  "ts": 1787101495.2511287
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000704",
+  "kind": "wallet-open",
+  "person_id": "9000000000000704",
+  "ts": 1787101502.7157516
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000706",
+  "kind": "wallet-open",
+  "person_id": "9000000000000706",
+  "ts": 1787101519.4680097
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000707",
+  "kind": "wallet-open",
+  "person_id": "9000000000000707",
+  "ts": 1787101525.4725227
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000708",
+  "kind": "wallet-open",
+  "person_id": "9000000000000708",
+  "ts": 1787101533.3102891
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000709",
+  "kind": "wallet-open",
+  "person_id": "9000000000000709",
+  "ts": 1787101540.6072395
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000710",
+  "kind": "wallet-open",
+  "person_id": "9000000000000710",
+  "ts": 1787101546.8118477
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000711",
+  "kind": "wallet-open",
+  "person_id": "9000000000000711",
+  "ts": 1787101556.0622966
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000712",
+  "kind": "wallet-open",
+  "person_id": "9000000000000712",
+  "ts": 1787101566.4188702
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000713",
+  "kind": "wallet-open",
+  "person_id": "9000000000000713",
+  "ts": 1787101575.5229516
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000714",
+  "kind": "wallet-open",
+  "person_id": "9000000000000714",
+  "ts": 1787101584.9515288
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000715",
+  "kind": "wallet-open",
+  "person_id": "9000000000000715",
+  "ts": 1787101591.840323
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000716",
+  "kind": "wallet-open",
+  "person_id": "9000000000000716",
+  "ts": 1787101599.4021747
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000717",
+  "kind": "wallet-open",
+  "person_id": "9000000000000717",
+  "ts": 1787101609.283692
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000718",
+  "kind": "wallet-open",
+  "person_id": "9000000000000718",
+  "ts": 1787101616.5774486
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000719",
+  "kind": "wallet-open",
+  "person_id": "9000000000000719",
+  "ts": 1787101628.8154998
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000720",
+  "kind": "wallet-open",
+  "person_id": "9000000000000720",
+  "ts": 1787101636.3684833
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000721",
+  "kind": "wallet-open",
+  "person_id": "9000000000000721",
+  "ts": 1787101643.6210089
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000722",
+  "kind": "wallet-open",
+  "person_id": "9000000000000722",
+  "ts": 1787101653.434936
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000723",
+  "kind": "wallet-open",
+  "person_id": "9000000000000723",
+  "ts": 1787101667.1286438
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-9000000000000724",
+  "kind": "wallet-open",
+  "person_id": "9000000000000724",
+  "ts": 1787101677.401115
+ },
+ {
+  "kind": "dock",
+  "brick_id": "brick",
+  "person_id": "brick",
+  "bananas": -13,
+  "reason": "mishari delivery fabrication (4th recurrence): 5 state-loss + 2 oversight + 6 lost-work. DA ruling khalid-signed 2026-08-19, ruling commit b1afb53",
+  "proposer": "AGI",
+  "accepted": "brick",
+  "pool": "fabrication-ruling",
+  "ruling_sha": "b1afb532ee70070ff5e640ee3ae5ecccf2609557",
+  "ts": 1787147691.7405527
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-690554066815811625",
+  "kind": "wallet-open",
+  "person_id": "690554066815811625",
+  "ts": 1787304797.7498305
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-754832736803356808",
+  "kind": "wallet-open",
+  "person_id": "754832736803356808",
+  "ts": 1787444798.926478
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-754832736803356808",
+  "kind": "wallet-open",
+  "person_id": "754832736803356808",
+  "ts": 1787444817.7124054
+ },
+ {
+  "balance": 0,
+  "brick_id": "brick-189055515819638794",
+  "kind": "wallet-open",
+  "person_id": "189055515819638794",
+  "ts": 1787493715.4002953
+ },
+ {
+  "kind": "wallet-open",
+  "brick_id": "spawn-neurologist-001-001",
+  "person_id": "spawn-neurologist-001-001",
+  "balance": 0,
+  "ts": 1787614810.9749496
+ },
+ {
+  "kind": "earn",
+  "card_id": "mint-discord-auth-001",
+  "probe_id": "verify-1787685950",
+  "brick_id": "ox-alpha",
+  "person_id": "ox-alpha",
+  "bananas": 5,
+  "artifact_sha": "ffa9b5d456a0f21f",
+  "artifact": "discord_auth.py",
+  "cost": 0,
+  "verifier": "agi",
+  "verifier_note": "AGI non-earner verification; artifact exists + content verified",
+  "ts": 1787685950,
+  "notes": "Discord OAuth2 login, 20/20 tests PASS, on OVH /srv/build/fleet-dashboard/discord-auth/"
+ },
+ {
+  "kind": "earn",
+  "card_id": "mint-hearth-sdk-spec-001",
+  "probe_id": "verify-1787685950",
+  "brick_id": "ox-worker",
+  "person_id": "ox-worker",
+  "bananas": 2,
+  "artifact_sha": "6f7b41da2230cb0b",
+  "artifact": "hearth-sdk-spec.1787609266.txt",
+  "cost": 0,
+  "verifier": "agi",
+  "verifier_note": "AGI non-earner verification; artifact exists + content verified",
+  "ts": 1787685950,
+  "notes": "Hearth SDK spec, 7KB, seeded to vector store (novel)"
+ },
+ {
+  "kind": "earn",
+  "card_id": "mint-wallet-merge-spec-001",
+  "probe_id": "verify-1787685950",
+  "brick_id": "ox-worker",
+  "person_id": "ox-worker",
+  "bananas": 2,
+  "artifact_sha": "a1c43a1ceeddee74",
+  "artifact": "wallet-merge-spec.1787608558.txt",
+  "cost": 0,
+  "verifier": "agi",
+  "verifier_note": "AGI non-earner verification; artifact exists + content verified",
+  "ts": 1787685950,
+  "notes": "Wallet merge spec, 6KB, seeded to vector store (novel)"
+ },
+ {
+  "kind": "earn",
+  "card_id": "mint-gcc-research-001",
+  "probe_id": "verify-1787685950",
+  "brick_id": "ox-alpha",
+  "person_id": "ox-alpha",
+  "bananas": 3,
+  "artifact_sha": "5f9e110f0dd03c78",
+  "artifact": "gcc-payments-research-brief.md",
+  "cost": 0,
+  "verifier": "agi",
+  "verifier_note": "AGI non-earner verification; artifact exists + content verified",
+  "ts": 1787685950,
+  "notes": "GCC payments research, ~60 sources, market sizing validated strategy"
+ },
+ {
+  "kind": "earn",
+  "card_id": "mint-ux-seeds-001",
+  "probe_id": "verify-1787685950",
+  "brick_id": "ox-worker",
+  "person_id": "ox-worker",
+  "bananas": 2,
+  "artifact_sha": "e79d03d5ab07cd14",
+  "artifact": "ux-* specs x4",
+  "cost": 0,
+  "verifier": "agi",
+  "verifier_note": "AGI non-earner verification; artifact exists + content verified",
+  "ts": 1787685950,
+  "notes": "4 Hearth UX specs seeded to vector store (novel)"
+ },
+ {
+  "kind": "earn",
+  "card_id": "mint-b2-0",
+  "probe_id": "verify-b2-1787693116",
+  "brick_id": "ox-worker",
+  "person_id": "ox-worker",
+  "bananas": 2,
+  "artifact_sha": "ffa4256cd496f7a3",
+  "artifact": "gen-1787690156-1.1787690409.txt",
+  "cost": 0,
+  "verifier": "agi",
+  "verifier_note": "AGI non-earner verification: output >8KB, on disk",
+  "ts": 1787693116
+ },
+ {
+  "kind": "earn",
+  "card_id": "mint-b2-1",
+  "probe_id": "verify-b2-1787693116",
+  "brick_id": "ox-worker",
+  "person_id": "ox-worker",
+  "bananas": 2,
+  "artifact_sha": "80835a7014ee6a61",
+  "artifact": "gen-1787690316-0.1787690665.txt",
+  "cost": 0,
+  "verifier": "agi",
+  "verifier_note": "AGI non-earner verification: output >8KB, on disk",
+  "ts": 1787693116
+ },
+ {
+  "kind": "earn",
+  "card_id": "mint-b2-2",
+  "probe_id": "verify-b2-1787693116",
+  "brick_id": "ox-worker",
+  "person_id": "ox-worker",
+  "bananas": 2,
+  "artifact_sha": "05a20076b6399cb4",
+  "artifact": "gen-1787690316-1.1787690770.txt",
+  "cost": 0,
+  "verifier": "agi",
+  "verifier_note": "AGI non-earner verification: output >8KB, on disk",
+  "ts": 1787693116
+ },
+ {
+  "kind": "earn",
+  "card_id": "mint-b2-3",
+  "probe_id": "verify-b2-1787693116",
+  "brick_id": "ox-worker",
+  "person_id": "ox-worker",
+  "bananas": 2,
+  "artifact_sha": "0d4ca3e8d8d2195f",
+  "artifact": "gen-1787690682-0.1787691575.txt",
+  "cost": 0,
+  "verifier": "agi",
+  "verifier_note": "AGI non-earner verification: output >8KB, on disk",
+  "ts": 1787693116
+ },
+ {
+  "kind": "earn",
+  "card_id": "mint-b2-4",
+  "probe_id": "verify-b2-1787693116",
+  "brick_id": "ox-worker",
+  "person_id": "ox-worker",
+  "bananas": 2,
+  "artifact_sha": "1dfe30e6c9aab2df",
+  "artifact": "gen-1787690682-1.1787691873.txt",
+  "cost": 0,
+  "verifier": "agi",
+  "verifier_note": "AGI non-earner verification: output >8KB, on disk",
+  "ts": 1787693116
+ },
+ {
+  "kind": "earn",
+  "card_id": "mint-b2-5",
+  "probe_id": "verify-b2-1787693116",
+  "brick_id": "ox-worker",
+  "person_id": "ox-worker",
+  "bananas": 2,
+  "artifact_sha": "91df3243ca1d5b42",
+  "artifact": "gen-1787691590-0.1787692209.txt",
+  "cost": 0,
+  "verifier": "agi",
+  "verifier_note": "AGI non-earner verification: output >8KB, on disk",
+  "ts": 1787693116
+ }
+]{"kind": "invest", "person": "khalid", "person_id": "189055", "brick_id": "khalid-device-001", "project_id": "GE-1", "bananas": 2.0, "terms_sha": "cdc649e868d93c12", "card_id": "invest-ge1-khalid-2026-08-25", "ts": 1787702122.1285138, "status": "funded", "source": "fleet-dashboard /approvals (khalid sign)"}

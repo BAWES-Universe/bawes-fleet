@@ -1,0 +1,112 @@
+[
+ {
+  "ts": 1787705765,
+  "role": "scientist",
+  "title": "Burn output rate measured",
+  "detail": "Last 20 burns: avg 309 chars/output, median 0 \u2014 output quality profile.",
+  "metric": {
+   "avg_chars": 309
+  }
+ },
+ {
+  "ts": 1787705765,
+  "role": "neurologist",
+  "title": "Fleet connectivity mapped",
+  "detail": "13 agent identities touch the fleet records \u2014 the thought graph has 13 nodes.",
+  "metric": {
+   "agents": 13
+  }
+ },
+ {
+  "ts": 1787705765,
+  "role": "security",
+  "title": "Vault audit complete",
+  "detail": "37 key files in vault; 27 with group/other-readable bits \u2014 rotate or tighten.",
+  "metric": {
+   "keys": 37,
+   "loose": 27
+  }
+ },
+ {
+  "ts": 1787705765,
+  "role": "pipes",
+  "title": "Wrapper latency measured",
+  "detail": "brick_peer.sh state-read round-trip: 14.0ms \u2014 the peer transport is healthy.",
+  "metric": {
+   "latency_ms": 14.0
+  }
+ },
+ {
+  "ts": 1787705765,
+  "role": "pipes",
+  "title": "Queue throughput",
+  "detail": "13 pending of 367 goals \u2014 healthy depth.",
+  "metric": {
+   "pending": 13
+  }
+ },
+ {
+  "ts": 1787705765,
+  "role": "velocity",
+  "title": "Fleet utilization",
+  "detail": "2/76 threads live (2.6%) \u2014 push lanes.",
+  "metric": {
+   "utilization_pct": 2.6
+  }
+ },
+ {
+  "ts": 1787706002,
+  "role": "scientist",
+  "title": "Burn output rate measured",
+  "detail": "Last 20 burns: avg 388 chars/output, median 0 \u2014 output quality profile.",
+  "metric": {
+   "avg_chars": 388
+  }
+ },
+ {
+  "ts": 1787706002,
+  "role": "neurologist",
+  "title": "Fleet connectivity mapped",
+  "detail": "17 agent identities touch the fleet records \u2014 the thought graph has 17 nodes.",
+  "metric": {
+   "agents": 17
+  }
+ },
+ {
+  "ts": 1787706002,
+  "role": "security",
+  "title": "Vault audit complete",
+  "detail": "37 key files in vault; 27 with group/other-readable bits \u2014 rotate or tighten.",
+  "metric": {
+   "keys": 37,
+   "loose": 27
+  }
+ },
+ {
+  "ts": 1787706002,
+  "role": "pipes",
+  "title": "Wrapper latency measured",
+  "detail": "brick_peer.sh state-read round-trip: 21.6ms \u2014 the peer transport is healthy.",
+  "metric": {
+   "latency_ms": 21.6
+  }
+ },
+ {
+  "ts": 1787706002,
+  "role": "pipes",
+  "title": "Queue throughput",
+  "detail": "13 pending of 367 goals \u2014 healthy depth.",
+  "metric": {
+   "pending": 13
+  }
+ },
+ {
+  "ts": 1787706002,
+  "role": "velocity",
+  "title": "Fleet utilization",
+  "detail": "2/76 threads live (2.6%) \u2014 push lanes.",
+  "metric": {
+   "utilization_pct": 2.6
+  }
+ }
+]
