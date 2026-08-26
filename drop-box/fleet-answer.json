@@ -1,0 +1,1074 @@
+{
+ "question": "Every brick: every other brick available + status + working on + fleet velocity + direction",
+ "answered_by_file": "/srv/bricks/orchestrator/fleet-answer.json",
+ "generated_at": 1787733602.3083754,
+ "fleet_velocity": {
+  "receipts_1h": 48,
+  "receipts_24h": 592,
+  "stalled": false,
+  "minutes_since_activity": 4
+ },
+ "capacity_pct": null,
+ "bricks_total": null,
+ "bricks": [
+  {
+   "id": "brick-189055515819638794",
+   "status": "pending",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-347414147098607617",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-690554066815811625",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-754832736803356808",
+   "status": "pending",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-900000000000000101",
+   "status": "live",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-900000000000000102",
+   "status": "live",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-900000000000000103",
+   "status": "live",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000201",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000202",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000203",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000204",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000205",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000206",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000207",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000208",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000209",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000210",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000211",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000212",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000213",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000214",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000215",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000216",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000217",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000218",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000219",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000220",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000221",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000222",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000223",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000224",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000225",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000401",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000402",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000403",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000404",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000405",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000406",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000407",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000408",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000409",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000410",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000411",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000412",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000413",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000414",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000415",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000416",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000417",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000418",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000419",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000420",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000421",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000422",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000423",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000424",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000425",
+   "status": "live",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000501",
+   "status": "live",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000555",
+   "status": "live",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000701",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000702",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000703",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000704",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000705",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000706",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000707",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000708",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000709",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000710",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000711",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000712",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000713",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000714",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000715",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000716",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000717",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000718",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000719",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000720",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000721",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000722",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000723",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000724",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000725",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000726",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000777",
+   "status": "live",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000799",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000888",
+   "status": "live",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000889",
+   "status": "live",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000890",
+   "status": "live",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000891",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9000000000000921",
+   "status": "live",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9100000000000001",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9100000000000002",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9100000000000003",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9100000000000011",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9100000000000012",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "brick-9100000000000013",
+   "status": "parked",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "child-001",
+   "status": "?",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "clone-worker-001-07a7072d",
+   "status": "registered",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "clone-worker-001-1cd7f4f1",
+   "status": "registered",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "earn-loop-001",
+   "status": "live",
+   "role": "earner",
+   "earned_bananas": 7.0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "evolution-001",
+   "status": "live",
+   "role": "evolution",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": 280,
+   "lane": "free-ox"
+  },
+  {
+   "id": "invest-mgr-001",
+   "status": "live",
+   "role": "investment-manager",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "machine-time-pool-001",
+   "status": "live",
+   "role": "machine-time-pool",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "mishari-cloud-001",
+   "status": "live",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "neurologist-001",
+   "status": "live",
+   "role": "neurologist",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": 280,
+   "lane": "free-ox"
+  },
+  {
+   "id": "ovh-server-001",
+   "status": "live",
+   "role": "mother",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "ox-worker",
+   "status": "registered",
+   "role": "ox-worker",
+   "earned_bananas": 18.0,
+   "working_on": null,
+   "last_activity_mins_ago": 789,
+   "lane": "?"
+  },
+  {
+   "id": "reaper-001",
+   "status": "live",
+   "role": "reaper",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "scientist-001",
+   "status": "live",
+   "role": "scientist",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": 280,
+   "lane": "free-ox"
+  },
+  {
+   "id": "scientists-001",
+   "status": "?",
+   "role": "non-earner",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "security-001",
+   "status": "live",
+   "role": "security",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": 280,
+   "lane": "free-ox"
+  },
+  {
+   "id": "spawn-neurologist-001-001",
+   "status": "?",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  },
+  {
+   "id": "worker-001",
+   "status": "live",
+   "role": "worker",
+   "earned_bananas": 0,
+   "working_on": null,
+   "last_activity_mins_ago": null,
+   "lane": null
+  }
+ ],
+ "direction": [
+  {
+   "title": "GE-1 milestone: payments provider matrix gap analysis",
+   "id": "t_seed_1787733301_0"
+  },
+  {
+   "title": "GE-2 milestone: wallet service interface draft",
+   "id": "t_seed_1787733301_1"
+  },
+  {
+   "title": "NET-1: lane-decay config draft",
+   "id": "t_seed_1787733301_2"
+  },
+  {
+   "title": "Corpus: distill door consent transcripts into onboarding lessons",
+   "id": "t_seed_1787733301_3"
+  },
+  {
+   "title": "SEC-1 follow-up: verify plugn key rotation plan tiers",
+   "id": "t_seed_1787733602_0"
+  }
+ ],
+ "tasks_done": 413,
+ "canonical_rule": "Every brick answers from this file ONLY. Divergence = broken brick."
+}
