@@ -1,0 +1,35 @@
+{
+ "brick_id": "ovh-server-001",
+ "host": "vps-d0a39fb4",
+ "platform": "Linux-7.0.0-14-generic-x86_64-with-glibc2.43",
+ "cpu_cores": 4,
+ "cpu_load_1m": 1.94,
+ "cpu_util_pct": 48.5,
+ "mem_total_mb": 7746,
+ "mem_used_mb": 1381,
+ "threads_available": 32,
+ "threads_in_use": 80,
+ "procs": 80,
+ "heartbeat_ts": 1787744941.5545795,
+ "heartbeat_age_s": 0,
+ "working_on": "t_seed_1787744401_3",
+ "config": {
+  "model_lanes": [
+   "free-ox",
+   "deepseek-api"
+  ],
+  "skills": [
+   "pool",
+   "verify",
+   "router"
+  ],
+  "budget_cap_daily": 2.0
+ },
+ "can_run": [
+  "scientist",
+  "da",
+  "rebel",
+  "verifier",
+  "worker"
+ ]
+}
