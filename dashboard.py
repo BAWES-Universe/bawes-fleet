@@ -5346,6 +5346,18 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(500, _j.dumps({"error": f"fleet-answer unavailable: {_e}"}).encode(), "application/json")
                 return
 
+        if path == "/api/fleet-realtime":
+            # PUBLIC realtime fleet snapshot — who's alive, box state, queue.
+            try:
+                import json as _jr
+                with open("/srv/bricks/orchestrator/fleet-realtime.json") as _fr:
+                    _rt = _jr.load(_fr)
+                self._send(200, _jr.dumps(_rt, default=str).encode(), "application/json")
+                return
+            except Exception as _er:
+                self._send(500, _jr.dumps({"error": f"fleet-realtime unavailable: {_er}"}).encode(), "application/json")
+                return
+
         if path == "/api/webhook" and self.command == "POST":
             import json as _jw
             try:
@@ -5597,6 +5609,12 @@ class Handler(BaseHTTPRequestHandler):
             # CAPACITY BOARD + epic tracker panel (session-gated like /approvals).
             try:
                 html = open(os.path.join(BASE, "capacity.html"), "rb").read()
+        elif path == "/fleet-live":
+            try:
+                html = open(os.path.join(BASE, "fleet-live.html"), "rb").read()
+                self._send(200, html, "text/html; charset=utf-8")
+            except FileNotFoundError:
+                self._send(500, b"fleet-live.html missing", "text/plain")
                 self._send(200, html, "text/html; charset=utf-8")
             except FileNotFoundError:
                 self._send(500, b"capacity.html missing", "text/plain")

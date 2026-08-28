@@ -9031,3 +9031,29 @@ INFO:     Waiting for application shutdown.
 StreamableHTTP session manager shutting down
 INFO:     Application shutdown complete.
 [Fri Aug 28 12:45:04 UTC 2026] FAILED to start
+/srv/build/fleet-dashboard/mcp-venv/lib/python3.14/site-packages/pydantic_settings/sources/utils.py:47: IncompleteFieldDefinitionWarning: Field 'lifespan' has an incomplete definition: its annotation contains an unresolved forward reference, so settings sources may fail to correctly resolve its value. Call `model_rebuild()` on the model where the field is defined, once all the referenced types are defined.
+  warnings.warn(
+Fleet-data MCP: http://0.0.0.0:8004/mcp
+Health: http://0.0.0.0:8004/health
+INFO:     Started server process [2267488]
+INFO:     Waiting for application startup.
+StreamableHTTP session manager started
+INFO:     Application startup complete.
+ERROR:    [Errno 98] error while attempting to bind on address ('0.0.0.0', 8004): [errno 98] address already in use
+INFO:     Waiting for application shutdown.
+StreamableHTTP session manager shutting down
+INFO:     Application shutdown complete.
+[Fri Aug 28 12:50:04 UTC 2026] FAILED to start
+/srv/build/fleet-dashboard/mcp-venv/lib/python3.14/site-packages/pydantic_settings/sources/utils.py:47: IncompleteFieldDefinitionWarning: Field 'lifespan' has an incomplete definition: its annotation contains an unresolved forward reference, so settings sources may fail to correctly resolve its value. Call `model_rebuild()` on the model where the field is defined, once all the referenced types are defined.
+  warnings.warn(
+Fleet-data MCP: http://0.0.0.0:8004/mcp
+Health: http://0.0.0.0:8004/health
+INFO:     Started server process [2271239]
+INFO:     Waiting for application startup.
+StreamableHTTP session manager started
+INFO:     Application startup complete.
+ERROR:    [Errno 98] error while attempting to bind on address ('0.0.0.0', 8004): [errno 98] address already in use
+INFO:     Waiting for application shutdown.
+StreamableHTTP session manager shutting down
+INFO:     Application shutdown complete.
+[Fri Aug 28 12:55:04 UTC 2026] FAILED to start
