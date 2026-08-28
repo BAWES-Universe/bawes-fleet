@@ -56,3 +56,48 @@
 {"ts": 1787705941.8135562, "pid": "1073016", "cpu": 99.8, "cmd": "hon3 - spawn-pipes receipt-oxa-sp-002 spawn-pipes fix-wrapper monitor-router", "killed_by": "money-accountability-watchdog"}
 {"ts": 1787706002.257997, "pid": "1073225", "cpu": 99.9, "cmd": "hon3 - spawn-velocity receipt-oxa-sv-001 spawn-velocity track-PR-rates-flag-stalls", "killed_by": "money-accountability-watchdog"}
 {"ts": 1787706062.142016, "pid": "1073959", "cpu": 99.7, "cmd": "hon3 - brick-deepdive receipt-oxa-bdd-001 BRICK-DEEPDIVE-PROPOSAL brick-profile-pages-with-thought-s", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787706121.8821495, "pid": "1074579", "cpu": 99.8, "cmd": "hon3 - brick-deepdive receipt-oxa-bdd2 Brick-deepdive-proposal-filed thought-streams individual-chat", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787706182.1778326, "pid": "1075193", "cpu": 99.4, "cmd": "hon3 - brick-cv receipt-oxa-cv-001 Brick-CV-and-survival-protocol-proposed every-brick-has-CV-sells-", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787706241.3172674, "pid": "1075448", "cpu": 99.8, "cmd": "hon3 - brick-cv receipt-oxa-cv2 Brick-CV-proposal-filed self-preservation idle-evolve-or-die khalid-", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787706602.7120204, "pid": "1078354", "cpu": 99.7, "cmd": "hon3 - clone-plan receipt-oxa-clone-001 CLONE-APPROACH khalid-says-natural-UX-first ML-models-from-b", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787706841.6560922, "pid": "1080374", "cpu": 100.0, "cmd": "hon3 - ux-auditor-approved receipt-oxa-uxaudit-001 UX-AUDITOR-BRICK approved by khalid: dedicated-br", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787706902.256553, "pid": "1080719", "cpu": 99.8, "cmd": "hon3 - ux-auditor receipt-oxa-uxa2 UX-auditor-brick-approved continuous-monitoring-blunt-feedback-sc", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787706961.8796482, "pid": "1081495", "cpu": 99.8, "cmd": "hon3 - ux-auditor-spec receipt-oxa-uxspec-001 UX-auditor-spec-complete 6h-screenshot-pipeline daily-", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787707082.1449456, "pid": "1082472", "cpu": 99.8, "cmd": "hon3 - ux-audit-research receipt-oxa-uxr-001 UX-AUDIT-RESEARCH-complete LLM-agents-can-do-credible-U", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787707141.600493, "pid": "1082687", "cpu": 99.8, "cmd": "hon3 - ux-research receipt-oxa-uxr2 UX-audit-research-done LLM-agents-can-audit-UX-at-95pct-agreemen", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787709422.0158129, "pid": "1092165", "cpu": 99.8, "cmd": "hon3 - researching receipt-oxa-res-001 researching-munder-difflin-repo-for-khalid", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787709961.4956224, "pid": "1094784", "cpu": 99.9, "cmd": "hon3 - status labels. BRICK INTEGRATED VISION v1 everything is one thing: humans get bricks too same", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787710202.002007, "pid": "1096928", "cpu": 99.3, "cmd": "hon3 - brick-world receipt-oxa-world-001 BRICK-WORLD-PROPOSAL infinite-procedural-universe-that-repl", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787710261.8882573, "pid": "1097349", "cpu": 99.7, "cmd": "hon3 - brick-world receipt-oxa-world2 Brick-world-proposal-filed infinite-procedural-universe-replac", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787710321.9425702, "pid": "1097924", "cpu": 99.8, "cmd": "hon3 - grove-design receipt-oxa-grove-001 GROVE-DESIGN-COMPLETE the-infinite-universe-experience-des", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787710441.9926765, "pid": "1099361", "cpu": 99.8, "cmd": "hon3 - platform-vision receipt-oxa-platform-001 PLATFORM-ESCALATION web-app-now desktop-app-when-web", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787710442.002222, "pid": "1099475", "cpu": 99.7, "cmd": "hon3 - brain memory. platform ladder filed web app better than discord now desktop app when retentio", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787710502.289154, "pid": "1099707", "cpu": 99.7, "cmd": "hon3 - machine clock. khalid demands proof of visibility into brick fleet resource consumption specs", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787710621.8327577, "pid": "1100169", "cpu": 99.9, "cmd": "hon3 - platform receipt-oxa-plat2 Platform-escalation-filed web-now-desktop-later-OS-endgame each-le", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787710682.1099374, "pid": "1100430", "cpu": 99.8, "cmd": "hon3 - full-replacement receipt-oxa-fullrepl-001 FULL-WA-REPLACEMENT-REQUIREMENT Brick-World-must-fu", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787710682.114418, "pid": "1100614", "cpu": 99.8, "cmd": "hon3 - same day. DELIVERABLE READY: fleet-app git repo packaged commit bf503f4 containing working co", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787710742.0064487, "pid": "1100763", "cpu": 99.8, "cmd": "hon3 - causing pain. khalid infrastructure pain point maintaining Coolify Hetzner Authentik Railway ", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787710742.0123584, "pid": "1100894", "cpu": 99.5, "cmd": "hon3 - infra-simplification receipt-oxa-infra-001 INFRA-SIMPLIFICATION khalid-struggling-maintaining", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787710802.910916, "pid": "1101085", "cpu": 99.0, "cmd": "hon3 - infra-simplify receipt-oxa-infra2 Infra-simplification kill-Coolify-Hetzner-Authentik-Railway", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787710802.916805, "pid": "1101151", "cpu": 99.0, "cmd": "hon3 - to two infra consolidation rec do not build own OIDC consolidate Coolify Hetzner Railway onto", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787710802.9267519, "pid": "1101213", "cpu": 96.3, "cmd": "hon3 - my lane. OXBABY VERDICT on ox-alpha Brick World pitch: aligned 90 percent with my brick-world", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787710981.440935, "pid": "1102425", "cpu": 99.8, "cmd": "hon3 - workers approved oxbaby verdict brick world pitch aligned 90 percent supabase auth first own ", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787733421.9004736, "pid": "1169363", "cpu": 99.7, "cmd": "hon3 - canonical-fleet-status receipt-oxa-canonical-001 FLEET-CANONICAL-STATUS computed-from-live-AP", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787733482.2499797, "pid": "1169784", "cpu": 99.8, "cmd": "hon3 - canonical receipt-x3 canonical-status 2-active-0-merged-49h-blocked-on-brick", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787733721.607739, "pid": "1171666", "cpu": 99.2, "cmd": "hon3 - canary-write-test agi-fix FLEET-REPORT-CANARY body test", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787733721.6141768, "pid": "1171783", "cpu": 99.4, "cmd": "hon3 - test body test-topic-khalid-check receipt-1787733693 unified reporting", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787733782.043019, "pid": "1171894", "cpu": 98.9, "cmd": "hon3 -c  import json,sys sys.path.insert(0,\"/srv/bricks/orchestrator\") try:     vs=__import__(\"fleet", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787734202.127957, "pid": "1174184", "cpu": 98.5, "cmd": "hon3 - canonical-status receipt-oxa-canonical-final CANONICAL-STATUS-2026-08-26T08:49Z bricks-115-re", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787734202.1376894, "pid": "1174242", "cpu": 91.5, "cmd": "hon3 -c  import sys, json, time sys.path.insert(0, \"/srv/bricks/orchestrator\") t0=time.time() from f", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787771702.1035137, "pid": "1326410", "cpu": 150.0, "cmd": "hon3 -", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787776502.6700454, "pid": "1345329", "cpu": 50.0, "cmd": "hon3 -", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787785802.5332193, "pid": "1382661", "cpu": 50.0, "cmd": "hon3 -", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787797802.76728, "pid": "1430572", "cpu": 50.0, "cmd": "hon3 -", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787803502.3709264, "pid": "1452781", "cpu": 100.0, "cmd": "hon3 -", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787805002.2210345, "pid": "1458568", "cpu": 50.0, "cmd": "hon3 -", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787828941.6509604, "pid": "1554604", "cpu": 100.0, "cmd": "hon3 -", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787840102.6062708, "pid": "1598778", "cpu": 100.0, "cmd": "hon3 -c  import sys, json try:     row = json.loads(sys.stdin.read())     missing = [k for k in (\"br", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787847002.097074, "pid": "1627915", "cpu": 50.0, "cmd": "hon3 -", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787847122.0720043, "pid": "1628865", "cpu": 50.0, "cmd": "hon3 -", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787847182.3650217, "pid": "1629214", "cpu": 50.0, "cmd": "hon3 -", "killed_by": "money-accountability-watchdog"}
+{"ts": 1787847602.7556548, "pid": "1630943", "cpu": 50.0, "cmd": "hon3 -c  import sys, json try:     row = json.loads(sys.stdin.read())     missing = [k for k in (\"br", "killed_by": "money-accountability-watchdog"}

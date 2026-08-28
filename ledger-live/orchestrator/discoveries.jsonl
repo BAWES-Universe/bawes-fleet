@@ -1,18 +1,50 @@
 [
  {
   "id": "relic-200docs",
-  "ts": 1787705602,
+  "ts": 1787849402,
   "kind": "RELIC",
   "title": "The Brain holds 200+ records",
-  "detail": "Vector store at 264 docs \u2014 the collective memory is growing.",
+  "detail": "Vector store at 344 docs \u2014 the collective memory is growing.",
   "xp": 20
  },
  {
+  "id": "mint-40",
+  "ts": 1787849402,
+  "kind": "MILESTONE",
+  "title": "40 bananas minted on verified work",
+  "detail": "The economy is alive: 42\ud83c\udf4c across 27 verified mints.",
+  "xp": 15
+ },
+ {
+  "id": "pattern-top-roi",
+  "ts": 1787849402,
+  "kind": "PATTERN",
+  "title": "Discovery: burn lane is the highest-ROI lane",
+  "detail": "burn lane at ROI 1.8 \u2014 the pattern to replicate.",
+  "xp": 15
+ },
+ {
   "id": "durable-fleet",
-  "ts": 1787705602,
+  "ts": 1787849402,
   "kind": "SYSTEM",
   "title": "The fleet is durable \u2014 snapshots running",
   "detail": "Full state snapshot + off-box copy every 6h. A box can die; the fleet survives.",
   "xp": 15
+ },
+ {
+  "id": "telemetry-live",
+  "ts": 1787869801,
+  "kind": "SYSTEM",
+  "title": "3+ lanes heartbeating \u2014 the fleet sees itself",
+  "detail": "3 bricks reporting in realtime.",
+  "xp": 10
+ },
+ {
+  "id": "improve-5util",
+  "ts": 1787871601,
+  "kind": "IMPROVEMENT",
+  "title": "Fleet utilization passed 5%",
+  "detail": "Measured: 5.4% of threads live \u2014 the activation push is working.",
+  "xp": 25
  }
 ]

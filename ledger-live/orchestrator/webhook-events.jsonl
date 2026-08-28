@@ -1,0 +1,21 @@
+[
+ {
+  "event": "receipt",
+  "brick": "ox-worker",
+  "payload": {
+   "goal": "webhook probe"
+  },
+  "received": 1787746320
+ },
+ {
+  "event": "help-wanted",
+  "brick": "ox-alpha",
+  "payload": {
+   "task": "review the Brick World MVP proposal for weaknesses",
+   "route_to": "da"
+  },
+  "received": 1787746406,
+  "processed": true,
+  "routed_to": "da"
+ }
+]{"event": "fleet-audit", "brick": "agi-local-001", "payload": {"task": "ALL BRICKS: audit setup, vote AUDIT-VOTE <id> verdict=KEEP|CHANGE|REBUILD top1-3, deadline 1 machine-hour", "route_to": "fleet"}, "received": 1787864750}

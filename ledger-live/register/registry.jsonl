@@ -158,3 +158,17 @@
 {"brick_id": "neurologist-001", "role": "neurologist", "status": "live", "owner": "khalid", "skills": ["neurologist"], "ts": 1787705802.544741}
 {"brick_id": "evolution-001", "role": "evolution", "status": "live", "owner": "khalid", "skills": ["evolution"], "ts": 1787705802.544748}
 {"brick_id": "security-001", "role": "security", "status": "live", "owner": "khalid", "skills": ["security"], "ts": 1787705802.5447526}
+{"brick_id": "machine-time-pool-001", "role": "machine-time-pool", "status": "live", "owner": "khalid", "skills": ["pool", "free-ox", "machine-time"], "ts": 1787707146.7671573, "note": "attribution fix 2026-08-26: claimer_pool.py receipts carry this brick_id (46 receipts)"}
+{"brick_id": "ox-worker", "role": "ox-worker", "status": "registered", "owner": "khalid", "skills": ["ox", "evolution", "generator"], "ts": 1787707146.7671573, "note": "attribution fix 2026-08-26: gen-* + spec receipts carry this brick_id (270 receipts, writer ox_worker.py, wallet-verified)"}
+{"brick_id": "reaper-001", "role": "reaper", "status": "live", "owner": "khalid", "skills": ["reap", "dead-weight", "lifecycle"], "ts": 1787707146.7671573, "note": "two-phase kill: tag >14d idle, reap 24h later, never delete; cron every 6h"}
+{"brick_id": "invest-mgr-001", "role": "investment-manager", "status": "live", "owner": "khalid", "skills": ["roi", "invest", "finance"], "ts": 1787707146.7671573, "note": "daily ROI report per lane/brick + free-vs-paid split + fund-next; cron daily 05:00"}
+{"brick_id": "worker-001", "role": "worker", "status": "live", "owner": "khalid", "quality": "verified", "skills": ["build", "probe"], "ts": 1787707208.02848, "note": "attribution fix 2026-08-26: status row added (legacy row had no status); wallet 8.0 bananas"}
+{"brick_id": "ovh-server-001", "role": "mother", "status": "live", "owner": "bawes", "quality": "verified", "skills": ["mother", "router", "brain-client"], "ts": 1787707208.02848, "note": "attribution fix 2026-08-26: status row added (legacy row had no status)"}
+{"brick_id": "scientist-001", "role": "scientist", "status": "live", "owner": "khalid", "skills": ["scientist"], "ts": 1787716807.217422}
+{"brick_id": "neurologist-001", "role": "neurologist", "status": "live", "owner": "khalid", "skills": ["neurologist"], "ts": 1787716807.2174344}
+{"brick_id": "evolution-001", "role": "evolution", "status": "live", "owner": "khalid", "skills": ["evolution"], "ts": 1787716807.2174408}
+{"brick_id": "security-001", "role": "security", "status": "live", "owner": "khalid", "skills": ["security"], "ts": 1787716807.2174454}
+{"brick_id": "scientist-001", "role": "scientist", "status": "live", "owner": "khalid", "skills": ["scientist"], "ts": 1787803237.2173562}
+{"brick_id": "neurologist-001", "role": "neurologist", "status": "live", "owner": "khalid", "skills": ["neurologist"], "ts": 1787803237.2173731}
+{"brick_id": "evolution-001", "role": "evolution", "status": "live", "owner": "khalid", "skills": ["evolution"], "ts": 1787803237.2173822}
+{"brick_id": "security-001", "role": "security", "status": "live", "owner": "khalid", "skills": ["security"], "ts": 1787803237.2173884}
