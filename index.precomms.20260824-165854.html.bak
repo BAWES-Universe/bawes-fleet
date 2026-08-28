@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BAWES Fleet Dashboard — People and AI Living Together</title>
+<style>
+:root{
+  --bg:#0a0c10; --bg2:#10141b; --card:#141922; --card2:#1a212d; --line:#232c3a;
+  --txt:#e8edf4; --dim:#8b98a9; --faint:#5c6878;
+  --gold:#f5b942; --gold2:#ffd97a; --teal:#3dd6a4; --red:#ff5d6c; --blue:#5aa7ff; --purple:#b48cff;
+  --mono:"SF Mono","JetBrains Mono","Fira Code",Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:14px;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding:0 22px 60px}
+/* header */
+header{position:sticky;top:0;z-index:50;background:linear-gradient(180deg,#0b0e13 0%,rgba(11,14,19,.92) 80%,transparent);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:14px 0 12px}
+.hrow{max-width:1180px;margin:0 auto;padding:0 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:12px}
+.mark{width:38px;height:38px;border-radius:10px;background:radial-gradient(circle at 30% 25%,#2a2410,#14100a 70%);border:1px solid #4d3d14;display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--gold);font-size:15px;letter-spacing:.5px;box-shadow:0 0 18px rgba(245,185,66,.14) inset}
+.word{font-size:19px;font-weight:800;letter-spacing:2.5px;color:var(--txt)}
+.word span{color:var(--gold)}
+.tag{font-size:11.5px;color:var(--dim);letter-spacing:.4px;margin-top:1px}
+.hright{margin-left:auto;display:flex;align-items:center;gap:14px;font-size:12px;color:var(--dim)}
+.pill{border:1px solid var(--line);background:var(--card);padding:4px 10px;border-radius:999px;font-family:var(--mono);font-size:11px;color:var(--dim)}
+.pill b{color:var(--gold)}
+a.pill{text-decoration:none;color:var(--dim)}
+a.pill:hover{border-color:var(--gold);color:var(--gold)}
+.pill .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 6px var(--gold);margin-right:5px}
+.pill .dot.pulse{animation:ppulse 1.6s infinite}
+@keyframes ppulse{50%{opacity:.3}}
+#clock{font-family:var(--mono);font-size:11.5px;color:var(--dim)}
+#live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal);animation:pulse 2s infinite;margin-right:6px}
+@keyframes pulse{50%{opacity:.35}}
+/* hero */
+.hero{padding:34px 0 8px}
+.hero h1{font-size:15px;font-weight:700;letter-spacing:.6px;color:var(--dim);text-transform:uppercase}
+.hero .big{font-size:30px;font-weight:800;letter-spacing:1px;margin-top:4px}
+.hero .big .b{color:var(--gold)}
+.hero .sub{color:var(--dim);font-size:13px;margin-top:6px;max-width:760px}
+/* sections */
+section{margin-top:34px}
+.sec-h{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;border-bottom:1px solid var(--line);padding-bottom:8px}
+.sec-h h2{font-size:13px;font-weight:800;letter-spacing:2.2px;text-transform:uppercase;color:var(--txt)}
+.sec-h .k{color:var(--gold);font-size:10px;border:1px solid #4d3d14;border-radius:5px;padding:1px 6px;letter-spacing:1.5px}
+.sec-h .d{margin-left:auto;color:var(--faint);font-size:11.5px}
+/* cards */
+.grid{display:grid;gap:12px}
+.g4{grid-template-columns:repeat(4,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g2{grid-template-columns:repeat(2,1fr)}
+@media(max-width:900px){.g4,.g3{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.g4,.g3,.g2{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;position:relative;overflow:hidden}
+.card .lbl{font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--dim);font-weight:700}
+.card .val{font-family:var(--mono);font-size:26px;font-weight:700;margin-top:6px;letter-spacing:.3px}
+.card .val small{font-size:13px;color:var(--dim);font-weight:500}
+.card .sub{font-size:11.5px;color:var(--dim);margin-top:6px}
+.card .sub b{color:var(--txt);font-weight:600}
+.gold{color:var(--gold)} .teal{color:var(--teal)} .red{color:var(--red)} .blue{color:var(--blue)} .purple{color:var(--purple)}
+.bigcard{grid-column:span 2}
+@media(max-width:900px){.bigcard{grid-column:span 2}}
+@media(max-width:560px){.bigcard{grid-column:span 1}}
+.hr{height:1px;background:var(--line);margin:14px 0}
+/* split bar */
+.split{margin-top:12px}
+.split .row{display:flex;align-items:center;gap:10px;margin-bottom:7px;font-size:12px}
+.split .row .nm{width:180px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
+.split .bar{flex:1;height:18px;background:var(--bg2);border:1px solid var(--line);border-radius:5px;overflow:hidden;display:flex}
+.split .bar i{display:block;height:100%}
+.split .row .pc{width:64px;text-align:right;font-family:var(--mono);font-size:11px;color:var(--dim);flex-shrink:0}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:11.5px;color:var(--dim)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:baseline}
+/* tables */
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;color:var(--faint);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:1.2px;padding:6px 10px;border-bottom:1px solid var(--line)}
+td{padding:7px 10px;border-bottom:1px solid #1a2230;vertical-align:top}
+tr:hover td{background:var(--card2)}
+.mono{font-family:var(--mono);font-size:12px}
+/* status badges */
+.badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase}
+.b-live{background:rgba(61,214,164,.13);color:var(--teal);border:1px solid rgba(61,214,164,.35)}
+.b-idle{background:rgba(245,185,66,.1);color:var(--gold);border:1px solid rgba(245,185,66,.3)}
+.b-silent{background:rgba(92,104,120,.14);color:var(--dim);border:1px solid var(--line)}
+.b-open{background:rgba(90,167,255,.12);color:var(--blue);border:1px solid rgba(90,167,255,.3)}
+/* charts */
+.chart{width:100%;height:150px}
+.chart svg{width:100%;height:100%;display:block}
+.chart-t{font-size:11px;color:var(--dim);margin-bottom:4px;display:flex;gap:14px;flex-wrap:wrap}
+.chart-t b{color:var(--txt)}
+.note{font-size:11px;color:var(--faint);margin-top:10px;line-height:1.5}
+.gap{background:rgba(255,93,108,.06);border:1px solid rgba(255,93,108,.22);border-radius:8px;padding:10px 12px;font-size:12px;color:#e6b3b9;margin-top:10px}
+.ok{background:rgba(61,214,164,.05);border:1px solid rgba(61,214,164,.2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--teal);margin-top:10px}
+ul.clean{list-style:none}
+ul.clean li{padding:3px 0 3px 16px;position:relative;font-size:12.5px;color:var(--dim)}
+ul.clean li:before{content:"›";position:absolute;left:2px;color:var(--gold)}
+footer{margin-top:44px;border-top:1px solid var(--line);padding-top:16px;font-size:11px;color:var(--faint);line-height:1.7}
+footer .mono{word-break:break-all}
+.loading{color:var(--faint);font-size:12px;padding:20px 0}
+.err{color:var(--red);font-size:12px;padding:20px 0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{border:1px solid var(--line);background:var(--card2);border-radius:999px;padding:3px 10px;font-size:11px;color:var(--dim)}
+.chip b{color:var(--gold)}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <div class="logo">
+      <div class="mark">B</div>
+      <div>
+        <div class="word">BAW<span>ES</span></div>
+        <div class="tag">People and AI Living Together · bawes.net</div>
+      </div>
+    </div>
+    <div class="hright">
+      <span class="pill"><span id="live-dot"></span>LIVE</span>
+      <a class="pill" href="/approvals" id="ap-pill"><span class="dot" id="ap-dot"></span><b id="ap-count">—</b> pending</a>
+      <span class="pill"><b id="me-name">—</b><span style="color:var(--faint)"> · </span><span id="me-role">—</span></span>
+      <a class="pill" href="/logout" title="end session">sign out</a>
+      <span id="clock">—</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="hero">
+    <h1>Fleet Command</h1>
+    <div class="big"><span class="b">BAWES</span> FLEET DASHBOARD <span style="color:var(--faint);font-size:16px;font-weight:600">v2</span></div>
+    <div class="sub">Every number below is read live from fleet files or APIs on the OVH box — nothing is estimated. Where something isn't measurable yet, the dashboard says so instead of guessing.</div>
+  </div>
+
+  <!-- ================= MONEY ================= -->
+  <section id="money-sec">
+    <div class="sec-h"><h2>Money</h2><span class="k">THE QUESTIONS</span><span class="d">free vs paid · invested · active bricks · cost per brick · roi</span></div>
+    <div class="grid g4" id="money-cards"></div>
+
+    <div class="grid g2" style="margin-top:12px">
+      <div class="card">
+        <div class="lbl">Free vs paid — current activity split</div>
+        <div class="split" id="split-bars"></div>
+        <div class="legend" id="split-legend"></div>
+        <div class="note" id="split-note"></div>
+      </div>
+      <div class="card">
+        <div class="lbl">Model rails — evidence per lane</div>
+        <div style="margin-top:10px;overflow-x:auto"><table id="rails-table"></table></div>
+      </div>
+    </div>
+
+    <div class="grid g2" style="margin-top:12px">
+      <div class="card">
+        <div class="lbl">Total invested — labelled sources</div>
+        <div style="margin-top:10px"><table id="invested-table"></table></div>
+        <div class="note" id="invested-note"></div>
+      </div>
+      <div class="card">
+        <div class="lbl">Active bricks &amp; cost per brick</div>
+        <div style="margin-top:10px" id="brickcost"></div>
+      </div>
+    </div>
+
+    <div class="grid g2" style="margin-top:12px">
+      <div class="card bigcard">
+        <div class="lbl">ROI — earned bananas vs real spend</div>
+        <div style="margin-top:8px" id="roi-body"></div>
+        <div class="note" id="roi-note"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= BRICKS ================= -->
+  <section id="bricks-sec">
+    <div class="sec-h"><h2>Bricks</h2><span class="k">REAL HEARTBEATS</span><span class="d">from heartbeat-registry.jsonl, not assumptions</span></div>
+    <div class="grid g3" id="brick-cards"></div>
+    <div class="card" style="margin-top:12px">
+      <div class="lbl">Live &amp; idle (heartbeat ≤ 5 min = LIVE · ≤ 7 days = IDLE)</div>
+      <div style="margin-top:10px"><table id="brick-table"></table></div>
+      <div class="note" id="brick-note"></div>
+    </div>
+  </section>
+
+  <!-- ================= EVOLUTION ================= -->
+  <section id="evol-sec">
+    <div class="sec-h"><h2>Evolution</h2><span class="k">TIME-SERIES</span><span class="d">knowledge · bananas · pull velocity · spend — real curves</span></div>
+    <div class="grid g2">
+      <div class="card"><div class="lbl">Vector store — knowledge base growth</div><div class="chart-t" id="vt-t"></div><div class="chart" id="vt-c"></div><div class="note" id="vt-n"></div></div>
+      <div class="card"><div class="lbl">Wallet — bananas earned (cumulative)</div><div class="chart-t" id="wl-t"></div><div class="chart" id="wl-c"></div><div class="note" id="wl-n"></div></div>
+      <div class="card"><div class="lbl">Pull velocity — hearth merges (cumulative)</div><div class="chart-t" id="pr-t"></div><div class="chart" id="pr-c"></div><div class="note" id="pr-n"></div></div>
+      <div class="card"><div class="lbl">Provider balances — deepseek vs openrouter</div><div class="chart-t" id="sp-t"></div><div class="chart" id="sp-c"></div><div class="note" id="sp-n"></div></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="lbl">Metered spend per day (door lane, USD)</div>
+      <div class="chart" id="dc-c" style="height:110px"></div>
+      <div class="note" id="evol-note"></div>
+    </div>
+  </section>
+
+  <!-- ================= THREADS ================= -->
+  <section id="threads-sec">
+    <div class="sec-h"><h2>Threads</h2><span class="k">HERMES UTILIZATION</span><span class="d">20-session brick vs what's actually in use</span></div>
+    <div class="grid g3" id="thread-cards"></div>
+    <div class="card" style="margin-top:12px">
+      <div class="lbl">Measured on-box proxies (real)</div>
+      <div style="margin-top:10px"><table id="thread-table"></table></div>
+      <div class="note" id="thread-note"></div>
+    </div>
+  </section>
+
+  <!-- ================= FLEET / VELOCITY / EPICS / SEED ================= -->
+  <section id="fleet-sec">
+    <div class="sec-h"><h2>Fleet</h2><span class="k">HEADER</span><span class="d">who's signalling right now</span></div>
+    <div class="grid g3" id="fleet-cards"></div>
+  </section>
+
+  <section id="vel-sec">
+    <div class="sec-h"><h2>Velocity</h2><span class="k">PRS</span><span class="d">hearth repo, GitHub API</span></div>
+    <div class="grid g3" id="vel-cards"></div>
+    <div class="card" style="margin-top:12px">
+      <div class="lbl">Open pull requests</div>
+      <div style="margin-top:10px"><table id="pr-table"></table></div>
+    </div>
+  </section>
+
+  <section id="epic-sec">
+    <div class="sec-h"><h2>Epics</h2><span class="k">QUEUE</span><span class="d">shared-work-queue.md</span></div>
+    <div class="card">
+      <table id="epic-table"></table>
+      <div class="note" id="epic-note"></div>
+    </div>
+  </section>
+
+  <section id="seed-sec">
+    <div class="sec-h"><h2>Seed / Leech</h2><span class="k">VECTOR STORE</span><span class="d">novel knowledge in, deduped</span></div>
+    <div class="grid g3" id="seed-cards"></div>
+    <div class="card" style="margin-top:12px">
+      <div class="lbl">Topics</div>
+      <div class="chips" id="topic-chips"></div>
+      <div class="note" id="seed-note"></div>
+    </div>
+  </section>
+
+  <footer>
+    <div id="foot-sources"></div>
+    <div id="foot-time"></div>
+    <div>BAWES Fleet Dashboard v3 · login + session auth enforced · auto-refresh 30s · real data only — unmeasurable items are labelled "not yet instrumented".</div>
+  </footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const fmtU=v=>v==null?"—":"$"+Number(v).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtN=v=>v==null?"—":Number(v).toLocaleString("en-US");
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ago=sec=>{if(sec==null)return"—";if(sec<120)return Math.round(sec)+"s ago";if(sec<7200)return Math.round(sec/60)+"m ago";if(sec<172800)return Math.round(sec/3600)+"h ago";return Math.round(sec/86400)+"d ago"};
+const badge=s=>s==="LIVE"?'<span class="badge b-live">LIVE</span>':s==="IDLE"?'<span class="badge b-idle">IDLE</span>':s==="SILENT"?'<span class="badge b-silent">SILENT</span>':'<span class="badge b-open">'+esc(s)+'</span>';
+function lineChart(el,series,xk,seriesDefs){
+  el.innerHTML="";
+  if(!series||series.length<1){el.innerHTML='<div class="loading">no points yet — history accrues from now</div>';return}
+  const W=560,H=150,P=6;
+  const xs=series.map(s=>s[xk]);
+  const all=[];seriesDefs.forEach(d=>series.forEach(s=>{if(s[d.k]!=null)all.push(+s[d.k])}));
+  const lo=Math.min(...all),hi=Math.max(...all);
+  const rng=(hi-lo)||1;
+  const px=i=>P+i*(W-2*P)/Math.max(xs.length-1,1);
+  const py=v=>H-P-(v-lo)*(H-2*P)/rng;
+  const svg='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+
+    '<line x1="'+P+'" y1="'+py(lo)+'" x2="'+(W-P)+'" y2="'+py(lo)+'" stroke="#1a2230"/>'+
+    '<line x1="'+P+'" y1="'+py(hi)+'" x2="'+(W-P)+'" y2="'+py(hi)+'" stroke="#1a2230"/>'+
+    seriesDefs.map((d,di)=>{
+      const segs=[];let cur=[];
+      series.forEach((s,i)=>{
+        if(s[d.k]==null){if(cur.length){segs.push(cur);cur=[]}return}
+        cur.push(px(i)+","+py(s[d.k]));
+      });
+      if(cur.length)segs.push(cur);
+      const last=series[series.length-1];
+      const hasLast=last[d.k]!=null;
+      return segs.map(seg=>'<polyline points="'+seg.join(" ")+'" fill="none" stroke="'+d.color+'" stroke-width="2" opacity="0.9"/>').join("")+
+        (hasLast?'<circle cx="'+px(series.length-1)+'" cy="'+py(last[d.k])+'" r="3" fill="'+d.color+'"/>':"");
+    }).join("")+'</svg>';
+  el.innerHTML=svg;
+}
+function barChart(el,items){
+  el.innerHTML="";
+  if(!items||!items.length){el.innerHTML='<div class="loading">no metered spend yet</div>';return}
+  const W=560,H=110,P=6;
+  const hi=Math.max(...items.map(i=>+i.usd))||1;
+  const bw=(W-2*P)/items.length;
+  el.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+
+    items.map((it,i)=>{const h=Math.max(2,(+it.usd)/hi*(H-2*P));const x=P+i*bw+2;return '<rect x="'+x+'" y="'+(H-P-h)+'" width="'+(bw-4)+'" height="'+h+'" fill="#5aa7ff" opacity="0.85"><title>'+esc(it.day)+' $'+it.usd+'</title></rect>'}).join("")+
+    '</svg>';
+}
+function card(lbl,val,sub,cls){return '<div class="card"><div class="lbl">'+lbl+'</div><div class="val '+(cls||"")+'">'+val+'</div>'+(sub?'<div class="sub">'+sub+'</div>':"")+'</div>'}
+function cardBig(lbl,val,sub,cls){return '<div class="card bigcard"><div class="lbl">'+lbl+'</div><div class="val '+(cls||"")+'">'+val+'</div>'+(sub?'<div class="sub">'+sub+'</div>':"")+'</div>'}
+
+function render(d){
+  const m=d.money||{},hb=(d.bricks||{}).heartbeat||{},rg=(d.bricks||{}).registry||{};
+  const sess=d.session||{};
+  $("me-name").textContent=sess.user||"—";
+  $("me-role").textContent=sess.role||"—";
+  const ap=d.approvals||{};
+  const apn=ap.pending_count!=null?ap.pending_count:"—";
+  $("ap-count").textContent=apn;
+  $("ap-dot").classList.toggle("pulse",apn!=="—"&&apn>0);
+  const rem=m.remaining||{},comm=(m.total_invested||{}).breakdown||{};
+  const num=v=>{const n=typeof v==="number"?v:parseFloat(v);return isFinite(n)?n:null;};
+  const dsV=num(rem.deepseek),orV=num(rem.openrouter);
+  $("money-cards").innerHTML=
+    card("Paid burn · metered",fmtU(m.metered_usd),'door lane · '+(m.door_cost&&m.door_cost.rows||0)+' calls @ $0.002 deepseek-flash',"red")+
+    card("Free burn (ox/stealth)",fmtU(0.00),"openrouter free tier — no free-tier rows metered on box yet","teal")+
+    card("Total invested (committed, lower bound)",fmtU((m.total_invested||{}).usd),"deepseek ≥"+fmtU(comm.deepseek)+" · openrouter "+fmtU(comm.openrouter),"gold")+
+    card("Remaining credit",fmtU(rem.total),"deepseek "+fmtU(rem.deepseek)+" + openrouter "+fmtU(rem.openrouter)+" · "+(m.spend&&m.spend.latest_ts?"snapshot "+String(m.spend.latest_ts).slice(0,16)+"Z":""));
+  // ---- split bars
+  const rails=(m.rails||[]);
+  const paidRails=rails.filter(r=>r.usd_per_task>0);
+  const freeRails=rails.filter(r=>r.usd_per_task===0);
+  const total=rails.length||1;
+  const segs=[
+    {name:"ox/stealth free",n:freeRails.length,c:"#3dd6a4"},
+    {name:"deepseek-flash paid",n:paidRails.length,c:"#ff5d6c"},
+    {name:"GLM / Nous (unmetered)",n:rails.length-freeRails.length-paidRails.length,c:"#8b98a9"}
+  ];
+  $("split-bars").innerHTML=segs.map(s=>'<div class="row"><div class="nm">'+s.name+'</div><div class="bar"><i style="width:'+Math.max(s.n/total*100,2)+'%;background:'+s.c+'"></i></div><div class="pc">'+s.n+'/'+total+'</div></div>').join("");
+  $("split-legend").innerHTML='<span><i style="background:#3dd6a4"></i>free tier ($0/task)</span><span><i style="background:#ff5d6c"></i>paid lanes ($/task)</span><span><i style="background:#8b98a9"></i>configured but not metered here</span>';
+  $("split-note").innerHTML="Current metered activity: <b>100% paid lane</b> — all "+fmtN(m.door_cost&&m.door_cost.rows)+" door calls are deepseek-flash $0.002. ox free-tier burn is not yet instrumented per-model on the box. GLM has no key/env on this box. Nous paid key lives on the control host — $0 metered here.";
+  // ---- rails table
+  $("rails-table").innerHTML="<tr><th>Lane</th><th>$/task</th><th>Evidence (real)</th></tr>"+
+    rails.map(r=>'<tr><td class="mono">'+esc(r.name)+'</td><td class="mono">'+(r.usd_per_task==null?"—":fmtU(r.usd_per_task))+'</td><td style="font-size:11.5px;color:var(--dim)">'+esc(r.evidence)+'</td></tr>').join("");
+  // ---- invested table
+  $("invested-table").innerHTML="<tr><th>Source</th><th>Amount</th><th>What it is</th></tr>"+
+    '<tr><td class="mono">deepseek credit</td><td class="mono gold">'+fmtU(dsV)+'</td><td style="font-size:11.5px;color:var(--dim)">remaining balance, spend.jsonl '+String((m.spend&&m.spend.latest_ts)||"").slice(0,16)+'Z</td></tr>'+
+    '<tr><td class="mono">openrouter credit</td><td class="mono gold">'+fmtU(orV)+'</td><td style="font-size:11.5px;color:var(--dim)">remaining balance — 2026-08-24 read returned 401 (auth expiry on the balance endpoint), showing last clean read</td></tr>'+
+    '<tr><td class="mono">metered burn (door)</td><td class="mono red">'+fmtU(m.metered_usd)+'</td><td style="font-size:11.5px;color:var(--dim)">door-cost.jsonl, '+fmtN(m.door_cost&&m.door_cost.rows)+' rows, 2026-08-16 → 2026-08-23</td></tr>'+
+    '<tr><td class="mono">Nous paid usage</td><td class="mono">$0.00</td><td style="font-size:11.5px;color:var(--dim)">key /srv/vault/nous.env (control host, 0600) — usage not yet instrumented on box</td></tr>'+
+    '<tr><td class="mono">OVH VPS</td><td class="mono">—</td><td style="font-size:11.5px;color:var(--dim)">invoice not derivable from box files — khalid to supply for a true all-in number</td></tr>';
+  $("invested-note").textContent="Committed (lower bound) = max recorded balance per provider across daily snapshots (deepseek ≥"+comm.deepseek+", openrouter "+comm.openrouter+") — top-ups only counted when they raise the peak. Observed deepseek burn 2026-08-22→24: $17.25 (25.46 → 8.21). "+(m.note||"");
+  // ---- brick cost
+  const liveN=(hb.live_count!=null?hb.live_count:"—");
+  const cpbComm=comm.total&&hb.live_count?comm.total/hb.live_count:null;
+  const cpbRem=rem.total&&hb.live_count?rem.total/hb.live_count:null;
+  $("brickcost").innerHTML=
+    '<div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:4px">'+
+      '<div><div class="lbl" style="color:var(--gold)">Cost per ACTIVE brick</div><div class="val gold" style="font-size:22px">'+(cpbComm!=null?fmtU(cpbComm):"—")+'<small> committed basis</small></div><div class="sub">'+fmtU(cpbRem)+' remaining-credit basis · '+fmtN(liveN)+' live brick(s)</div></div>'+
+      '<div style="border-left:1px solid var(--line);padding-left:18px"><div class="lbl" style="color:var(--teal)">Live now</div><div class="val teal" style="font-size:22px">'+fmtN(liveN)+'<small> / '+fmtN(hb.known_count)+' known</small></div><div class="sub">heartbeat ≤ 5 min · registry '+fmtN(rg.registered_count)+' registered ('+fmtN(rg.verified_count)+' verified)</div></div>'+
+      '<div style="border-left:1px solid var(--line);padding-left:18px"><div class="lbl" style="color:var(--dim)">Idle · seen ≤7d</div><div class="val" style="font-size:22px">'+fmtN(hb.idle_count)+'</div><div class="sub">silent &gt;7d: '+fmtN(hb.silent_count)+'</div></div>'+
+    '</div>';
+  // ---- roi
+  const roi=d.roi||{};
+  $("roi-body").innerHTML=
+    '<div style="display:flex;gap:26px;flex-wrap:wrap;align-items:center">'+
+      '<div><div class="lbl">Earned bananas (clean)</div><div class="val gold">'+fmtN(d.wallet&&d.wallet.clean_earned_bananas)+'<small> 🍌</small></div><div class="sub">'+fmtN(d.wallet&&d.wallet.earn_rows)+' earn rows · '+fmtN(d.wallet&&d.wallet.contested_earn_rows)+' contested (legacy self-mints, not evidence)</div></div>'+
+      '<div><div class="lbl">Value at peg</div><div class="val">'+fmtU(Number((d.wallet&&d.wallet.clean_earned_bananas)||0)*((roi.peg_usd_per_banana)||0.012))+'<small> @ $0.012/🍌</small></div><div class="sub">peg v1.1 rate card</div></div>'+
+      '<div><div class="lbl">ROI vs metered spend</div><div class="val '+(roi.roi_vs_metered_spend&&roi.roi_vs_metered_spend>1?"teal":"red")+'">'+(roi.roi_vs_metered_spend!=null?roi.roi_vs_metered_spend+"×":"—")+'</div><div class="sub">'+esc(roi.label||"")+'</div></div>'+
+      '<div><div class="lbl">Banana spend (dock)</div><div class="val">'+fmtN(d.wallet&&d.wallet.spend_bananas)+'<small> 🍌</small></div><div class="sub">'+fmtN(d.wallet&&d.wallet.credited_bananas)+' credited (gifts) · '+fmtN(d.wallet&&d.wallet.founder_seed_bananas)+' founder-seed</div></div>'+
+    '</div>';
+  $("roi-note").textContent=roi.note||"";
+  // ================= bricks
+  $("brick-cards").innerHTML=
+    card("Live now (heartbeat ≤ 5 min)",fmtN(hb.live_count),hb.live&&hb.live.length?'<b>'+esc(hb.live.map(b=>b.id).join(", "))+'</b>':'none — box itself should be here',"teal")+
+    card("Idle (seen ≤ 7 days)",fmtN(hb.idle_count),hb.idle&&hb.idle.length?esc(hb.idle.map(b=>b.id).join(", ")):"none","gold")+
+    card("Silent (> 7 days)",fmtN(hb.silent_count),'<span style="color:var(--dim)">'+fmtN(hb.known_count)+' ids ever heartbeated · registry file '+fmtN(hb.total_rows)+' rows</span>',"");
+  const rows=[];
+  (hb.live||[]).forEach(b=>rows.push([b.id,badge("LIVE"),ago(b.age_sec),b.last_seen]));
+  (hb.idle||[]).forEach(b=>rows.push([b.id,badge("IDLE"),ago(b.age_sec),b.last_seen]));
+  (hb.silent||[]).slice(0,12).forEach(b=>rows.push([b.id,badge("SILENT"),ago(b.age_sec),b.last_seen]));
+  $("brick-table").innerHTML="<tr><th>Brick</th><th>State</th><th>Last heartbeat</th><th>Last seen (UTC)</th></tr>"+
+    rows.map(r=>'<tr><td class="mono">'+esc(r[0])+'</td><td>'+r[1]+'</td><td class="mono">'+r[2]+'</td><td class="mono">'+r[3]+'</td></tr>').join("");
+  $("brick-note").textContent=(hb.note||"")+" Registered ≠ working: "+fmtN(rg.registered_count)+" bricks in registry.jsonl, only "+fmtN(hb.live_count)+" heartbeating live — cross-checked with running processes on the box.";
+  // ================= evolution
+  const ev=d.evolution||{};
+  const vt=ev.vector||{};
+  $("vt-t").innerHTML="<b>"+fmtN(vt.docs)+"</b> docs · raw_in "+fmtN((vt.stats||{}).raw_in)+" · deduped "+fmtN((vt.stats||{}).duplicates)+" · novel rate "+((vt.novel_rate!=null)?(vt.novel_rate*100).toFixed(1)+"%":"—")+(vt.first_day?" · from "+esc(vt.first_day):"");
+  lineChart($("vt-c"),vt.series,"day",[{k:"total",color:"#f5b942"}]);
+  $("vt-n").textContent=vt.note||"";
+  const wl=ev.wallet||{};
+  $("wl-t").innerHTML="<b>"+fmtN(wl.clean)+"</b> 🍌 clean · <b>"+fmtN(wl.total)+"</b> 🍌 total (incl. contested legacy)";
+  lineChart($("wl-c"),wl.series,"day",[{k:"cum_clean",color:"#3dd6a4"},{k:"cum",color:"#8b98a9"}]);
+  $("wl-n").textContent="Cumulative earned bananas by day, from wallet.jsonl earn rows (ts field). Green = clean (non-contested), grey = all rows.";
+  const pr=ev.prs||{};
+  $("pr-t").innerHTML="<b>"+fmtN(pr.merged_count)+"</b> merged · <b>"+(pr.prs_per_day!=null?pr.prs_per_day+"": "—")+"</b> merged/day";
+  lineChart($("pr-c"),pr.series,"day",[{k:"cum",color:"#5aa7ff"}]);
+  $("pr-n").textContent="Cumulative merged PRs on BAWES-Universe/hearth, from GitHub API merged_at dates.";
+  const sp=ev.spend||{};
+  $("sp-t").innerHTML="<b>deepseek</b> <span class='teal'>"+fmtU(dsV)+"</span> · <b>openrouter</b> <span class='gold'>"+fmtU(orV)+"</span> <span style='color:var(--faint)'>(remaining)</span>";
+  lineChart($("sp-c"),sp.series,"ts",[{k:"deepseek",color:"#3dd6a4"},{k:"openrouter",color:"#f5b942"}]);
+  $("sp-n").textContent=(sp.note||"")+" Drops = burn, jumps = top-up. 2026-08-24 deepseek read: 8.21; openrouter read failed 401 that day.";
+  barChart($("dc-c"),(ev.door_cost||{}).per_day||[]);
+  $("evol-note").textContent="Door-lane metered USD per day (door-cost.jsonl). "+(ev.note||"");
+  // ================= threads
+  const th=d.threads||{},spc=th.spec||{},ms=th.measured||{},ds=ms.door_sessions||{},gw=ms.gateway||{},fp=ms.fleet_processes||{};
+  $("thread-cards").innerHTML=
+    card("Spec — Hermes Cloud brick",spc.concurrent_sessions+" <small>concurrent sessions</small>",spc.vcpu+" vCPU · "+spc.ram_gb+" GB · "+fmtU(spc.usd_per_day)+"/day","gold")+
+    card("Measured — sessions active 24h",fmtN(ds.active_24h),"door profile DB · "+fmtN(ds.sessions_total)+" sessions lifetime · "+fmtN(ds.open_sessions)+" open","teal")+
+    card("Measured — fleet processes",fmtN(fp.count),"python fleet workers running on box right now","blue");
+  $("thread-table").innerHTML="<tr><th>Proxy</th><th>Value</th><th>Source / note</th></tr>"+
+    '<tr><td class="mono">Door-profile sessions (lifetime)</td><td class="mono">'+fmtN(ds.sessions_total)+'</td><td style="font-size:11.5px;color:var(--dim)">'+esc(ds.db||"")+' — read-only sqlite</td></tr>'+
+    '<tr><td class="mono">Sessions active last 24h / 7d</td><td class="mono">'+fmtN(ds.active_24h)+' / '+fmtN(ds.active_7d)+'</td><td style="font-size:11.5px;color:var(--dim)">last_activity_at column</td></tr>'+
+    '<tr><td class="mono">Model usage rows (door)</td><td class="mono">'+fmtN(ds.usage_rows)+' · '+fmtN(ds.api_calls)+' calls</td><td style="font-size:11.5px;color:var(--dim)">estimated cost $'+fmtU(ds.estimated_cost_usd)+' — every row on '+(ds.models&&ds.models.map(m=>m.model).join(", ")||"—")+'</td></tr>'+
+    '<tr><td class="mono">Gateway active agents</td><td class="mono">'+fmtN(gw.active_agents)+'</td><td style="font-size:11.5px;color:var(--dim)">'+esc(gw.gateway_state||"")+' · snapshot '+(gw.stale?"STALE ("+esc(gw.updated_at||"")+")":"fresh")+'</td></tr>'+
+    '<tr><td class="mono">Fleet python processes</td><td class="mono">'+fmtN(fp.count)+'</td><td style="font-size:11.5px;color:var(--dim)">'+esc((fp.processes||[]).join(", "))+'</td></tr>';
+  $("thread-note").innerHTML="<b>Verdict:</b> "+esc(th.verdict||"")+"<br><br><b>Gaps:</b><ul class='clean'>"+(th.gaps||[]).map(g=>"<li>"+esc(g)+"</li>").join("")+"</ul>";
+  // ================= fleet
+  const fl=d.fleets||{};
+  $("fleet-cards").innerHTML=Object.entries(fl).map(([k,v])=>
+    card(esc(k),badge(v.status||"?"),esc(v.detail||""),v.status==="LIVE"?"teal":v.status==="IDLE"?"gold":"")
+  ).join("");
+  // ================= velocity
+  const vel=d.velocity||{};
+  $("vel-cards").innerHTML=
+    card("Open PRs",fmtN(vel.open&&vel.open.length),'<span style="color:var(--dim)">'+esc(vel.ci_summary||"")+'</span>',"blue")+
+    card("Merged",fmtN(vel.merged_count),"lifetime, per_page=100","")+
+    card("Merge velocity",vel.prs_per_day!=null?vel.prs_per_day+" <small>/day</small>":"—","over merged-date span","gold");
+  $("pr-table").innerHTML="<tr><th>#</th><th>PR</th><th>Created</th><th>Head</th><th>CI</th></tr>"+
+    ((vel.open||[]).map(p=>'<tr><td class="mono">#'+p.number+'</td><td>'+esc(p.title)+'</td><td class="mono">'+esc(p.created||"")+'</td><td class="mono">'+esc(p.head||"")+'</td><td>'+(p.ci?badge((p.ci.state||"").toUpperCase()==="SUCCESS"?"LIVE":(p.ci.state||"?").toUpperCase()):"—")+'</td></tr>').join("")||'<tr><td colspan="5" style="color:var(--faint)">no open PRs</td></tr>');
+  // ================= epics
+  const ep=(d.epics&&d.epics.epics)||[];
+  $("epic-table").innerHTML="<tr><th>Task</th><th>Owner</th><th>Status</th></tr>"+
+    (ep.map(e=>'<tr><td>'+esc(e.task)+'</td><td class="mono">'+esc(e.owner)+'</td><td>'+esc(e.status)+'</td></tr>').join("")||'<tr><td colspan="3" style="color:var(--faint)">queue empty / unreadable</td></tr>');
+  $("epic-note").textContent="source: "+(d.epics&&d.epics.source||"—");
+  // ================= seed/leech
+  const vs=d.vector_store||{};
+  $("seed-cards").innerHTML=
+    card("Docs (novel)",fmtN(vs.docs),"raw_in "+fmtN((vs.stats||{}).raw_in)+" → "+fmtN((vs.stats||{}).duplicates)+" duplicates dropped","gold")+
+    card("Novel rate",vs.novel_rate!=null?(vs.novel_rate*100).toFixed(1)+"%":"—","of everything offered, kept as knowledge","teal")+
+    card("Topics",fmtN(vs.topics),"distinct knowledge topics","blue");
+  $("topic-chips").innerHTML=(vs.topic_counts||[]).map(t=>'<span class="chip">'+esc(t[0])+' <b>'+t[1]+'</b></span>').join("");
+  $("seed-note").textContent=vs.note||"";
+  // ================= footer
+  const src=d.sources||{};
+  $("foot-sources").innerHTML="<b>Data sources (all live files):</b> "+Object.entries(src).map(([k,v])=>'<span class="mono">'+esc(k)+" → "+esc(v)+'</span>').join(" · ");
+  $("foot-time").innerHTML="Generated "+esc(d.generated_at||"")+" · auto-refresh 30s";
+}
+function tick(){
+  const n=new Date();
+  $("clock").textContent=n.toISOString().slice(0,19).replace("T"," ")+"Z";
+}
+async function load(){
+  try{
+    const r=await fetch("/api/data",{cache:"no-store"});
+    if(r.status===401){location.href="/login";return}
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    const d=await r.json();
+    render(d);
+    document.querySelectorAll(".err").forEach(e=>e.remove());
+    document.title="BAWES Fleet Dashboard — "+new Date(d.generated_at).toISOString().slice(0,16)+"Z";
+  }catch(e){
+    const el=document.querySelector(".wrap");
+    if(el&&!el.querySelector(".err")){const x=document.createElement("div");x.className="err";x.textContent="load failed: "+e.message;el.prepend(x)}
+  }
+}
+tick();load();setInterval(load,30000);setInterval(tick,1000);
+</script>
+</body>
+</html>

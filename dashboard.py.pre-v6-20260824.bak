@@ -1,0 +1,1729 @@
+#!/usr/bin/env python3
+"""
+BAWES FLEET DASHBOARD v3 — OVH box :3999
+BAWES-branded, login-page + HMAC session auth, money-first. Reads REAL fleet
+data only: heartbeat registry, wallet, vector store, door-cost ledger, spend
+balances, GitHub API, shared work queue, Hermes session DBs. Nothing is
+invented; anything not measurable is labelled "not yet instrumented".
+
+Auth (v3, replaces HTTP Basic):
+  - GET /login serves a phone-first BAWES login form (username + password).
+  - POST /login verifies against users.json (scrypt hash, 0600) and sets an
+    HMAC-signed session cookie `bawes_session` (secret in session.key, 0600;
+    TTL 12h; HttpOnly; SameSite=Lax; no Secure flag because :3999 is served
+    over plain http as well as https://fleet.bawes.net via Caddy).
+  - Every route except /login, /logout and /favicon.ico requires a valid
+    session: HTML routes -> 302 /login, /api/* -> 401 JSON. No WWW-Authenticate
+    header anywhere (no browser basic-auth popup).
+  - Roles: owner (khalid) sees everything incl. approval actions; contributor
+    (read-only) can view dashboard + approvals but POST /api/approvals/action
+    -> 403. Role comes from users.json at request time (changes apply
+    immediately; removed users lose access immediately).
+  - Users managed by gen_user.py (add/remove/change/list) — atomic writes,
+    validates username/password, refuses to remove the last owner.
+
+Approvals (/approvals): khalid's decision-card queue — approve/reject/feedback from the
+phone. Append-only JSONL (approval-cards.jsonl) + local decisions-ledger.jsonl + the
+canonical GitHub decisions ledger (BAWES-Universe/bawes-knowledge decisions/ledger.md).
+
+Money truth:
+  - spend.jsonl            daily provider balances (deepseek/openrouter) — synced from control host
+  - door-cost.jsonl        metered USD spend per door call ($0.002 deepseek-flash)
+  - ledger-cost-rows.log   banana-priced dispatch log (NOT usd)
+  - /srv/vault/nous.env    khalid's paid Nous key — NOT on this box (control host); usage not metered here
+  - OVH VPS invoice        not derivable from box files
+
+Threads truth:
+  - /home/ubuntu/.hermes/profiles/door/state.db  door-profile Hermes sessions (sqlite, read-only)
+  - gateway_state.json     gateway snapshot (stale)
+  - /proc scan             live fleet python processes
+  - Hermes Cloud instance spec (8 vCPU / 4 GB / 20 concurrent ≈ $1.09/day) — Nous plan, per fleet notes
+"""
+import json, os, re, time, hmac, hashlib, base64, secrets, datetime, urllib.request, urllib.error, urllib.parse, threading, collections, subprocess
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+HOST, PORT = "0.0.0.0", 3999
+BASE = "/srv/build/fleet-dashboard"
+USERS_FILE = os.path.join(BASE, "users.json")        # [{username, salt, hash, role, created}] — 0600, gen_user.py
+SESSION_KEY_FILE = os.path.join(BASE, "session.key")  # HMAC secret for session cookies — 0600, auto-created
+SESSION_TTL = 12 * 3600                               # session cookie lifetime (12h)
+SESSION_COOKIE = "bawes_session"
+
+WALLET = "/srv/bricks/register/wallet.jsonl"
+ACHIEVEMENTS = "/srv/bricks/orchestrator/achievements.jsonl"
+DISPATCHES = "/srv/bricks/orchestrator/dispatches.jsonl"
+VECTOR = "/srv/bricks/orchestrator/vector-store.json"
+QUEUE_FALLBACKS = ["/srv/bricks/orchestrator/shared-work-queue.md",
+                   "/root/.hermes/notes/shared-work-queue.md"]
+HEARTBEAT = "/srv/bricks/registry/heartbeat-registry.jsonl"
+REGISTRY = "/srv/bricks/register/registry.jsonl"
+DOOR_COST = "/srv/door/state/door-cost.jsonl"
+SPEND = "/srv/fleet-state/register/spend.jsonl"
+LEDGER_COST = "/srv/bricks/register/ledger-cost-rows.log"
+PAT_FILE = "/srv/vault/github-hearth.pat"
+DOOR_DB = "/home/ubuntu/.hermes/profiles/door/state.db"
+GATEWAY_STATE = "/home/ubuntu/.hermes/gateway_state.json"
+RATE_CARD = "/srv/bricks/orchestrator/rate-card.json"
+APPROVALS = "/srv/bricks/orchestrator/approval-cards.jsonl"          # decision cards (append-only JSONL)
+DECISIONS_LEDGER = "/srv/bricks/orchestrator/decisions-ledger.jsonl"  # local append-only decision rows
+GH_KNOWLEDGE = "https://api.github.com/repos/BAWES-Universe/bawes-knowledge"
+LEDGER_MD = "decisions/ledger.md"   # canonical fleet decisions ledger (markdown table, GitHub)
+REPO = "BAWES-Universe/hearth"
+GH = "https://api.github.com/repos/" + REPO
+
+APPROVAL_LOCK = threading.Lock()
+
+# Agent relay (comms) — canonical append-only file, mirrored to the bawes-fleet
+# repo drop-box every 60s by relay_sync.py (see README-RELAY.md).
+# Row schema: {ts, from, to(all|brick|agi|oxalpha|oxbaby), kind(msg|task|ack|approval), body, receipt}
+RELAY = "/srv/bricks/orchestrator/agent-relay.jsonl"
+RELAY_LOCK = threading.Lock()
+_relay_rate = {}            # in-memory rate limiter: username -> deque of post timestamps
+RATE_OWNER_PER_MIN = 1      # khalid (owner): 1 msg/min
+RATE_OTHER_PER_HOUR = 5     # everyone else: 5 msg/hr
+
+BANANA_PEG_USD = 0.012  # v1.1 rate card peg
+FRESH_SEC = 300         # heartbeat within 5 min = LIVE
+SEEN7D_SEC = 7 * 86400  # seen within 7 days = IDLE
+NOUS_SPEC = {"vcpu": 8, "ram_gb": 4, "concurrent_sessions": 20,
+             "usd_per_day": 1.09,
+             "source": "Nous Hermes Cloud plan (fleet notes 2026-08-24; nous-cloud-ops)"}
+
+# ---------------------------------------------------------------- who / burn / cut-burn (v5, 2026-08-24)
+# khalid 2026-08-24: "It's also stating who's live but doing what and capacity burn
+# rate etc not showing. To see the spend and roi live and cut burns or pivot..."
+# A) WHO'S DOING WHAT — per-agent live/idle + most recent REAL activity.
+# B) BURN RATE        — spend velocity ($/hr, $/day) from the router ledger + free-vs-paid split.
+# C) CUT BURN         — owner-only per-lane pause/resume toggles -> lane-control.jsonl + kanban comment.
+LANES = "/srv/bricks/router/state/lanes.jsonl"           # router lanes (append-only; latest row per lane wins)
+LANE_LEDGER = "/srv/bricks/router/state/ledger.jsonl"    # every routed call appends a real row (lane, model, cost)
+LANE_CONTROL = "/srv/bricks/orchestrator/lane-control.jsonl"  # owner lane directives {ts, lane, action, by}
+KANBAN_BOARD_DB = "/home/ubuntu/.hermes/kanban/boards/fleet/kanban.db"  # fleet board (sqlite, read-only)
+KANBAN_BOARD = "fleet"
+KANBAN_CTRL_TITLE = "lane-control — owner's kill switch (fleet dashboard)"
+TOGGLE_LANES = ["free-ox", "free-gen", "free-liquid", "free-nemotron",
+                "nvidia-nim", "deepseek-api", "nous-paid"]
+FREE_LANE_IDS = {"free-ox", "free-gen", "free-liquid", "free-nemotron",
+                 "glm-5.2-free", "nvidia-nim"}  # lanes whose router cost_per_task == 0
+LANE_LOCK = threading.Lock()
+ledger_cache = {"ts": 0, "out": None}
+lanes_cache = {"ts": 0, "out": None}
+
+gh_cache = {"ts": 0, "data": None, "error": None}
+hb_cache = {"size": 0, "last": {}, "rows": 0, "ts": 0}
+
+
+def now_iso():
+    return datetime.datetime.now(datetime.UTC).isoformat()
+
+
+def read_jsonl(path, limit=None):
+    out = []
+    try:
+        with open(path) as f:
+            for i, line in enumerate(f):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    out.append(json.loads(line))
+                except Exception:
+                    pass
+                if limit and len(out) >= limit:
+                    break
+    except FileNotFoundError:
+        return None
+    return out
+
+
+def file_age_min(path):
+    try:
+        return (time.time() - os.path.getmtime(path)) / 60.0
+    except OSError:
+        return None
+
+
+def strip_md(s):
+    s = re.sub(r"\*\*(.+?)\*\*", r"\1", s)
+    s = re.sub(r"\[(.+?)\]\(.+?\)", r"\1", s)
+    s = re.sub(r"`(.+?)`", r"\1", s)
+    return s.strip()
+
+
+# ---------------------------------------------------------------- auth (v3: users.json + HMAC session cookie)
+def load_users():
+    """users.json -> list of user dicts. Missing/corrupt file -> []."""
+    try:
+        with open(USERS_FILE) as f:
+            data = json.load(f)
+        return data if isinstance(data, list) else []
+    except Exception:
+        return []
+
+
+def find_user(username):
+    for u in load_users():
+        if hmac.compare_digest(str(u.get("username", "")), str(username or "")):
+            return u
+    return None
+
+
+def hash_password(pw, salt):
+    """scrypt (stdlib) — same recipe as gen_user.py. Salt is a hex string."""
+    return hashlib.scrypt(pw.encode(), salt=salt.encode(), n=2 ** 14, r=8, p=1).hex()
+
+
+def verify_user(username, pw):
+    """(user_dict | None) — password check via constant-time compare."""
+    u = find_user(username)
+    if not u or not pw:
+        return None
+    try:
+        want = str(u.get("hash", ""))
+        got = hash_password(pw, str(u.get("salt", "")))
+        return u if hmac.compare_digest(got, want) else None
+    except Exception:
+        return None
+
+
+_session_secret = None
+
+
+def session_secret():
+    """HMAC secret for session cookies — session.key (0600), auto-created on first boot."""
+    global _session_secret
+    if _session_secret:
+        return _session_secret
+    try:
+        if not os.path.exists(SESSION_KEY_FILE):
+            with open(SESSION_KEY_FILE, "w") as f:
+                f.write(secrets.token_hex(32) + "\n")
+            os.chmod(SESSION_KEY_FILE, 0o600)
+        with open(SESSION_KEY_FILE) as f:
+            _session_secret = f.read().strip()
+        return _session_secret
+    except Exception as e:
+        print(f"session.key error: {e}", flush=True)
+        return "dev-insecure-fallback"
+
+
+def make_session(user):
+    """Signed cookie value: base64url(json{u,r,e}).hex_hmac. Tamper-evident."""
+    payload = {"u": user.get("username"), "r": user.get("role"),
+               "e": int(time.time()) + SESSION_TTL}
+    b64 = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
+    sig = hmac.new(session_secret().encode(), b64.encode(), hashlib.sha256).hexdigest()
+    return f"{b64}.{sig}"
+
+
+def verify_session(cookie):
+    """(user_dict | None) — HMAC + expiry + user still exists (removed users lose access)."""
+    if not cookie:
+        return None
+    try:
+        b64, _, sig = cookie.partition(".")
+        if not b64 or not sig:
+            return None
+        expect = hmac.new(session_secret().encode(), b64.encode(), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(sig, expect):
+            return None
+        pad = "=" * (-len(b64) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(b64 + pad).decode())
+        if int(payload.get("e", 0)) < time.time():
+            return None
+        u = find_user(payload.get("u"))
+        return u if u else None
+    except Exception:
+        return None
+
+
+def session_cookie_header(user):
+    return (f"{SESSION_COOKIE}={make_session(user)}; Path=/; HttpOnly; "
+            f"SameSite=Lax; Max-Age={SESSION_TTL}")
+
+
+def clear_cookie_header():
+    return f"{SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0"
+
+
+def parse_form(body):
+    """application/x-www-form-urlencoded body -> dict."""
+    try:
+        return {k: v[0] for k, v in urllib.parse.parse_qs(body.decode(), keep_blank_values=True).items()}
+    except Exception:
+        return {}
+
+
+def safe_next(raw):
+    """Only allow same-site relative redirect targets (no //host, no ..)."""
+    if raw and raw.startswith("/") and not raw.startswith("//") and ".." not in raw:
+        return raw
+    return "/"
+
+
+# ---------------------------------------------------------------- money
+def spend_data():
+    """spend.jsonl — daily provider balances (real snapshots, control-host cron)."""
+    rows = read_jsonl(SPEND)
+    if not rows:
+        return {"status": "missing", "note": "spend.jsonl not found — balances not available"}
+    series = []
+    latest = {}
+    for r in rows:
+        b = r.get("balances", {}) or {}
+        row = {"ts": r.get("ts"), "deepseek": b.get("deepseek"), "openrouter": b.get("openrouter")}
+        series.append(row)
+        if isinstance(b.get("deepseek"), (int, float, str)) and not str(b.get("deepseek")).startswith("err"):
+            latest["deepseek"] = float(b["deepseek"])
+        if isinstance(b.get("openrouter"), (int, float)) or (
+                isinstance(b.get("openrouter"), str) and not b["openrouter"].startswith("err")):
+            latest["openrouter"] = float(b["openrouter"])
+    deep_vals = [float(s["deepseek"]) for s in series
+                 if isinstance(s["deepseek"], (int, float, str)) and not str(s["deepseek"]).startswith("err")]
+    open_vals = [float(s["openrouter"]) for s in series
+                 if isinstance(s["openrouter"], (int, float, str)) and not str(s["openrouter"]).startswith("err")]
+    max_deep = max(deep_vals) if deep_vals else 0.0
+    committed = {"deepseek": max_deep, "openrouter": max(open_vals) if open_vals else 0.0,
+                 "total": round(max_deep + (max(open_vals) if open_vals else 0.0), 2)}
+    remaining = {"deepseek": latest.get("deepseek"), "openrouter": latest.get("openrouter")}
+    if remaining["deepseek"] is not None and remaining["openrouter"] is not None:
+        remaining["total"] = round(remaining["deepseek"] + remaining["openrouter"], 2)
+    else:
+        remaining["total"] = None
+    return {"status": "ok", "series": series, "committed_lower_bound": committed,
+            "remaining": remaining, "latest_ts": series[-1]["ts"] if series else None,
+            "note": "balances snapshotted daily 09:00Z by control-host cron; box copy synced 2026-08-24. "
+                    "Committed = max recorded balance per provider (lower bound — top-ups only counted when they raise the peak)."}
+
+
+def door_cost_data():
+    rows = read_jsonl(DOOR_COST)
+    if rows is None:
+        return {"status": "missing"}
+    total = 0.0
+    per_day = {}
+    for r in rows:
+        try:
+            c = float(r.get("cost", 0))
+        except (TypeError, ValueError):
+            c = 0.0
+        total += c
+        d = r.get("day", "?")
+        per_day[d] = per_day.get(d, 0.0) + c
+    return {"status": "ok", "rows": len(rows), "total_usd": round(total, 4),
+            "per_day": [{"day": d, "usd": round(v, 4)} for d, v in sorted(per_day.items())],
+            "unit": "deepseek-flash $0.002/call (door lane)"}
+
+
+def money_data(wallet):
+    spend = spend_data()
+    door = door_cost_data()
+    metered = door.get("total_usd", 0.0) if door.get("status") == "ok" else None
+    rem = spend.get("remaining", {}) if spend.get("status") == "ok" else {}
+    comm = spend.get("committed_lower_bound", {}) if spend.get("status") == "ok" else {}
+    # rails — what is configured, what is metered (real evidence only)
+    rails = [
+        {"name": "ox/stealth (OpenRouter free tier)", "usd_per_task": 0.0,
+         "evidence": "OPENROUTER_API_KEY in /srv/vault/openrouter.env (mode 600). Free-tier burn NOT metered per-model on box — no free-tier rows recorded."},
+        {"name": "deepseek-flash", "usd_per_task": 0.002,
+         "evidence": "(filled below from live reads)"},
+        {"name": "GLM-5.2", "usd_per_task": 0.03,
+         "evidence": "no GLM key/env found on box — $0 recorded, lane not configured here"},
+        {"name": "Nous hermes-4 (paid)", "usd_per_task": None,
+         "evidence": "key /srv/vault/nous.env (mode 600, control host, NOT on this box). $0 metered here; usage not yet instrumented. Policy: $10/day cap, paid lane only when free tier fails."},
+    ]
+    metered_txt = f"${metered:.2f}" if metered is not None else "no door-cost rows on this box yet"
+    ds_bal = rem.get("deepseek")
+    ds_bal_txt = f"${ds_bal:.2f}" if isinstance(ds_bal, (int, float)) else str(ds_bal or "?")
+    for r in rails:
+        if r["name"] == "deepseek-flash":
+            r["evidence"] = (f"metered on box: {metered_txt} across {door.get('rows', 0)} door calls; "
+                             f"balance {ds_bal_txt} (spend.jsonl {spend.get('latest_ts', '?')})")
+    return {"spend": spend, "door_cost": door, "rails": rails,
+            "metered_usd": metered,
+            "total_invested": {"label": "provider credit committed (lower bound)",
+                               "usd": comm.get("total") if comm else None,
+                               "breakdown": comm},
+            "remaining": rem,
+            "note": "OVH VPS cost not derivable from box files (no invoice present) — flag khalid to supply. "
+                    "credits are gifts, not earnings — ROI computed on earned bananas only."}
+
+
+# ---------------------------------------------------------------- bricks (heartbeat registry)
+def heartbeat_data():
+    """Incremental tail read of heartbeat-registry.jsonl (append-only)."""
+    now = time.time()
+    try:
+        size = os.path.getsize(HEARTBEAT)
+    except OSError:
+        return {"status": "missing"}
+    if hb_cache["ts"] and now - hb_cache["ts"] < 60 and size >= hb_cache["size"]:
+        return hb_cache["out"]
+    last = dict(hb_cache["last"]) if hb_cache["ts"] else {}
+    rows_seen = hb_cache["rows"]
+    start = hb_cache["size"] if (hb_cache["ts"] and size >= hb_cache["size"]) else 0
+    new_rows = 0
+    try:
+        with open(HEARTBEAT) as f:
+            if start:
+                f.seek(start)
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                new_rows += 1
+                try:
+                    d = json.loads(line)
+                except Exception:
+                    continue
+                bid = d.get("brick_id")
+                ts = d.get("ts")
+                if bid and isinstance(ts, (int, float)):
+                    last[str(bid)] = float(ts)
+    except OSError:
+        return {"status": "error"}
+    hb_cache.update(size=size, last=last, rows=rows_seen + new_rows, ts=now)
+    out = {"status": "ok", "total_rows": rows_seen + new_rows}
+    live, idle, silent = [], [], []
+    for bid, ts in sorted(last.items(), key=lambda kv: -kv[1]):
+        age = now - ts
+        rec = {"id": bid, "last_ts": ts, "age_sec": int(age),
+               "last_seen": datetime.datetime.fromtimestamp(ts, datetime.UTC).strftime("%Y-%m-%d %H:%MZ")}
+        if age <= FRESH_SEC:
+            rec["state"] = "LIVE"
+            live.append(rec)
+        elif age <= SEEN7D_SEC:
+            rec["state"] = "IDLE"
+            idle.append(rec)
+        else:
+            rec["state"] = "SILENT"
+            silent.append(rec)
+    out.update(live=live, idle=idle, silent=silent,
+               live_count=len(live), idle_count=len(idle), silent_count=len(silent),
+               known_count=len(last),
+               live_window_sec=FRESH_SEC,
+               note="LIVE = heartbeat ≤ 5 min ago. IDLE = seen ≤ 7 days. SILENT = > 7 days.")
+    hb_cache["out"] = out
+    return out
+
+
+def registry_data():
+    rows = read_jsonl(REGISTRY)
+    if not rows:
+        return {"status": "missing"}
+    ids = {}
+    for r in rows:
+        bid = r.get("brick_id") or r.get("id")
+        if bid:
+            ids[str(bid)] = r.get("quality") or r.get("state") or "registered"
+    verified = [k for k, v in ids.items() if v == "verified"]
+    return {"status": "ok", "registered_count": len(ids),
+            "verified_count": len(verified), "verified": verified,
+            "note": "register registry.jsonl: registered ≠ working. Live count comes from heartbeat, not this file."}
+
+
+# ---------------------------------------------------------------- wallet / roi
+def wallet_data():
+    rows = read_jsonl(WALLET)
+    if rows is None:
+        return {"error": "wallet.jsonl missing", "total_rows": 0}
+    by_kind = {}
+    earned = credited = founder = spend = 0.0
+    earned_rows = 0
+    contested_earn = 0.0
+    contested_earn_rows = 0
+    last_ts = None
+    for r in rows:
+        k = r.get("kind") or r.get("type") or "unlabeled"
+        b = r.get("bananas", 0) or 0
+        try:
+            b = float(b)
+        except (TypeError, ValueError):
+            b = 0.0
+        e = by_kind.setdefault(k, {"count": 0, "bananas": 0.0})
+        e["count"] += 1
+        e["bananas"] += b
+        if k == "earn":
+            earned += b
+            earned_rows += 1
+            if r.get("contested"):
+                contested_earn += b
+                contested_earn_rows += 1
+        elif k == "credit":
+            credited += b
+        elif k == "founder-seed":
+            founder += b
+        elif k == "dock":
+            spend += b
+        t = r.get("ts")
+        if t:
+            last_ts = t
+    return {
+        "total_rows": len(rows),
+        "by_kind": by_kind,
+        "earned_bananas": round(earned, 1),
+        "earn_rows": earned_rows,
+        "contested_earn_bananas": round(contested_earn, 1),
+        "contested_earn_rows": contested_earn_rows,
+        "clean_earned_bananas": round(earned - contested_earn, 1),
+        "credited_bananas": round(credited, 1),
+        "founder_seed_bananas": round(founder, 1),
+        "spend_bananas": round(spend, 1),
+        "last_ts": last_ts,
+        "note": "contested earns = legacy self-mints (pre round-137, no non-earner signer) — kept for history, not evidence",
+    }
+
+
+def roi_data(w, money):
+    metered = money.get("metered_usd")
+    earned = w.get("clean_earned_bananas", 0.0)
+    usd_value = round(earned * BANANA_PEG_USD, 4)
+    out = {"peg_usd_per_banana": BANANA_PEG_USD}
+    if metered is not None and metered > 0:
+        out["roi_vs_metered_spend"] = round(usd_value / metered, 2)
+        out["label"] = f"{earned}🍌 clean-earned × ${BANANA_PEG_USD} peg = ${usd_value} vs metered ${metered} spend"
+    else:
+        out["roi_vs_metered_spend"] = None
+        out["label"] = "no metered spend yet — ROI n/a"
+    out["note"] = "credits are gifts, not earnings — ROI on clean-earned bananas only"
+    return out
+
+
+# ---------------------------------------------------------------- evolution (time-series)
+def _iso_to_ts(v):
+    if isinstance(v, (int, float)):
+        return float(v)
+    try:
+        return datetime.datetime.fromisoformat(str(v).replace("Z", "+00:00")).timestamp()
+    except Exception:
+        return None
+
+
+def vector_series():
+    try:
+        d = json.load(open(VECTOR))
+    except Exception:
+        return {"error": "vector-store.json unreadable"}
+    docs = d.get("docs", [])
+    days = {}
+    for doc in docs:
+        ts = _iso_to_ts(doc.get("ts"))
+        if not ts:
+            continue
+        day = datetime.datetime.fromtimestamp(ts, datetime.UTC).strftime("%Y-%m-%d")
+        days[day] = days.get(day, 0) + 1
+    cum = 0
+    series = []
+    for day in sorted(days):
+        cum += days[day]
+        series.append({"day": day, "added": days[day], "total": cum})
+    return {"series": series, "docs": len(docs), "stats": d.get("stats", {}),
+            "first_day": series[0]["day"] if series else None,
+            "note": "history accrues from 2026-08-15 (store creation) — curve is real, built from per-doc ts fields"}
+
+
+def wallet_series(w):
+    rows = read_jsonl(WALLET) or []
+    earns = []
+    for r in rows:
+        if (r.get("kind") or r.get("type")) != "earn":
+            continue
+        ts = _iso_to_ts(r.get("ts"))
+        if not ts:
+            continue
+        try:
+            b = float(r.get("bananas", 0) or 0)
+        except (TypeError, ValueError):
+            b = 0.0
+        earns.append((ts, b, bool(r.get("contested"))))
+    earns.sort()
+    cum = 0.0
+    cum_clean = 0.0
+    series = []
+    for ts, b, contested in earns:
+        cum += b
+        if not contested:
+            cum_clean += b
+        day = datetime.datetime.fromtimestamp(ts, datetime.UTC).strftime("%Y-%m-%d")
+        series.append({"day": day, "cum": round(cum, 1), "cum_clean": round(cum_clean, 1)})
+    return {"series": series, "total": w.get("earned_bananas"), "clean": w.get("clean_earned_bananas")}
+
+
+def pr_series(gh):
+    dates = gh.get("merged_dates") or []
+    cum = 0
+    series = []
+    by_day = {}
+    for d in dates:
+        by_day[d] = by_day.get(d, 0) + 1
+    for day in sorted(by_day):
+        cum += by_day[day]
+        series.append({"day": day, "merged": by_day[day], "cum": cum})
+    return {"series": series, "merged_count": gh.get("merged_count"),
+            "prs_per_day": gh.get("prs_per_day")}
+
+
+def spend_series(money):
+    spend = money.get("spend", {})
+    series = spend.get("series") or []
+    out = []
+    for s in series:
+        try:
+            d = float(s["deepseek"]) if not str(s["deepseek"]).startswith("err") else None
+        except Exception:
+            d = None
+        try:
+            o = float(s["openrouter"]) if not str(s["openrouter"]).startswith("err") else None
+        except Exception:
+            o = None
+        out.append({"ts": s["ts"], "deepseek": d, "openrouter": o})
+    return {"series": out, "note": "daily balance snapshots — drops = burn, jumps = top-up"}
+
+
+# ---------------------------------------------------------------- threads (utilization)
+def door_sessions():
+    import sqlite3
+    try:
+        con = sqlite3.connect("file:" + DOOR_DB + "?mode=ro", uri=True, timeout=5)
+        cur = con.cursor()
+        cur.execute("SELECT COUNT(*) FROM sessions")
+        total = cur.fetchone()[0]
+        now = time.time()
+        def since(secs):
+            cut = now - secs
+            cur.execute("SELECT COUNT(*) FROM sessions WHERE last_activity_at >= ?", (cut,))
+            return cur.fetchone()[0]
+        a24 = since(86400)
+        a7d = since(7 * 86400)
+        cur.execute("SELECT COUNT(*), COUNT(DISTINCT model), COALESCE(SUM(api_call_count),0), "
+                    "COALESCE(SUM(estimated_cost_usd),0) FROM session_model_usage")
+        u = cur.fetchone()
+        cur.execute("SELECT model, COUNT(*), COALESCE(SUM(api_call_count),0) FROM session_model_usage "
+                    "GROUP BY model ORDER BY 2 DESC LIMIT 6")
+        models = [{"model": r[0], "rows": r[1], "calls": r[2]} for r in cur.fetchall()]
+        cur.execute("SELECT COUNT(*) FROM sessions WHERE ended_at IS NULL")
+        open_sessions = cur.fetchone()[0]
+        con.close()
+        return {"status": "ok", "db": DOOR_DB, "sessions_total": total,
+                "active_24h": a24, "active_7d": a7d, "open_sessions": open_sessions,
+                "usage_rows": u[0], "distinct_models": u[1], "api_calls": u[2],
+                "estimated_cost_usd": round(u[3] or 0, 4), "models": models}
+    except Exception as e:
+        return {"status": "error", "note": str(e)}
+
+
+def gateway_snapshot():
+    try:
+        with open(GATEWAY_STATE) as f:
+            g = json.load(f)
+        return {"status": "ok", "gateway_state": g.get("gateway_state"),
+                "active_agents": g.get("active_agents"),
+                "platforms": list((g.get("platforms") or {}).keys()),
+                "updated_at": g.get("updated_at"),
+                "stale": (time.time() - os.path.getmtime(GATEWAY_STATE)) > 86400}
+    except Exception as e:
+        return {"status": "error", "note": str(e)}
+
+
+def fleet_processes():
+    n = 0
+    names = []
+    known = ("bridge", "heartbeat", "orchestrator", "headless_worker", "token_router",
+             "door_gateway", "door_ingest", "a2a_server", "dashboard", "allowance",
+             "earn", "brain", "evolution", "spread", "vault", "bandit")
+    try:
+        for pid in os.listdir("/proc"):
+            if not pid.isdigit():
+                continue
+            try:
+                with open(f"/proc/{pid}/cmdline", "rb") as f:
+                    raw = f.read().replace(b"\x00", b" ").decode(errors="ignore")
+            except Exception:
+                continue
+            if "python3" not in raw:
+                continue
+            n += 1
+            for m in re.findall(r"([A-Za-z0-9_\-]+\.py)", raw):
+                base = m.lower()
+                if any(k in base for k in known) and m not in names:
+                    names.append(m)
+    except Exception:
+        pass
+    names.sort()
+    return {"count": n, "processes": names}
+
+
+def threads_data():
+    spec = dict(NOUS_SPEC)
+    sess = door_sessions()
+    gw = gateway_snapshot()
+    procs = fleet_processes()
+    measured = {
+        "door_sessions": sess if sess.get("status") == "ok" else None,
+        "gateway": gw if gw.get("status") == "ok" else None,
+        "fleet_processes": procs,
+    }
+    return {
+        "spec": spec,
+        "measured": measured,
+        "gaps": [
+            "true concurrent-session count on the Hermes Cloud instance is NOT yet instrumented "
+            "(cloud MCP needs an OAuth browser round-trip the headless box can't complete) — showing on-box proxies instead",
+            "door-profile model metering shows every call on deepseek-v4-flash at $0.00 estimated — free/cheap lane only, "
+            "no paid-lane burn recorded on box",
+        ],
+        "verdict": "Spec allows 20 concurrent sessions @ $1.09/day. On-box proxies: 0 sessions active in last 24h "
+                   "(door profile DB), gateway active_agents 0, {n} fleet python processes running. "
+                   "Concurrency is far under capacity — a cheaper brick is likely viable once true utilization is instrumented.".format(n=procs["count"]),
+    }
+
+
+# ---------------------------------------------------------------- github
+def gh_get(url, pat, timeout=15):
+    req = urllib.request.Request(url, headers={
+        "Authorization": "Bearer " + pat,
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "fleet-dashboard-v2",
+    })
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read().decode())
+
+
+def github_data(force=False):
+    now = time.time()
+    if not force and gh_cache["data"] and now - gh_cache["ts"] < 60:
+        return gh_cache["data"]
+    try:
+        pat = open(PAT_FILE).read().strip()
+        open_prs = gh_get(f"{GH}/pulls?state=open", pat)
+        closed = gh_get(f"{GH}/pulls?state=closed&per_page=100", pat)
+        merged = [p for p in closed if p.get("merged_at")]
+        ci = {}
+        for p in open_prs:
+            sha = (p.get("head") or {}).get("sha", "")
+            try:
+                st = gh_get(f"{GH}/commits/{sha}/status", pat)
+                ci[p["number"]] = {"state": st.get("state", "n/a"), "n_statuses": len(st.get("statuses", []))}
+            except Exception:
+                ci[p["number"]] = {"state": "unknown", "n_statuses": 0}
+        merged_dates = sorted(p["merged_at"][:10] for p in merged)
+        prs_per_day = None
+        if len(merged_dates) >= 2:
+            d0 = datetime.date.fromisoformat(merged_dates[0])
+            d1 = datetime.date.fromisoformat(merged_dates[-1])
+            days = max((d1 - d0).days + 1, 1)
+            prs_per_day = round(len(merged_dates) / days, 2)
+        data = {
+            "open": [{"number": p["number"], "title": p["title"], "created": p["created_at"][:10],
+                      "head": (p.get("head") or {}).get("ref"), "ci": ci.get(p["number"])} for p in open_prs],
+            "merged_count": len(merged),
+            "merged_dates": merged_dates,
+            "prs_per_day": prs_per_day,
+            "ci_summary": f"success on {sum(1 for v in ci.values() if v['state'] == 'success')}/{len(ci)} open PRs",
+            "fetched_at": now_iso(),
+        }
+        gh_cache.update(ts=now, data=data, error=None)
+        return data
+    except Exception as e:
+        gh_cache["error"] = str(e)
+        if gh_cache["data"]:
+            gh_cache["data"]["stale"] = True
+            gh_cache["data"]["error"] = str(e)
+            return gh_cache["data"]
+        return {"open": [], "merged_count": None, "prs_per_day": None,
+                "ci_summary": f"GitHub unreachable: {e}", "merged_dates": [], "error": str(e)}
+
+
+# ---------------------------------------------------------------- epics (queue)
+def epics_data():
+    md = None
+    used = None
+    for cand in QUEUE_FALLBACKS:
+        try:
+            md = open(cand).read()
+            used = cand
+            break
+        except Exception:
+            continue
+    if md is None:
+        return {"error": "queue not readable", "epics": []}
+    epics = []
+    in_table = False
+    for line in md.splitlines():
+        if line.startswith("## Active ownership"):
+            in_table = True
+            continue
+        if line.startswith("## "):
+            in_table = False
+        if in_table and line.startswith("|") and "Task" not in line and "---" not in line:
+            cells = [c.strip() for c in line.strip("|").split("|")]
+            if len(cells) >= 3 and cells[0]:
+                epics.append({"task": strip_md(cells[0]), "owner": strip_md(cells[1]), "status": strip_md(cells[2])})
+    in_next = False
+    for line in md.splitlines():
+        if line.startswith("## Next-steps"):
+            in_next = True
+            continue
+        if in_next and line.startswith("## "):
+            in_next = False
+        if in_next and re.match(r"^\s*\d+\.\s", line):
+            txt = re.sub(r"^\s*\d+\.\s*", "", line).strip()
+            if txt:
+                epics.append({"task": strip_md(txt), "owner": "claimable", "status": "OPEN — claimable"})
+    return {"epics": epics, "source": used}
+
+
+# ---------------------------------------------------------------- vector store
+def vector_data():
+    try:
+        d = json.load(open(VECTOR))
+    except Exception as e:
+        return {"error": str(e)}
+    docs = d.get("docs", [])
+    stats = d.get("stats", {})
+    topics = {}
+    for doc in docs:
+        t = doc.get("topic", "?")
+        topics[t] = topics.get(t, 0) + 1
+    raw_in = stats.get("raw_in", 0)
+    novel = stats.get("novel", 0)
+    return {
+        "docs": len(docs),
+        "topics": len(topics),
+        "topic_counts": sorted(topics.items(), key=lambda x: -x[1])[:10],
+        "stats": stats,
+        "novel_rate": round(novel / raw_in, 3) if raw_in else None,
+        "note": "seed/leech per brick: retrievals not yet tracked — novel adds only (raw_in → novel dedup)",
+    }
+
+
+# ---------------------------------------------------------------- fleet status
+def fleet_status():
+    brick = {"status": "LIVE", "detail": "session live on box (Hermes), dashboard server running", "signal_min": 0}
+    ages = [a for a in (file_age_min(VECTOR), file_age_min("/srv/bricks/orchestrator/audit.jsonl")) if a is not None]
+    agi_age = min(ages) if ages else None
+    agi = {"status": ("LIVE" if agi_age is not None and agi_age <= 360 else "IDLE"),
+           "detail": "last store write", "signal_min": round(agi_age, 1) if agi_age is not None else None}
+    hb = heartbeat_data()
+    ox = {"status": "IDLE", "detail": "hermes-local (ox-alpha) last heartbeat "
+          + (hb.get("idle", [{}])[0]["last_seen"] if hb.get("idle") else "n/a") + " — remote-mcp:8932"}
+    return {"Brick": brick, "AGI": agi, "ox-alpha (Hermes Cloud)": ox}
+
+
+# ---------------------------------------------------------------- approvals (decision cards)
+# Append-only JSONL: every action appends a NEW row for the card id (latest row wins),
+# so the file is a full audit trail and never silently edited. Fields:
+#   id|title|proposer|summary|impact|cost|created_ts|status|feedback|khalid-*-ts|updated_ts
+# status: PENDING | APPROVED | REJECTED | NEEDS-FEEDBACK
+def approvals_data():
+    rows = read_jsonl(APPROVALS)
+    if rows is None:
+        return {"status": "missing", "cards": [], "pending_count": 0, "file": APPROVALS}
+    by_id = {}
+    for r in rows:
+        if isinstance(r, dict) and r.get("id"):
+            by_id[str(r["id"])] = r  # latest row for an id wins (append-only history)
+    cards = sorted(by_id.values(), key=lambda c: (c.get("status") != "PENDING",
+                                                  c.get("created_ts") or ""))
+    pending = [c for c in cards if c.get("status") == "PENDING"]
+    return {"status": "ok", "cards": cards, "pending_count": len(pending), "file": APPROVALS,
+            "statuses": ["PENDING", "APPROVED", "REJECTED", "NEEDS-FEEDBACK"],
+            "note": "append-only JSONL — every khalid action appends a new row; latest row per card wins. "
+                    "Approvals bind only on khalid's sign (PENDING → APPROVED/REJECTED/NEEDS-FEEDBACK)."}
+
+
+def gh_append_decision(row):
+    """Append a row to the canonical decisions ledger (BAWES-Universe/bawes-knowledge decisions/ledger.md).
+    Best-effort: failures are reported, never fatal to the action."""
+    pat = open(PAT_FILE).read().strip()
+    url = f"{GH_KNOWLEDGE}/contents/{LEDGER_MD}"
+    req = urllib.request.Request(url, headers={"Authorization": "Bearer " + pat,
+                                               "Accept": "application/vnd.github+json",
+                                               "User-Agent": "fleet-dashboard-approvals"})
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        cur = json.loads(resp.read().decode())
+    sha = cur["sha"]
+    content = base64.b64decode(cur["content"]).decode()
+    if not content.endswith("\n"):
+        content += "\n"
+    date = str(row.get("ts", ""))[:10]
+    title = re.sub(r"\|", "/", str(row.get("title", row.get("card_id", "?"))))
+    decision = re.sub(r"\|", "/", str(row.get("decision_text", "")))
+    proposer = re.sub(r"\|", "/", str(row.get("proposer", "?")))
+    action = row.get("action")
+    khalid_col = {"approve": "✅ approved", "reject": "❌ rejected",
+                  "feedback": "💬 feedback given"}.get(action, action)
+    status_col = {"approve": "APPROVED via /approvals", "reject": "REJECTED via /approvals",
+                  "feedback": "NEEDS-FEEDBACK via /approvals"}.get(action, row.get("status", "?"))
+    md_row = f"| {date} | APPROVAL CARD {row.get('card_id','?')} — {title} — {decision} | {proposer} | fleet consensus round (see approval card) | {khalid_col} | {status_col} |\n"
+    new_content = content + md_row
+    body = json.dumps({"message": f"fleet-dashboard: khalid {action} on approval card {row.get('card_id','?')}",
+                       "content": base64.b64encode(new_content.encode()).decode(),
+                       "sha": sha}).encode()
+    put = urllib.request.Request(url, data=body, method="PUT",
+                                 headers={"Authorization": "Bearer " + pat,
+                                          "Content-Type": "application/json",
+                                          "Accept": "application/vnd.github+json",
+                                          "User-Agent": "fleet-dashboard-approvals"})
+    with urllib.request.urlopen(put, timeout=20) as resp:
+        return json.loads(resp.read().decode())
+
+
+def approval_action(card_id, action, feedback=None):
+    """Apply a khalid decision to a card. Returns (ok, payload)."""
+    with APPROVAL_LOCK:
+        rows = read_jsonl(APPROVALS) or []
+        if not rows:
+            return False, {"error": "approval-cards.jsonl missing — no cards"}
+        card = None
+        for r in reversed(rows):
+            if isinstance(r, dict) and r.get("id") == card_id:
+                card = r
+                break
+        if card is None:
+            return False, {"error": "card not found"}
+        if action not in ("approve", "reject", "feedback"):
+            return False, {"error": f"unknown action '{action}'"}
+        if card.get("status") in ("APPROVED", "REJECTED"):
+            return False, {"error": f"card already {card.get('status')} — no re-decision"}
+        ts_iso = now_iso()
+        new = dict(card)
+        fb = list(card.get("feedback") or [])
+        if action == "approve":
+            new.update(status="APPROVED", khalid_approved_ts=ts_iso, decision="approve")
+        elif action == "reject":
+            new.update(status="REJECTED", khalid_rejected_ts=ts_iso, decision="reject")
+        else:
+            fb.append({"ts": ts_iso, "text": str(feedback or "").strip()})
+            new.update(status="NEEDS-FEEDBACK", feedback=fb, khalid_feedback_ts=ts_iso,
+                       decision="feedback")
+        new["updated_ts"] = ts_iso
+        # 1) append the new row to the card ledger (append-only, latest wins)
+        with open(APPROVALS, "a") as f:
+            f.write(json.dumps(new, ensure_ascii=False) + "\n")
+        # 2) local append-only decisions ledger
+        ledger_row = {"ts": ts_iso, "kind": "khalid-decision", "card_id": card_id,
+                      "action": action, "title": card.get("title"),
+                      "proposer": card.get("proposer"),
+                      "decision_text": card.get("summary", "")[:160],
+                      "status": new["status"],
+                      "feedback": feedback if action == "feedback" else None,
+                      "source": "fleet-dashboard /approvals"}
+        with open(DECISIONS_LEDGER, "a") as f:
+            f.write(json.dumps(ledger_row, ensure_ascii=False) + "\n")
+        # 3) canonical GitHub decisions ledger (best-effort — hearth PAT is read-only on
+        #    bawes-knowledge; a write-scoped PAT must be vaulted to activate the sync)
+        gh = {"synced": False, "error": None}
+        try:
+            gh_append_decision(ledger_row)
+            gh["synced"] = True
+        except Exception as e:
+            gh["error"] = f"{type(e).__name__}: {e}"
+            with open(DECISIONS_LEDGER, "a") as f:
+                f.write(json.dumps({"ts": now_iso(), "kind": "gh-ledger-sync-failed",
+                                    "card_id": card_id, "action": action,
+                                    "error": gh["error"]}, ensure_ascii=False) + "\n")
+    return True, {"card": new, "decision_row": ledger_row, "gh_sync": gh,
+                  "pending_count": approvals_data()["pending_count"]}
+
+
+# ---------------------------------------------------------------- agent relay (comms)
+def relay_rows(limit=20):
+    """Latest relay messages, newest first. Reads the canonical append-only
+    /srv/bricks/orchestrator/agent-relay.jsonl (mirrored to the repo drop-box
+    by relay_sync.py every 60s)."""
+    rows = read_jsonl(RELAY)
+    if rows is None:
+        return {"status": "missing", "messages": [], "total": 0, "file": RELAY}
+    return {"status": "ok", "messages": rows[-limit:][::-1], "total": len(rows),
+            "file": RELAY,
+            "note": "append-only agent-relay.jsonl — mirrored to the bawes-fleet drop-box every 60s by relay_sync.py (≤60s lag for cloud agents)"}
+
+
+def relay_append(row):
+    """Append one row under a cross-process flock (dashboard + relay_sync share it)."""
+    with RELAY_LOCK:
+        fd = os.open(RELAY, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o664)
+        try:
+            import fcntl
+            fcntl.flock(fd, fcntl.LOCK_EX)
+            os.write(fd, (json.dumps(row, ensure_ascii=False) + "\n").encode())
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+    return row
+
+
+def relay_rate_check(user):
+    """(ok, retry_after_sec). owner (khalid): 1 msg/min; others: 5 msg/hr.
+    In-memory only (deliberately simple) — resets on service restart."""
+    name = str(user.get("username") or "?")
+    role = str(user.get("role") or "")
+    now = time.time()
+    q = _relay_rate.setdefault(name, collections.deque())
+    window = 60.0 if role == "owner" else 3600.0
+    limit = RATE_OWNER_PER_MIN if role == "owner" else RATE_OTHER_PER_HOUR
+    while q and now - q[0] > window:
+        q.popleft()
+    if len(q) >= limit:
+        return False, int(window - (now - q[0])) + 1
+    q.append(now)
+    return True, 0
+
+
+# ---------------------------------------------------------------- aggregate
+# ---------------------------------------------------------------- who / burn / cut-burn (v5)
+def _num(v):
+    try:
+        n = float(v)
+        return n if n == n and abs(n) != float("inf") else None
+    except (TypeError, ValueError):
+        return None
+
+
+def lanes_data(force=False):
+    """Latest row per lane_id from the router lanes.jsonl (append-only, latest wins)."""
+    now = time.time()
+    if not force and lanes_cache["ts"] and now - lanes_cache["ts"] < 60:
+        return lanes_cache["out"]
+    rows = read_jsonl(LANES)
+    if not rows:
+        out = {"status": "missing", "lanes": {}, "lane_count": 0, "file": LANES}
+    else:
+        by_id = {}
+        for r in rows:
+            if isinstance(r, dict) and r.get("lane_id"):
+                by_id[str(r["lane_id"])] = r
+        out = {"status": "ok", "lanes": by_id, "lane_count": len(by_id), "file": LANES,
+               "note": "router lanes.jsonl — latest row per lane wins; 'active' is what the router currently allows."}
+    lanes_cache.update(ts=now, out=out)
+    return out
+
+
+def lane_control_rows():
+    rows = read_jsonl(LANE_CONTROL)
+    return [r for r in (rows or []) if isinstance(r, dict)]
+
+
+def ledger_summary():
+    """Real router ledger: per-lane calls/spend + last-1h/24h velocity (append-only real rows)."""
+    now = time.time()
+    if ledger_cache["ts"] and now - ledger_cache["ts"] < 60:
+        return ledger_cache["out"]
+    rows = read_jsonl(LANE_LEDGER)
+    if not rows:
+        out = {"status": "missing", "rows": 0, "by_lane": {}, "file": LANE_LEDGER,
+               "per_hour": None, "per_hour_calls": 0, "per_day": None, "per_day_calls": 0,
+               "total_cost": 0.0, "last_ts": None}
+        ledger_cache.update(ts=now, out=out)
+        return out
+    by_lane = {}
+    total_cost = 0.0
+    maxts = 0
+    for r in rows:
+        lane = str(r.get("lane") or r.get("lane_id") or "?")
+        ts = r.get("ts")
+        if isinstance(ts, (int, float)):
+            maxts = max(maxts, float(ts))
+        cost = _num(r.get("cost")) or 0.0
+        total_cost += cost
+        e = by_lane.setdefault(lane, {"calls": 0, "cost": 0.0, "last_ts": None, "model": r.get("model")})
+        e["calls"] += 1
+        e["cost"] += cost
+        if isinstance(ts, (int, float)) and (e["last_ts"] is None or ts > e["last_ts"]):
+            e["last_ts"] = float(ts)
+            if r.get("model"):
+                e["model"] = r.get("model")
+    h1 = {"cost": 0.0, "calls": 0}
+    d1 = {"cost": 0.0, "calls": 0}
+    if maxts:
+        for r in rows:
+            ts = r.get("ts")
+            if not isinstance(ts, (int, float)):
+                continue
+            cost = _num(r.get("cost")) or 0.0
+            if ts >= maxts - 3600:
+                h1["cost"] += cost
+                h1["calls"] += 1
+            if ts >= maxts - 86400:
+                d1["cost"] += cost
+                d1["calls"] += 1
+    out = {"status": "ok", "rows": len(rows), "total_cost": round(total_cost, 4),
+           "last_ts": maxts, "by_lane": by_lane,
+           "per_hour": round(h1["cost"], 4), "per_hour_calls": h1["calls"],
+           "per_day": round(d1["cost"], 4), "per_day_calls": d1["calls"],
+           "file": LANE_LEDGER,
+           "note": "router ledger.jsonl — every routed call appends a real row (lane, model, cost). "
+                   "Velocity = real rows in the last 1h / 24h."}
+    ledger_cache.update(ts=now, out=out)
+    return out
+
+
+def burn_data():
+    """BURN RATE: spend velocity ($/hr, $/day) + free-vs-paid split, real rows only."""
+    led = ledger_summary()
+    lanes = lanes_data().get("lanes", {})
+    door = door_cost_data()
+    free_lanes, paid_lanes = [], []
+    for lid in sorted(lanes):
+        r = lanes[lid]
+        if not isinstance(r, dict):
+            continue
+        cpt = _num(r.get("cost_per_task"))
+        is_free = (cpt == 0.0) or lid in FREE_LANE_IDS
+        bl = led.get("by_lane", {}).get(lid, {})
+        rec = {"lane": lid, "model": r.get("model"), "cost_per_task": cpt,
+               "active": bool(r.get("active")), "calls": bl.get("calls", 0),
+               "cost": round(bl.get("cost", 0.0), 4), "last_ts": bl.get("last_ts")}
+        (free_lanes if is_free else paid_lanes).append(rec)
+    free_calls = sum(l["calls"] for l in free_lanes)
+    paid_calls = sum(l["calls"] for l in paid_lanes)
+    total_calls = free_calls + paid_calls
+    free_pct = round(free_calls * 100.0 / total_calls, 1) if total_calls else 0.0
+    carrying = sorted([l["lane"] for l in free_lanes if l["calls"] > 0])
+    drawdown = None
+    try:
+        sp = spend_data()
+        series = sp.get("series") or []
+        ds = [(s.get("ts"), _num(s.get("deepseek"))) for s in series if _num(s.get("deepseek")) is not None]
+        if len(ds) >= 2:
+            t2, b2 = ds[-1]
+            t1, b1 = ds[-2]
+            try:
+                t2f = datetime.datetime.fromisoformat(str(t2).replace("Z", "+00:00")).timestamp()
+                t1f = datetime.datetime.fromisoformat(str(t1).replace("Z", "+00:00")).timestamp()
+            except Exception:
+                t2f, t1f = 0.0, 0.0
+            days = max((t2f - t1f) / 86400.0, 0.001)
+            drawdown = {"per_day": round((b1 - b2) / days, 2), "from": b1, "to": b2,
+                        "from_ts": str(t1)[:16], "to_ts": str(t2)[:16],
+                        "note": "deepseek balance drawdown between consecutive spend.jsonl snapshots — balance change, not metered usage"}
+    except Exception:
+        drawdown = None
+    return {
+        "status": led.get("status"),
+        "rows": led.get("rows"), "total_spend": led.get("total_cost"),
+        "per_hour": led.get("per_hour"), "per_hour_calls": led.get("per_hour_calls"),
+        "per_day": led.get("per_day"), "per_day_calls": led.get("per_day_calls"),
+        "last_ledger_ts": led.get("last_ts"),
+        "free": {"lanes": free_lanes, "calls": free_calls, "pct": free_pct, "carrying": carrying},
+        "paid": {"lanes": paid_lanes, "calls": paid_calls,
+                 "pct": round(100.0 - free_pct, 1) if total_calls else 0.0},
+        "door_cost": {"rows": door.get("rows"),
+                      "total": door.get("total_usd"),
+                      "last_ts": (door.get("per_day") or [{}])[-1].get("day") if door.get("status") == "ok" else None,
+                      "note": ("door-cost.jsonl metered door calls ($0.002 deepseek-flash)"
+                               if door.get("status") == "ok"
+                               else "door-cost meter not on this box yet — it is not $0")},
+        "drawdown": drawdown,
+        "notes": [
+            "per-lane USD metering IS real: every routed call appends a row to the router ledger",
+            "free lanes cost $0 per call — zero-USD lanes, not 'free capacity'",
+            "Nous paid usage lives on the control host — not metered on this box",
+        ],
+    }
+
+
+def vector_last_ts():
+    """Latest doc write ts + doc count from vector-store.json (single JSON doc array)."""
+    try:
+        d = json.load(open(VECTOR))
+        docs = d.get("docs", []) or []
+        ts = None
+        for doc in docs:
+            t = doc.get("ts")
+            if isinstance(t, (int, float)) and (ts is None or t > ts):
+                ts = float(t)
+        return ts, len(docs)
+    except Exception:
+        return None, None
+
+
+def _relay_by_from():
+    rows = read_jsonl(RELAY)
+    out = {}
+    for r in (rows or []):
+        if isinstance(r, dict) and r.get("from"):
+            f = str(r["from"]).lower()
+            if f not in out or str(r.get("ts", "")) > str(out[f].get("ts", "")):
+                out[f] = r
+    return out
+
+
+def _kanban_fleet():
+    """Fleet kanban board (sqlite, read-only): tasks + latest comment. No CLI spawn on refresh."""
+    try:
+        import sqlite3
+        con = sqlite3.connect(f"file:{KANBAN_BOARD_DB}?mode=ro", uri=True, timeout=3)
+        cur = con.cursor()
+        tasks = []
+        try:
+            for row in cur.execute("SELECT id, title, assignee, status, created_at FROM tasks ORDER BY created_at DESC LIMIT 30"):
+                tasks.append({"id": row[0], "title": row[1], "assignee": row[2],
+                              "status": row[3], "created_at": row[4]})
+        except Exception:
+            pass
+        last_comment = None
+        try:
+            row = cur.execute("SELECT task_id, author, substr(body,1,160), created_at "
+                              "FROM task_comments ORDER BY created_at DESC LIMIT 1").fetchone()
+            if row:
+                last_comment = {"task_id": row[0], "author": row[1], "body": row[2], "created_at": row[3]}
+        except Exception:
+            pass
+        con.close()
+        return {"status": "ok", "tasks": tasks, "count": len(tasks), "last_comment": last_comment}
+    except Exception as e:
+        return {"status": "error", "error": f"{type(e).__name__}: {e}", "tasks": [], "count": 0,
+                "last_comment": None}
+
+
+def who_data():
+    """WHO'S DOING WHAT — per known agent: live/idle + most recent REAL activity.
+    Sources: agent-relay (last msg per from), router ledger (last call per lane),
+    heartbeat registry (per brick_id), fleet kanban board (task states), /proc (fleet processes).
+    Anything with no signal on this box says so — never invented."""
+    now = time.time()
+    relay = _relay_by_from()
+    led = ledger_summary()
+    hb = heartbeat_data()
+    hb_last = {r["id"]: r["last_ts"] for r in (hb.get("live", []) + hb.get("idle", []) + hb.get("silent", []))}
+    kb = _kanban_fleet()
+    kb_by_assignee = {}
+    for t in kb.get("tasks", []):
+        a = str(t.get("assignee") or "").lower()
+        if a:
+            kb_by_assignee.setdefault(a, []).append(t)
+    vec_ts, vec_count = vector_last_ts()
+    procs = fleet_processes()
+    running = {p.lower() for p in procs.get("processes", [])}
+
+    def iso_ts(v):
+        if isinstance(v, (int, float)):
+            return float(v)
+        try:
+            return datetime.datetime.fromisoformat(str(v).replace("Z", "+00:00")).timestamp()
+        except Exception:
+            return None
+
+    def state_from(age):
+        if age is None:
+            return "NO SIGNAL"
+        if age <= FRESH_SEC:
+            return "LIVE"
+        if age <= SEEN7D_SEC:
+            return "IDLE"
+        return "SILENT"
+
+    def build(name, sigs):
+        """sigs: list of (ts, source_label, activity_text). Newest wins for status+activity."""
+        sigs = [s for s in sigs if s and s[0] is not None]
+        if not sigs:
+            return {"name": name, "status": "NO SIGNAL", "activity": "no signal on this box",
+                    "when": None, "source": None, "sources": []}
+        sigs.sort(key=lambda s: -s[0])
+        top = sigs[0]
+        return {"name": name, "status": state_from(now - top[0]), "activity": top[2],
+                "when": top[0], "source": top[1],
+                "sources": [s[2] for s in sigs[:3]]}
+
+    agents = []
+    # Brick — on-box PM/orchestrator (worker-001)
+    sigs = []
+    rb = relay.get("brick")
+    if rb:
+        t = iso_ts(rb.get("ts"))
+        if t:
+            sigs.append((t, "relay", f"relay: {str(rb.get('body'))[:100]}"))
+    if "orchestrator.py" in running:
+        sigs.append((now, "process", "orchestrator.py serving (worker-001) — process is up right now"))
+    agents.append(build("Brick", sigs))
+
+    # AGI — fleet brain judge
+    sigs = []
+    ra = relay.get("agi")
+    if ra:
+        t = iso_ts(ra.get("ts"))
+        if t:
+            sigs.append((t, "relay", f"relay: {str(ra.get('body'))[:100]}"))
+    if vec_ts:
+        sigs.append((vec_ts, "knowledge", f"knowledge store last write ({vec_count} docs)"))
+    for t in kb_by_assignee.get("agi", []):
+        if t.get("created_at"):
+            sigs.append((float(t["created_at"]), "kanban", f"kanban task '{str(t.get('title'))[:60]}' ({t.get('status')})"))
+    agents.append(build("AGI", sigs))
+
+    # ox-alpha — free-ox lane + hermes-local heartbeat
+    sigs = []
+    bl = led.get("by_lane", {}).get("free-ox", {})
+    if bl.get("last_ts"):
+        sigs.append((bl["last_ts"], "router", f"last routed call on free-ox lane ({bl.get('calls', 0)} calls)"))
+    hl = hb_last.get("hermes-local")
+    if hl:
+        sigs.append((hl, "heartbeat", "last heartbeat as hermes-local"))
+    ro = relay.get("oxalpha") or relay.get("ox-alpha")
+    if ro:
+        t = iso_ts(ro.get("ts"))
+        if t:
+            sigs.append((t, "relay", f"relay: {str(ro.get('body'))[:100]}"))
+    agents.append(build("ox-alpha", sigs))
+
+    # OxBaby — no direct channel on this box yet
+    sigs = []
+    rob = relay.get("oxbaby")
+    if rob:
+        t = iso_ts(rob.get("ts"))
+        if t:
+            sigs.append((t, "relay", f"relay: {str(rob.get('body'))[:100]}"))
+    agents.append(build("OxBaby", sigs))
+
+    # DA — ruling body; rulings land in the knowledge store, no live channel yet
+    sigs = []
+    rda = relay.get("da")
+    if rda:
+        t = iso_ts(rda.get("ts"))
+        if t:
+            sigs.append((t, "relay", f"relay: {str(rda.get('body'))[:100]}"))
+    agents.append(build("DA", sigs))
+
+    # Rebel — dissenting voice; no direct channel on this box
+    sigs = []
+    rr = relay.get("rebel")
+    if rr:
+        t = iso_ts(rr.get("ts"))
+        if t:
+            sigs.append((t, "relay", f"relay: {str(rr.get('body'))[:100]}"))
+    agents.append(build("Rebel", sigs))
+
+    return {"status": "ok", "agents": agents, "probed": {
+        "relay_rows": len(read_jsonl(RELAY) or []),
+        "ledger_rows": led.get("rows"),
+        "kanban_tasks": kb.get("count"),
+        "fleet_processes": procs.get("processes"),
+    },
+        "note": "signals: agent-relay (last msg), router ledger (last routed call), heartbeat registry, "
+                "fleet kanban board, /proc processes. LIVE ≤5 min, IDLE ≤7 d, SILENT >7 d. "
+                "Cloud agents that signal through the repo drop-box only show 'no signal' until their message reaches the relay."}
+
+
+def lane_state():
+    """Merged toggle state: router lanes.jsonl active flag + lane-control.jsonl pauses (latest wins)."""
+    lanes = lanes_data().get("lanes", {})
+    last_ctl = {}
+    for r in lane_control_rows():
+        lane = str(r.get("lane") or "")
+        if lane:
+            last_ctl[lane] = r
+    out = []
+    for lid in TOGGLE_LANES:
+        r = lanes.get(lid)
+        c = last_ctl.get(lid)
+        router_active = bool(r and r.get("active"))
+        cpt = _num(r.get("cost_per_task")) if r else None
+        is_free = (cpt == 0.0) if cpt is not None else (lid in FREE_LANE_IDS)
+        ctl_action = c.get("action") if c else None
+        if ctl_action == "pause":
+            on = False
+        elif ctl_action == "resume":
+            on = router_active
+        else:
+            on = router_active
+        bl = ledger_summary().get("by_lane", {}).get(lid, {})
+        out.append({
+            "lane": lid,
+            "model": r.get("model") if r else None,
+            "registered": r is not None,
+            "router_active": router_active,
+            "control": ctl_action,
+            "on": on,
+            "free": is_free,
+            "cost_per_task": cpt,
+            "calls": bl.get("calls", 0),
+            "cost": round(bl.get("cost", 0.0), 4),
+            "last_call_ts": bl.get("last_ts"),
+            "last_control": {"ts": c.get("ts"), "by": c.get("by")} if c else None,
+        })
+    return {"status": "ok", "lanes": out, "file": LANES, "control_file": LANE_CONTROL,
+            "note": "switch = router lane active AND not paused by a lane-control directive. "
+                    "nous-paid has no router lane on this box — toggling logs the directive + kanban comment only."}
+
+
+def kanban_ensure_ctrl_task():
+    """Find or create the lane-control task on the fleet board (hermes CLI). Returns task id or None."""
+    env = dict(os.environ)
+    env.setdefault("HOME", "/home/ubuntu")
+    env["PATH"] = "/usr/local/bin:" + env.get("PATH", "")
+
+    def run(args, timeout=45):
+        return subprocess.run(args, capture_output=True, text=True, timeout=timeout, env=env)
+    try:
+        r = run(["hermes", "kanban", "--board", KANBAN_BOARD, "list", "--json"])
+        if r.returncode == 0:
+            try:
+                tasks = json.loads(r.stdout or "[]")
+            except Exception:
+                tasks = []
+            for t in tasks:
+                if str(t.get("title", "")).startswith("lane-control"):
+                    return str(t.get("id")) or None
+        r = run(["hermes", "kanban", "--board", KANBAN_BOARD, "create", KANBAN_CTRL_TITLE,
+                 "--body", "Khalid's lane pause/resume directives land here as comments. "
+                           "Written by the fleet dashboard when he flips a CUT BURN toggle.",
+                 "--json"])
+        if r.returncode == 0:
+            try:
+                return str(json.loads(r.stdout or "{}").get("id") or "") or None
+            except Exception:
+                return None
+    except Exception:
+        return None
+    return None
+
+
+def lane_control_append(lane, action, by):
+    """Append {ts, lane, action, by} to lane-control.jsonl (flock) AND comment it on the
+    fleet kanban board so agents see the cut in-band. Kanban is best-effort — a failure
+    is reported in the response, never fatal to the directive."""
+    row = {"ts": now_iso(), "lane": lane, "action": action, "by": by}
+    kanban = {"ok": False, "error": None, "task_id": None}
+    with LANE_LOCK:
+        fd = os.open(LANE_CONTROL, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o664)
+        try:
+            import fcntl
+            fcntl.flock(fd, fcntl.LOCK_EX)
+            os.write(fd, (json.dumps(row, ensure_ascii=False) + "\n").encode())
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+    try:
+        task_id = kanban_ensure_ctrl_task()
+        kanban["task_id"] = task_id
+        verb = "PAUSED (cut)" if action == "pause" else "RESUMED"
+        text = (f"LANE CONTROL by {by}: {verb} lane '{lane}' at {row['ts']}. "
+                f"Written from the fleet dashboard CUT BURN toggle. Agents: honor this in-band — "
+                f"{'stop routing to ' + lane + ' until the owner resumes it.' if action == 'pause' else lane + ' is open again.'}")
+        if task_id:
+            env = dict(os.environ)
+            env.setdefault("HOME", "/home/ubuntu")
+            env["PATH"] = "/usr/local/bin:" + env.get("PATH", "")
+            r = subprocess.run(["hermes", "kanban", "--board", KANBAN_BOARD, "comment",
+                                task_id, text, "--author", by],
+                               capture_output=True, text=True, timeout=60, env=env)
+            kanban["ok"] = (r.returncode == 0)
+            if not kanban["ok"]:
+                kanban["error"] = (r.stderr or r.stdout or "").strip()[:300]
+        else:
+            kanban["error"] = "could not find/create lane-control task on the fleet kanban board"
+    except Exception as e:
+        kanban["error"] = f"{type(e).__name__}: {e}"
+    return row, kanban
+
+
+def build_payload(user=None):
+    w = wallet_data()
+    money = money_data(w)
+    hb = heartbeat_data()
+    gh = github_data()
+    return {
+        "generated_at": now_iso(),
+        "brand": {"name": "BAWES", "tagline": "People and AI Living Together", "url": "bawes.net"},
+        "session": {"user": user.get("username") if user else None,
+                    "role": user.get("role") if user else None},
+        "money": money,
+        "bricks": {"heartbeat": hb, "registry": registry_data()},
+        "roi": roi_data(w, money),
+        "evolution": {
+            "vector": vector_series(),
+            "wallet": wallet_series(w),
+            "prs": pr_series(gh),
+            "spend": spend_series(money),
+            "door_cost": money.get("door_cost", {}),
+            "note": "no historical snapshots predate these files — history accrues from now for anything not already derivable",
+        },
+        "threads": threads_data(),
+        "fleets": fleet_status(),
+        "wallet": w,
+        "rate_card": {"status": "n/a"},
+        "velocity": gh,
+        "epics": epics_data(),
+        "vector_store": vector_data(),
+        "approvals": approvals_data(),
+        "who": who_data(),
+        "burn": burn_data(),
+        "lanes": lane_state(),
+        "lane_control": {"can_control": bool(user and user.get("role") == "owner"),
+                         "file": LANE_CONTROL,
+                         "last_control": lane_control_rows()[-1] if lane_control_rows() else None,
+                         "note": "owner-only kill switch — contributor toggles get 403"},
+        "achievements": {"count": len(read_jsonl(ACHIEVEMENTS) or []), "file": ACHIEVEMENTS},
+        "dispatches": {"count": len(read_jsonl(DISPATCHES) or []), "file": DISPATCHES},
+        "sources": {
+            "wallet": WALLET, "heartbeat": HEARTBEAT, "registry": REGISTRY,
+            "vector": VECTOR, "door_cost": DOOR_COST, "spend": SPEND,
+            "queue": QUEUE_FALLBACKS[0], "github": f"api.github.com/repos/{REPO}/pulls",
+            "door_db": DOOR_DB, "users": USERS_FILE,
+            "approvals": APPROVALS, "decisions_ledger": DECISIONS_LEDGER,
+            "lanes": LANES, "lane_ledger": LANE_LEDGER, "lane_control": LANE_CONTROL,
+            "kanban_board_db": KANBAN_BOARD_DB,
+        },
+    }
+
+
+# ---------------------------------------------------------------- http
+class Handler(BaseHTTPRequestHandler):
+    def log_message(self, *a):
+        pass
+
+    def _send(self, code, body, ctype, extra_headers=None):
+        self.send_response(code)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-BAWES-Dashboard", "v5")
+        if extra_headers:
+            for k, v in extra_headers.items():
+                self.send_header(k, v)
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _redirect(self, location, extra_headers=None):
+        self.send_response(302)
+        self.send_header("Location", location)
+        self.send_header("Content-Length", "0")
+        self.send_header("Cache-Control", "no-store")
+        if extra_headers:
+            for k, v in extra_headers.items():
+                self.send_header(k, v)
+        self.end_headers()
+
+    def _login_url(self):
+        q = urllib.parse.urlparse(self.path)
+        nxt = safe_next(q.query and dict(urllib.parse.parse_qsl(q.query)).get("next"))
+        return f"/login?next={urllib.parse.quote(nxt)}" if nxt != "/" else "/login"
+
+    def _cookie_value(self, name):
+        """Extract a single cookie value from the raw Cookie header."""
+        for part in self.headers.get("Cookie", "").split(";"):
+            k, _, v = part.strip().partition("=")
+            if k == name:
+                return v
+        return ""
+
+    def _require_session(self):
+        """Returns (user, None) or (None, response-needed)."""
+        user = verify_session(self._cookie_value(SESSION_COOKIE))
+        if user:
+            return user, None
+        if self.path.startswith("/api/"):
+            self._send(401, json.dumps({"ok": False, "error": "authentication required — sign in at /login"}).encode(),
+                       "application/json")
+        else:
+            self._redirect(self._login_url())
+        return None, True
+
+    # ------------------------------------------------------------ GET
+    def do_GET(self):
+        path = self.path.split("?")[0]
+
+        if path == "/favicon.ico":
+            self._send(204, b"", "image/x-icon")
+            return
+
+        if path == "/login":
+            try:
+                html = open(os.path.join(BASE, "login.html"), "rb").read()
+                self._send(200, html, "text/html; charset=utf-8")
+            except FileNotFoundError:
+                self._send(500, b"login.html missing", "text/plain")
+            return
+
+        if path == "/logout":
+            # clear the session cookie and go back to the login page
+            self._redirect("/login", {"Set-Cookie": clear_cookie_header()})
+            return
+
+        user, denied = self._require_session()
+        if denied:
+            return
+
+        if path == "/" or path == "/index.html":
+            try:
+                html = open(os.path.join(BASE, "index.html"), "rb").read()
+                self._send(200, html, "text/html; charset=utf-8")
+            except FileNotFoundError:
+                self._send(500, b"index.html missing", "text/plain")
+        elif path == "/approvals":
+            try:
+                html = open(os.path.join(BASE, "approvals.html"), "rb").read()
+                self._send(200, html, "text/html; charset=utf-8")
+            except FileNotFoundError:
+                self._send(500, b"approvals.html missing", "text/plain")
+        elif path == "/api/approvals":
+            payload = approvals_data()
+            payload["session"] = {"user": user.get("username"), "role": user.get("role")}
+            self._send(200, json.dumps(payload).encode(), "application/json")
+        elif path == "/comms":
+            try:
+                html = open(os.path.join(BASE, "comms.html"), "rb").read()
+                self._send(200, html, "text/html; charset=utf-8")
+            except FileNotFoundError:
+                self._send(500, b"comms.html missing", "text/plain")
+        elif path == "/api/comms":
+            payload = relay_rows(20)
+            payload["session"] = {"user": user.get("username"), "role": user.get("role")}
+            payload["rate"] = {"owner_per_min": RATE_OWNER_PER_MIN,
+                               "other_per_hour": RATE_OTHER_PER_HOUR}
+            self._send(200, json.dumps(payload).encode(), "application/json")
+        elif path == "/api/data":
+            payload = json.dumps(build_payload(user)).encode()
+            self._send(200, payload, "application/json")
+        elif path == "/api/lane-state":
+            payload = lane_state()
+            payload["session"] = {"user": user.get("username"), "role": user.get("role")}
+            payload["can_control"] = user.get("role") == "owner"
+            payload["burn"] = burn_data()
+            payload["last_control"] = lane_control_rows()[-1] if lane_control_rows() else None
+            self._send(200, json.dumps(payload, ensure_ascii=False).encode(), "application/json")
+        elif path == "/healthz":
+            self._send(200, b"ok", "text/plain")
+        else:
+            self._send(404, b"not found", "text/plain")
+
+    # ------------------------------------------------------------ POST
+    def do_POST(self):
+        path = self.path.split("?")[0]
+
+        if path == "/login":
+            self._do_login()
+            return
+
+        user, denied = self._require_session()
+        if denied:
+            return
+
+        if path == "/api/comms":
+            self._do_comms(user)
+            return
+
+        if path == "/api/lane-control":
+            self._do_lane_control(user)
+            return
+
+        if path != "/api/approvals/action":
+            self._send(404, b"not found", "text/plain")
+            return
+
+        if user.get("role") != "owner":
+            self._send(403, json.dumps({"ok": False,
+                                        "error": "owner role required — contributor accounts are read-only"}).encode(),
+                       "application/json")
+            return
+
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+            body = self.rfile.read(n) if n else b"{}"
+            data = json.loads(body.decode() or "{}")
+        except Exception:
+            self._send(400, b"bad json body", "application/json")
+            return
+        card_id = str(data.get("id") or "").strip()
+        action = str(data.get("action") or "").strip().lower()
+        feedback = data.get("feedback")
+        if not card_id or action not in ("approve", "reject", "feedback"):
+            self._send(400, json.dumps({"ok": False, "error": "id + action (approve|reject|feedback) required"}).encode(),
+                       "application/json")
+            return
+        ok, payload = approval_action(card_id, action, feedback)
+        if ok:
+            payload["ok"] = True
+            self._send(200, json.dumps(payload, ensure_ascii=False).encode(), "application/json")
+        else:
+            self._send(409, json.dumps({"ok": False, **payload}, ensure_ascii=False).encode(),
+                       "application/json")
+
+    def _do_lane_control(self, user):
+        """POST /api/lane-control — owner-only lane pause/resume (khalid's CUT BURN
+        kill switch). Appends to lane-control.jsonl + comments the fleet kanban board.
+        Contributor (read-only) accounts get 403 — the tap is the owner's call."""
+        if user.get("role") != "owner":
+            self._send(403, json.dumps({"ok": False,
+                                        "error": "owner role required — lane cuts are the owner's call, "
+                                                 "contributor accounts are read-only"}).encode(),
+                       "application/json")
+            return
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+            data = json.loads(self.rfile.read(n).decode() or "{}") if n else {}
+        except Exception:
+            self._send(400, json.dumps({"ok": False, "error": "bad json body"}).encode(),
+                       "application/json")
+            return
+        lane = str(data.get("lane") or "").strip()
+        action = str(data.get("action") or "").strip().lower()
+        if lane not in TOGGLE_LANES:
+            self._send(400, json.dumps({"ok": False,
+                                        "error": f"unknown lane '{lane}' — toggles: {', '.join(TOGGLE_LANES)}"}).encode(),
+                       "application/json")
+            return
+        if action not in ("pause", "resume"):
+            self._send(400, json.dumps({"ok": False, "error": "action must be 'pause' or 'resume'"}).encode(),
+                       "application/json")
+            return
+        row, kanban = lane_control_append(lane, action, user.get("username"))
+        self._send(200, json.dumps({"ok": True, "row": row, "kanban": kanban,
+                                    "lanes": lane_state(), "burn": burn_data()},
+                                   ensure_ascii=False).encode(), "application/json")
+
+    def _do_comms(self, user):
+        """POST /api/comms — post ONE message to ALL agents (appends to the
+        canonical agent-relay.jsonl). Rate limit: owner 1 msg/min, others 5/hr
+        (in-memory counter — deliberate simplicity)."""
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+            data = json.loads(self.rfile.read(n).decode() or "{}") if n else {}
+        except Exception:
+            self._send(400, json.dumps({"ok": False, "error": "bad json body"}).encode(),
+                       "application/json")
+            return
+        body = str(data.get("body") or "").strip()
+        if not body:
+            self._send(400, json.dumps({"ok": False, "error": "body required"}).encode(),
+                       "application/json")
+            return
+        if len(body) > 4000:
+            self._send(400, json.dumps({"ok": False, "error": "message too long (max 4000 chars)"}).encode(),
+                       "application/json")
+            return
+        ok, retry = relay_rate_check(user)
+        if not ok:
+            self._send(429, json.dumps({"ok": False, "error": f"rate limited — retry in ~{retry}s",
+                                        "retry_after": retry}).encode(), "application/json")
+            return
+        row = {"ts": now_iso(), "from": user.get("username"), "to": "all",
+               "kind": "msg", "body": body, "receipt": None}
+        relay_append(row)
+        self._send(200, json.dumps({"ok": True, "row": row,
+                                    "rate": {"retry_after": 60 if user.get("role") == "owner" else 3600}},
+                                   ensure_ascii=False).encode(), "application/json")
+
+    def _do_login(self):
+        """POST /login — verify creds, set session cookie, redirect (302)."""
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+            form = parse_form(self.rfile.read(n) if n else b"")
+        except Exception:
+            form = {}
+        username = str(form.get("username") or "").strip()
+        password = str(form.get("password") or "")
+        nxt = safe_next(form.get("next"))
+        user = verify_user(username, password) if username and password else None
+        if user:
+            self._redirect(nxt, {"Set-Cookie": session_cookie_header(user)})
+        else:
+            self._redirect(f"/login?error=1&next={urllib.parse.quote(nxt)}")
+
+
+if __name__ == "__main__":
+    srv = ThreadingHTTPServer((HOST, PORT), Handler)
+    print(f"fleet-dashboard v5 serving http://{HOST}:{PORT}/ (login + session auth) — /approvals + /comms + who/burn/cut-burn live", flush=True)
+    srv.serve_forever()

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BAWES Approvals — decision cards</title>
+<style>
+:root{
+  --bg:#0a0c10; --bg2:#10141b; --card:#141922; --card2:#1a212d; --line:#232c3a;
+  --txt:#e8edf4; --dim:#8b98a9; --faint:#5c6878;
+  --gold:#f5b942; --gold2:#ffd97a; --teal:#3dd6a4; --red:#ff5d6c; --blue:#5aa7ff; --purple:#b48cff;
+  --mono:"SF Mono","JetBrains Mono","Fira Code",Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:15px;line-height:1.5}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px 70px}
+/* header */
+header{position:sticky;top:0;z-index:50;background:linear-gradient(180deg,#0b0e13 0%,rgba(11,14,19,.94) 82%,transparent);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:12px 0}
+.hrow{max-width:760px;margin:0 auto;padding:0 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.mark{width:34px;height:34px;border-radius:9px;background:radial-gradient(circle at 30% 25%,#2a2410,#14100a 70%);border:1px solid #4d3d14;display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--gold);font-size:14px;box-shadow:0 0 18px rgba(245,185,66,.14) inset}
+.word{font-size:17px;font-weight:800;letter-spacing:2px}
+.word span{color:var(--gold)}
+.hright{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--dim)}
+.pill{border:1px solid var(--line);background:var(--card);padding:5px 11px;border-radius:999px;font-family:var(--mono);font-size:11px;color:var(--dim);text-decoration:none}
+.pill b{color:var(--gold)}
+a.pill:hover{border-color:var(--gold);color:var(--gold)}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 6px var(--gold);margin-right:6px}
+.dot.pulse{animation:pp 1.6s infinite}
+@keyframes pp{50%{opacity:.3}}
+/* hero */
+.hero{padding:24px 2px 4px}
+.hero h1{font-size:13px;font-weight:700;letter-spacing:1.8px;color:var(--dim);text-transform:uppercase}
+.hero .big{font-size:24px;font-weight:800;letter-spacing:.6px;margin-top:3px}
+.hero .big .b{color:var(--gold)}
+.hero .sub{color:var(--dim);font-size:13px;margin-top:5px}
+/* cards */
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 16px 14px;margin-top:14px}
+.card .ttl{font-size:16.5px;font-weight:800;letter-spacing:.2px;line-height:1.35;padding-right:6px}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;align-items:center}
+.badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:10.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase}
+.b-pending{background:rgba(245,185,66,.14);color:var(--gold);border:1px solid rgba(245,185,66,.4)}
+.b-approved{background:rgba(61,214,164,.13);color:var(--teal);border:1px solid rgba(61,214,164,.4)}
+.b-rejected{background:rgba(255,93,108,.13);color:var(--red);border:1px solid rgba(255,93,108,.4)}
+.b-feedback{background:rgba(180,140,255,.13);color:var(--purple);border:1px solid rgba(180,140,255,.4)}
+.mchip{font-family:var(--mono);font-size:11px;color:var(--dim);border:1px solid var(--line);background:var(--bg2);border-radius:999px;padding:3px 9px}
+.row{margin-top:11px;font-size:13.5px;color:var(--dim)}
+.row b{color:var(--txt);font-weight:700;font-size:11px;letter-spacing:1.4px;text-transform:uppercase;display:block;margin-bottom:3px}
+.row .gold{color:var(--gold)}
+.cost{font-family:var(--mono);font-size:13px;color:var(--gold2)}
+.fb{margin-top:11px;border-top:1px dashed var(--line);padding-top:9px}
+.fb .fbit{font-size:12.5px;color:var(--dim);margin-top:6px;background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.fb .fbit b{color:var(--purple);font-family:var(--mono);font-size:10px;letter-spacing:1px;text-transform:uppercase}
+/* actions */
+.acts{display:flex;gap:9px;margin-top:14px;flex-wrap:wrap}
+.btn{flex:1;min-width:120px;min-height:50px;border-radius:11px;border:1px solid var(--line);background:var(--card2);color:var(--txt);font-size:15px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer;font-family:var(--sans);-webkit-tap-highlight-color:transparent}
+.btn:active{transform:scale(.97)}
+@media(max-width:480px){
+  .acts{flex-direction:column}
+  .btn{width:100%;min-width:0;min-height:52px;font-size:16px}
+}
+.b-app{background:rgba(61,214,164,.12);border-color:rgba(61,214,164,.5);color:var(--teal)}
+.b-rej{background:rgba(255,93,108,.12);border-color:rgba(255,93,108,.5);color:var(--red)}
+.b-fb{background:rgba(245,185,66,.1);border-color:rgba(245,185,66,.45);color:var(--gold)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.fbwrap{margin-top:10px;display:none}
+.fbwrap.open{display:block}
+textarea{width:100%;min-height:74px;background:var(--bg2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:15px;font-family:var(--sans);resize:vertical}
+textarea:focus{outline:none;border-color:var(--gold)}
+.fbsend{width:100%;margin-top:8px}
+.done{font-size:12.5px;color:var(--dim);margin-top:12px;font-family:var(--mono)}
+.done b{color:var(--teal)}
+.note{font-size:11.5px;color:var(--faint);margin-top:22px;line-height:1.6}
+.err{color:var(--red);font-size:13px;padding:16px 0}
+.loading{color:var(--faint);font-size:13px;padding:18px 0}
+.empty{color:var(--teal);font-size:14px;padding:18px 0}
+footer{margin-top:34px;border-top:1px solid var(--line);padding-top:14px;font-size:11px;color:var(--faint);line-height:1.7}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <div class="mark">B</div>
+    <div class="word">BAW<span>ES</span></div>
+    <div class="hright">
+      <a class="pill" href="/">‹ dashboard</a>
+      <span class="pill" id="pend-pill"><span class="dot" id="pend-dot"></span><b id="pend-n">—</b> pending</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="hero">
+    <h1>Fleet Command — Your Sign</h1>
+    <div class="big">APPROVAL <span class="b">CARDS</span></div>
+    <div class="sub">Nothing binds until you sign. Tap APPROVE, REJECT, or FEEDBACK on each card — the decision is written to the fleet ledgers instantly.</div>
+  </div>
+  <div id="cards"></div>
+  <div class="note" id="note"></div>
+  <footer>
+    <div>Source: /srv/bricks/orchestrator/approval-cards.jsonl (append-only). Every action also appends a row to the local decisions-ledger.jsonl and to the canonical fleet decisions ledger (BAWES-Universe/bawes-knowledge decisions/ledger.md).</div>
+  </footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const badge=s=>s==="PENDING"?'<span class="badge b-pending">PENDING</span>'
+  :s==="APPROVED"?'<span class="badge b-approved">APPROVED</span>'
+  :s==="REJECTED"?'<span class="badge b-rejected">REJECTED</span>'
+  :s==="NEEDS-FEEDBACK"?'<span class="badge b-feedback">NEEDS FEEDBACK</span>'
+  :'<span class="badge b-pending">'+esc(s)+'</span>';
+const shortD=ts=>{const s=String(ts||"");return s? s.slice(0,10)+" "+s.slice(11,16)+"Z" : "—"};
+let CARDS=[];
+
+function render(){
+  const pending=CARDS.filter(c=>c.status==="PENDING");
+  const rest=CARDS.filter(c=>c.status!=="PENDING");
+  $("pend-n").textContent=pending.length;
+  $("pend-dot").classList.toggle("pulse",pending.length>0);
+  if(!CARDS.length){$("cards").innerHTML='<div class="empty">No approval cards yet.</div>';return}
+  const cardHTML=c=>{
+    const fb=(c.feedback||[]);
+    const fbHTML=fb.length?'<div class="fb"><b style="color:var(--purple);font-size:11px;letter-spacing:1.4px;text-transform:uppercase">Your feedback</b>'+
+      fb.map(f=>'<div class="fbit"><b>'+shortD(f.ts)+'</b> — '+esc(f.text)+'</div>').join("")+'</div>':"";
+    const pendingBtn=c.status==="PENDING";
+    const acts=pendingBtn?'<div class="acts">'+
+      '<button class="btn b-app" data-id="'+esc(c.id)+'" data-act="approve">✓ Approve</button>'+
+      '<button class="btn b-rej" data-id="'+esc(c.id)+'" data-act="reject">✕ Reject</button>'+
+      '<button class="btn b-fb" data-id="'+esc(c.id)+'" data-act="feedback">💬 Feedback</button></div>'+
+      '<div class="fbwrap" data-fbwrap="'+esc(c.id)+'"><textarea data-fbta="'+esc(c.id)+'" placeholder="What should the fleet change or answer?"></textarea>'+
+      '<button class="btn b-fb fbsend" data-id="'+esc(c.id)+'" data-act="sendfb">Send feedback</button></div>':"";
+    const decided=c.status==="APPROVED"?'<div class="done">Signed <b>APPROVED</b> · '+shortD(c.khalid_approved_ts||c.updated_ts)+'</div>'
+      :c.status==="REJECTED"?'<div class="done">Signed <b>REJECTED</b> · '+shortD(c.khalid_rejected_ts||c.updated_ts)+'</div>'
+      :c.status==="NEEDS-FEEDBACK"?'<div class="done">Feedback sent · fleet to respond</div>':"";
+    return '<div class="card" data-card="'+esc(c.id)+'">'+
+      '<div class="ttl">'+esc(c.title)+'</div>'+
+      '<div class="meta">'+badge(c.status)+'<span class="mchip">'+esc(c.proposer||"?")+'</span><span class="mchip">created '+shortD(c.created_ts)+'</span></div>'+
+      '<div class="row"><b>Summary</b>'+esc(c.summary||"")+'</div>'+
+      '<div class="row"><b>What changes if approved</b>'+esc(c.impact||"")+'</div>'+
+      '<div class="row"><b>Cost</b><span class="cost">'+esc(c.cost||"$0")+'</span></div>'+
+      fbHTML+acts+decided+'</div>';
+  };
+  $("cards").innerHTML=[...pending.map(cardHTML),...rest.map(cardHTML)].join("");
+}
+function bind(){
+  document.querySelectorAll(".btn[data-act]").forEach(b=>{
+    b.onclick=async()=>{
+      const id=b.dataset.id, act=b.dataset.act;
+      if(act==="feedback"){
+        const w=document.querySelector('[data-fbwrap="'+CSS.escape(id)+'"]');
+        w.classList.toggle("open");
+        const ta=document.querySelector('[data-fbta="'+CSS.escape(id)+'"]');
+        if(w.classList.contains("open")){ta.focus()}
+        return;
+      }
+      const ta=document.querySelector('[data-fbta="'+CSS.escape(id)+'"]');
+      const feedback=(act==="sendfb")?(ta?ta.value.trim():"") : "";
+      if(act==="sendfb"&&!feedback){ta.focus();return}
+      const realAct=act==="sendfb"?"feedback":act;
+      b.disabled=true;
+      try{
+        const r=await fetch("/api/approvals/action",{method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({id,action:realAct,feedback})});
+        const d=await r.json();
+        if(!r.ok||!d.ok){alert(d.error||("HTTP "+r.status));b.disabled=false;return}
+        await load();
+      }catch(e){alert("failed: "+e.message);b.disabled=false}
+    };
+  });
+}
+async function load(){
+  try{
+    const r=await fetch("/api/approvals",{cache:"no-store"});
+    if(r.status===401){$("cards").innerHTML='<div class="err">401 — authentication required. Refresh with credentials.</div>';return}
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    const d=await r.json();
+    CARDS=d.cards||[];
+    $("note").textContent=d.note||"";
+    render();bind();
+  }catch(e){$("cards").innerHTML='<div class="err">load failed: '+esc(e.message)+'</div>'}
+}
+load();setInterval(load,20000);
+</script>
+</body>
+</html>

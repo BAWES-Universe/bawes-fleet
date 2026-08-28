@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BAWES FLEET — LIVE DASHBOARD</title>
+<style>
+  :root{
+    --bg:#0a0e13; --card:#111826; --card2:#0d1420; --line:#1e2a3a;
+    --txt:#dce6f0; --mut:#7d8ea3; --green:#2ecc71; --amber:#f1c40f;
+    --red:#e74c3c; --blue:#5dade2; --purple:#a569bd; --cyan:#48c9b0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font:14px/1.5 ui-monospace,'SF Mono','Cascadia Mono',Menlo,Consolas,monospace;padding:20px}
+  h1{font-size:22px;letter-spacing:2px}
+  h2{font-size:13px;letter-spacing:1.5px;color:var(--mut);text-transform:uppercase;margin-bottom:10px;border-bottom:1px solid var(--line);padding-bottom:6px}
+  .grid{display:grid;gap:16px;margin-top:16px}
+  .cards3{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+  .cards2{grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .kpi{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:12px;text-align:center}
+  .kpi .v{font-size:26px;font-weight:700}
+  .kpi .l{font-size:10px;color:var(--mut);letter-spacing:1px;text-transform:uppercase;margin-top:4px}
+  .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:1px}
+  .live{background:rgba(46,204,113,.15);color:var(--green);border:1px solid var(--green)}
+  .idle{background:rgba(241,196,15,.12);color:var(--amber);border:1px solid var(--amber)}
+  .unreachable{background:rgba(231,76,60,.15);color:var(--red);border:1px solid var(--red)}
+  .ok{color:var(--green)} .warn{color:var(--amber)} .bad{color:var(--red)} .mut{color:var(--mut)}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{color:var(--mut);text-align:left;font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:6px 8px;border-bottom:1px solid var(--line)}
+  td{padding:7px 8px;border-bottom:1px solid rgba(30,42,58,.5);vertical-align:top}
+  .bar{height:14px;background:var(--card2);border-radius:4px;overflow:hidden;margin-top:4px}
+  .bar>div{height:100%;background:var(--blue)}
+  .row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed rgba(30,42,58,.6)}
+  .agent{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px dashed rgba(30,42,58,.6)}
+  .agent:last-child{border-bottom:none}
+  .dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto}
+  .dot.live{background:var(--green);box-shadow:0 0 8px var(--green)}
+  .dot.idle{background:var(--amber)}
+  .dot.unreachable{background:var(--red)}
+  .agent .name{font-weight:700;font-size:15px}
+  .agent .det{color:var(--mut);font-size:11.5px}
+  #updated{color:var(--mut);font-size:11.5px}
+  .note{font-size:11px;color:var(--mut);margin-top:8px;font-style:italic}
+  .errbox{background:rgba(231,76,60,.1);border:1px solid var(--red);color:var(--red);padding:8px 10px;border-radius:6px;font-size:12px;margin-top:8px}
+  footer{margin-top:24px;color:var(--mut);font-size:11px;text-align:center}
+</style>
+</head>
+<body>
+  <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
+    <h1>🍌 BAWES FLEET — <span class="ok">LIVE DASHBOARD</span></h1>
+    <div id="updated">loading…</div>
+  </div>
+
+  <div class="grid cards3" id="fleet"></div>
+
+  <div class="grid kpis" id="kpis"></div>
+
+  <div class="grid cards2">
+    <div class="card">
+      <h2>Spend Utilization — wallet by kind (152 rows)</h2>
+      <div id="wallet"></div>
+      <div class="note">Every row read live from /srv/bricks/register/wallet.jsonl. credits = khalid gifts, not earnings.</div>
+    </div>
+    <div class="card">
+      <h2>ROI — earned / cost</h2>
+      <div id="roi"></div>
+      <div class="note">Registered roi.json + wallet-derived figure. Rate card: see status below.</div>
+    </div>
+  </div>
+
+  <div class="grid cards2">
+    <div class="card">
+      <h2>PR Velocity — hearth repo</h2>
+      <div id="velocity"></div>
+      <div class="note">Live from GitHub API (PAT from /srv/vault/github-hearth.pat).</div>
+    </div>
+    <div class="card">
+      <h2>Expected Epics — shared work queue</h2>
+      <div id="epics"></div>
+      <div class="note">From /root/.hermes/notes/shared-work-queue.md — active ownership table + next-steps.</div>
+    </div>
+  </div>
+
+  <div class="grid cards2">
+    <div class="card">
+      <h2>Brain Memory (vector store) — seed / leech</h2>
+      <div id="brain"></div>
+      <div class="note">Live from /srv/bricks/orchestrator/vector-store.json.</div>
+    </div>
+    <div class="card">
+      <h2>Verified Achievements &amp; Dispatches</h2>
+      <div id="proof"></div>
+      <div class="note">Live from achievements.jsonl + dispatches.jsonl (orchestrator).</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h2>Rate Card &amp; Source Files</h2>
+    <div id="sources"></div>
+  </div>
+
+  <footer>BAWES FLEET · auto-refresh 30s · data read live from OVH box + GitHub API · no fabricated numbers</footer>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pill=s=>{const x=String(s||'').toUpperCase();
+  const c=x.includes('LIVE')?'live':x.includes('IDLE')?'idle':'unreachable';
+  return `<span class="pill ${c}">${esc(s)}</span>`;};
+
+function renderFleet(f){
+  $('fleet').innerHTML = Object.entries(f).map(([name,a])=>{
+    const c=a.status.toLowerCase();
+    return `<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:17px;font-weight:700">${esc(name)}</span>${pill(a.status)}
+      </div>
+      <div class="agent"><span class="dot ${c}"></span>
+        <div><div class="name">${esc(name)} brick</div>
+        <div class="det">${esc(a.detail)}${a.signal_min!=null?` · signal ${a.signal_min} min ago`:''}</div></div>
+      </div>
+    </div>`;}).join('');
+}
+
+function renderKpis(d){
+  const w=d.wallet, r=d.roi, v=d.velocity, vs=d.vector_store;
+  const roi=r.wallet_derived_roi!=null?r.wallet_derived_roi+'×':'n/a';
+  const kpis=[
+    ['EARNED 🍌', w.earned_bananas+' / '+w.total_rows+' rows'],
+    ['CREDITED (gifts)', w.credited_bananas],
+    ['ROI (earned/spend)', roi],
+    ['OPEN PRs', v.open?v.open.length:'—'],
+    ['MERGED PRs', v.merged_count??'—'],
+    ['BRAIN DOCS', vs.docs+' docs / '+vs.topics+' topics'],
+  ];
+  $('kpis').innerHTML = kpis.map(([l,v])=>`<div class="kpi"><div class="v">${esc(v)}</div><div class="l">${esc(l)}</div></div>`).join('');
+}
+
+function renderWallet(w){
+  const kinds=Object.entries(w.by_kind).sort((a,b)=>b[1].bananas-a[1].bananas);
+  const max=Math.max(...kinds.map(([,v])=>Math.abs(v.bananas)),1);
+  $('wallet').innerHTML = kinds.map(([k,v])=>{
+    const pct=Math.abs(v.bananas)/max*100;
+    const col=v.bananas<0?'var(--red)':(k==='earn'?'var(--green)':(k==='credit'?'var(--purple)':'var(--blue)'));
+    return `<div style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between">
+        <span>${esc(k)} <span class="mut">(${v.count} rows)</span></span>
+        <span style="font-weight:700">${v.bananas>0?'+':''}${v.bananas} 🍌</span>
+      </div>
+      <div class="bar"><div style="width:${pct}%;background:${col}"></div></div>
+    </div>`;}).join('')
+    + `<div class="row"><span>Total rows</span><b>${w.total_rows}</b></div>`
+    + `<div class="row"><span>Last wallet write</span><b>${esc(w.last_ts)}</b></div>`;
+}
+
+function renderRoi(r){
+  let html=`<div class="row"><span>Wallet-derived ROI</span><b>${r.wallet_derived_roi!=null?r.wallet_derived_roi+'×':'n/a'}</b></div>`;
+  html+=`<div class="row"><span class="mut">${esc(r.roi_label)}</span><span></span></div>`;
+  if(r.registered){
+    html+=`<div style="margin-top:8px"><b>Registered roi.json:</b>`;
+    html+=Object.entries(r.registered).map(([k,v])=>`<div class="row"><span>${esc(k)}</span><span>earned ${esc(v.earned_bananas)} 🍌 / ${esc(v.cost_rows)} cost rows → <b>${esc(v.roi)}×</b></span></div>`).join('');
+    html+=`</div>`;
+  }
+  html+=`<div class="note">${esc(r.note)}</div>`;
+  $('roi').innerHTML=html;
+}
+
+function renderVelocity(v){
+  if(v.error&&!v.open){$('velocity').innerHTML=`<div class="errbox">GitHub unreachable: ${esc(v.error)}</div>`;return;}
+  let html=`<div class="row"><span>Open PRs</span><b>${v.open.length}</b></div>
+    <div class="row"><span>Merged (all time)</span><b>${v.merged_count??'—'}</b></div>
+    <div class="row"><span>Merged rate</span><b>${v.prs_per_day!=null?v.prs_per_day+' PRs/day':'—'}</b></div>
+    <div class="row"><span>CI status</span><b>${esc(v.ci_summary)}</b></div>`;
+  html+=`<table style="margin-top:10px"><tr><th>#</th><th>PR</th><th>head</th><th>CI</th></tr>`;
+  html+=v.open.map(p=>`<tr><td>#${p.number}</td><td>${esc(p.title)}</td><td class="mut">${esc(p.head)}</td><td>${p.ci?`<span class="${p.ci.state==='success'?'ok':p.ci.state==='pending'?'warn':'bad'}">${esc(p.ci.state)}</span>`:'—'}</td></tr>`).join('');
+  html+=`</table>`;
+  if(v.stale) html+=`<div class="note">⚠ stale GitHub cache — ${esc(v.error)}</div>`;
+  $('velocity').innerHTML=html;
+}
+
+function renderEpics(e){
+  if(e.error){$('epics').innerHTML=`<div class="errbox">${esc(e.error)}</div>`;return;}
+  if(!e.epics.length){$('epics').innerHTML='<div class="mut">queue empty</div>';return;}
+  $('epics').innerHTML = e.epics.map(x=>`
+    <div class="row">
+      <span>${esc(x.task)}</span>
+      <span style="text-align:right"><span class="mut">${esc(x.owner)}</span> · ${pill(x.status)}</span>
+    </div>`).join('');
+}
+
+function renderBrain(vs){
+  let html=`<div class="row"><span>Docs (novel adds)</span><b>${vs.docs}</b></div>
+    <div class="row"><span>Distinct topics</span><b>${vs.topics}</b></div>
+    <div class="row"><span>Raw ingested</span><b>${vs.stats.raw_in}</b></div>
+    <div class="row"><span>Duplicates filtered</span><b>${vs.stats.duplicates}</b></div>
+    <div class="row"><span>Novel rate</span><b>${vs.novel_rate!=null?(vs.novel_rate*100).toFixed(1)+'%':'—'}</b></div>`;
+  html+=`<div style="margin-top:8px"><b>Top topics:</b>`;
+  html+=vs.topic_counts.map(([t,n])=>`<div class="row"><span class="mut">${esc(t)}</span><b>${n}</b></div>`).join('');
+  html+=`</div><div class="note">${esc(vs.note)}</div>`;
+  $('brain').innerHTML=html;
+}
+
+function renderProof(d){
+  const a=d.achievements, dp=d.dispatches;
+  $('proof').innerHTML=`
+    <div class="row"><span>Verified achievements (CV-worthy)</span><b>${a.count}</b></div>
+    <div class="row"><span>Dispatch traces</span><b>${dp.count}</b></div>
+    <div class="row"><span>Achievements file</span><span class="mut">${esc(a.file)}</span></div>
+    <div class="row"><span>Dispatches file</span><span class="mut">${esc(dp.file)}</span></div>
+    <div class="note">Achievements = verified work receipts; dispatches = card dispatch traces.</div>`;
+}
+
+function renderSources(d){
+  const rc=d.rate_card;
+  let rcHtml;
+  if(rc.status==='missing') rcHtml=`<div class="warn">⚠ rate-card.json not found on box — <b>draft, pending khalid sign</b></div>`;
+  else if(rc.status==='empty') rcHtml=`<div class="warn">⚠ rate card is empty draft {} — pending khalid sign</div>`;
+  else if(rc.status==='ok') rcHtml=`<pre>${esc(JSON.stringify(rc.rate_card,null,1))}</pre>`;
+  else rcHtml=`<div class="bad">rate card error: ${esc(rc.note)}</div>`;
+  $('sources').innerHTML = `<div style="margin-bottom:10px">${rcHtml}</div>`
+    + Object.entries(d.sources).map(([k,v])=>`<div class="row"><span>${esc(k)}</span><span class="mut">${esc(v)}</span></div>`).join('');
+}
+
+async function refresh(){
+  try{
+    const r=await fetch('/api/data',{cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    renderFleet(d.fleets); renderKpis(d); renderWallet(d.wallet); renderRoi(d.roi);
+    renderVelocity(d.velocity); renderEpics(d.epics); renderBrain(d.vector_store);
+    renderProof(d); renderSources(d);
+    $('updated').textContent='last updated '+d.generated_at.replace('T',' ').replace('+00:00','Z')+' · auto-refresh 30s';
+  }catch(e){
+    $('updated').textContent='refresh failed: '+e.message;
+  }
+}
+refresh();
+setInterval(refresh,30000);
+</script>
+</body>
+</html>

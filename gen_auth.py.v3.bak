@@ -1,0 +1,44 @@
+#!/usr/bin/env python3
+"""Generate HTTP Basic auth for the BAWES fleet dashboard.
+Writes auth.json {user, salt, hash_sha256} (0600) + prints the password once.
+Password is also saved to README-AUTH.md (0600) for reference on the box.
+"""
+import json, os, secrets, hashlib, sys
+
+BASE = "/srv/build/fleet-dashboard"
+AUTH = os.path.join(BASE, "auth.json")
+DOC = os.path.join(BASE, "README-AUTH.md")
+USER = "khalid"
+
+password = "bawes-" + secrets.token_urlsafe(10)
+salt = secrets.token_hex(16)
+h = hashlib.sha256((salt + password).encode()).hexdigest()
+
+auth = {"user": USER, "salt": salt, "hash_sha256": h, "created": __import__("datetime").datetime.now(__import__("datetime").UTC).isoformat()}
+with open(AUTH, "w") as f:
+    json.dump(auth, f, indent=2)
+os.chmod(AUTH, 0o600)
+
+doc = f"""# BAWES Fleet Dashboard — HTTP Basic Auth
+
+URL:      http://51.75.74.214:3999/
+Realm:    BAWES Fleet
+Username: {USER}
+Password: {password}
+
+Verification (from any machine):
+  curl -u '{USER}:{password}' http://51.75.74.214:3999/          -> 200
+  curl http://51.75.74.214:3999/                                 -> 401
+
+Credential is for khalid (owner). Stored as sha256(salt+password) in
+auth.json (0600, ubuntu). To rotate: rerun this generator and restart the
+service. Do NOT put this file in git or share the password in public chats.
+"""
+with open(DOC, "w") as f:
+    f.write(doc)
+os.chmod(DOC, 0o600)
+
+print("AUTH_OK")
+print("user: " + USER)
+print("password: " + password)
+print("auth.json written: " + AUTH)

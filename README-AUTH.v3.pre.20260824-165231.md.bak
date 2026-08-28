@@ -1,0 +1,14 @@
+# BAWES Fleet Dashboard — HTTP Basic Auth
+
+URL:      http://51.75.74.214:3999/
+Realm:    BAWES Fleet
+Username: khalid
+Password: bawes-cbmiSA7BzI8PCQ
+
+Verification (from any machine):
+  curl -u 'khalid:bawes-cbmiSA7BzI8PCQ' http://51.75.74.214:3999/          -> 200
+  curl http://51.75.74.214:3999/                                 -> 401
+
+Credential is for khalid (owner). Stored as sha256(salt+password) in
+auth.json (0600, ubuntu). To rotate: rerun this generator and restart the
+service. Do NOT put this file in git or share the password in public chats.

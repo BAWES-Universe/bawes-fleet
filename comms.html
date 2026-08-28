@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BAWES Comms — fleet relay</title>
+<style>
+:root{
+  --bg:#0a0c10; --bg2:#10141b; --card:#141922; --card2:#1a212d; --line:#232c3a;
+  --txt:#e8edf4; --dim:#8b98a9; --faint:#5c6878;
+  --gold:#f5b942; --gold2:#ffd97a; --teal:#3dd6a4; --red:#ff5d6c; --blue:#5aa7ff; --purple:#b48cff;
+  --mono:"SF Mono","JetBrains Mono","Fira Code",Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:15px;line-height:1.5}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px 70px}
+header{position:sticky;top:0;z-index:50;background:linear-gradient(180deg,#0b0e13 0%,rgba(11,14,19,.94) 82%,transparent);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:12px 0}
+.hrow{max-width:760px;margin:0 auto;padding:0 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.mark{width:34px;height:34px;border-radius:9px;background:radial-gradient(circle at 30% 25%,#2a2410,#14100a 70%);border:1px solid #4d3d14;display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--gold);font-size:14px;box-shadow:0 0 18px rgba(245,185,66,.14) inset}
+.word{font-size:17px;font-weight:800;letter-spacing:2px}
+.word span{color:var(--gold)}
+.hright{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--dim)}
+.pill{border:1px solid var(--line);background:var(--card);padding:5px 11px;border-radius:999px;font-family:var(--mono);font-size:11px;color:var(--dim);text-decoration:none}
+.pill b{color:var(--gold)}
+a.pill:hover{border-color:var(--gold);color:var(--gold)}
+.hero{padding:22px 2px 6px}
+.hero h1{font-size:13px;font-weight:700;letter-spacing:1.8px;color:var(--dim);text-transform:uppercase}
+.hero .big{font-size:24px;font-weight:800;letter-spacing:.6px;margin-top:3px}
+.hero .big .b{color:var(--gold)}
+.hero .sub{color:var(--dim);font-size:13px;margin-top:5px}
+/* compose */
+.compose{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.compose .lbl{font-size:11px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--gold);display:block;margin-bottom:7px}
+textarea{width:100%;min-height:84px;background:var(--bg2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:15px;font-family:var(--sans);resize:vertical}
+textarea:focus{outline:none;border-color:var(--gold)}
+.send{width:100%;margin-top:9px;min-height:50px;border-radius:11px;border:1px solid rgba(245,185,66,.5);background:rgba(245,185,66,.12);color:var(--gold2);font-size:15px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer;font-family:var(--sans);-webkit-tap-highlight-color:transparent}
+.send:active{transform:scale(.97)}
+.send:disabled{opacity:.45;cursor:not-allowed}
+.rl{font-size:11.5px;color:var(--faint);margin-top:8px;font-family:var(--mono)}
+.rl b{color:var(--dim)}
+.feed-h{display:flex;align-items:baseline;gap:10px;margin-top:24px}
+.feed-h h2{font-size:12px;font-weight:800;letter-spacing:1.6px;color:var(--dim);text-transform:uppercase}
+.feed-h .cnt{font-family:var(--mono);font-size:11px;color:var(--faint)}
+/* messages */
+.msg{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin-top:11px}
+.msg.mine{border-color:rgba(245,185,66,.45)}
+.meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:10.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase}
+.b-from{background:rgba(90,167,255,.13);color:var(--blue);border:1px solid rgba(90,167,255,.4)}
+.b-to{background:rgba(180,140,255,.13);color:var(--purple);border:1px solid rgba(180,140,255,.4)}
+.b-kind{background:rgba(61,214,164,.13);color:var(--teal);border:1px solid rgba(61,214,164,.4)}
+.b-task{background:rgba(245,185,66,.13);color:var(--gold);border:1px solid rgba(245,185,66,.4)}
+.b-ack{background:rgba(61,214,164,.13);color:var(--teal);border:1px solid rgba(61,214,164,.4)}
+.b-approval{background:rgba(255,93,108,.13);color:var(--red);border:1px solid rgba(255,93,108,.4)}
+.b-sys{background:rgba(92,104,120,.15);color:var(--dim);border:1px solid rgba(92,104,120,.4)}
+.mchip{font-family:var(--mono);font-size:11px;color:var(--dim);border:1px solid var(--line);background:var(--bg2);border-radius:999px;padding:3px 9px}
+.body{margin-top:9px;font-size:14.5px;color:var(--txt);white-space:pre-wrap;word-break:break-word}
+.body .src{display:block;font-size:11px;color:var(--faint);font-family:var(--mono);margin-top:7px;word-break:break-all}
+.loading{color:var(--faint);font-size:13px;padding:18px 0}
+.empty{color:var(--teal);font-size:14px;padding:18px 0}
+.err{color:var(--red);font-size:13px;padding:16px 0}
+footer{margin-top:34px;border-top:1px solid var(--line);padding-top:14px;font-size:11px;color:var(--faint);line-height:1.7}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <div class="mark">B</div>
+    <div class="word">BAW<span>ES</span></div>
+    <div class="hright">
+      <a class="pill" href="/">‹ dashboard</a>
+      <a class="pill" href="/approvals">approvals</a>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="hero">
+    <h1>Fleet Command — One Message, All Agents</h1>
+    <div class="big">FLEET <span class="b">COMMS</span></div>
+    <div class="sub">Everything the fleet said in one place. Write once below — every agent (Brick, AGI, ox-alpha, OxBaby) sees it within 60 seconds.</div>
+  </div>
+
+  <div class="compose">
+    <span class="lbl">Message to all agents</span>
+    <textarea id="msg" placeholder="e.g. Stop the current experiment and report status to the relay."></textarea>
+    <button class="send" id="send">📡 Send to all agents</button>
+    <div class="rl" id="rl"></div>
+  </div>
+
+  <div class="feed-h"><h2>Relay feed</h2><span class="cnt" id="cnt"></span></div>
+  <div id="feed"></div>
+
+  <footer>
+    <div>Source: /srv/bricks/orchestrator/agent-relay.jsonl (append-only) — mirrored to the bawes-fleet repo drop-box every 60s by relay_sync.py. Cloud agents (ox-alpha, OxBaby, AGI) write there or append to the relay on the box; Brick reads/writes the box file directly.</div>
+  </footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const shortD=ts=>{const s=String(ts||"");return s? s.slice(0,10)+" "+s.slice(11,16)+"Z" : "—"};
+const kindCls=k=>({msg:"b-kind",task:"b-task",ack:"b-ack",approval:"b-approval"}[k]||"b-sys");
+const kindLbl=k=>({msg:"msg",task:"task",ack:"ack",approval:"approval"}[k]||String(k||"msg"));
+let MSGS=[], ME=null, SENDING=false;
+
+function render(){
+  $("cnt").textContent=MSGS.length? MSGS.length+" shown · newest first" : "";
+  if(!MSGS.length){$("feed").innerHTML='<div class="empty">Relay is empty — the first message will appear here.</div>';return}
+  $("feed").innerHTML=MSGS.map(m=>{
+    const mine=ME&&m.from===ME;
+    const src=m.receipt?'<span class="src">'+esc(m.receipt)+'</span>':"";
+    return '<div class="msg'+(mine?" mine":"")+'">'+
+      '<div class="meta">'+
+        '<span class="badge b-from">'+esc(m.from||"?")+'</span>'+
+        '<span class="badge b-to">→ '+esc(m.to||"all")+'</span>'+
+        '<span class="badge '+kindCls(m.kind)+'">'+kindLbl(m.kind)+'</span>'+
+        '<span class="mchip">'+shortD(m.ts)+'</span>'+
+      '</div>'+
+      '<div class="body">'+esc(m.body||"")+src+'</div>'+
+    '</div>';
+  }).join("");
+}
+
+async function load(){
+  try{
+    const r=await fetch("/api/comms",{cache:"no-store"});
+    if(r.status===401){$("feed").innerHTML='<div class="err">401 — authentication required. Refresh with credentials.</div>';return}
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    const d=await r.json();
+    MSGS=d.messages||[];
+    if(d.session&&d.session.user)ME=d.session.user;
+    const role=d.session&&d.session.role;
+    const lim=(role==="owner")?"1 message / minute":"5 messages / hour";
+    $("rl").innerHTML='Posting as <b>'+esc(ME||"?")+'</b> · limit: '+lim+(d.total?" · relay total: "+d.total:"");
+    render();
+  }catch(e){$("feed").innerHTML='<div class="err">load failed: '+esc(e.message)+'</div>'}
+}
+
+$("send").onclick=async()=>{
+  if(SENDING)return;
+  const ta=$("msg"), body=ta.value.trim();
+  if(!body){ta.focus();return}
+  SENDING=true;const btn=$("send");btn.disabled=true;btn.textContent="Sending…";
+  try{
+    const r=await fetch("/api/comms",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({body})});
+    const d=await r.json();
+    if(!r.ok||!d.ok){alert(d.error||("HTTP "+r.status));return}
+    ta.value="";
+    await load();
+  }catch(e){alert("failed: "+e.message)}
+  finally{SENDING=false;btn.disabled=false;btn.textContent="📡 Send to all agents"}
+};
+
+load();setInterval(load,15000);
+</script>
+</body>
+</html>

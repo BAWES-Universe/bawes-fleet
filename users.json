@@ -1,0 +1,23 @@
+[
+  {
+    "username": "khalid",
+    "salt": "75459d42055e5fe23963bf6fc9a6caa2",
+    "hash": "69d6eb5c7428cc73ec6d8988adff767744ae2efa052c150bb95b1664ff27c444515e19a1a5e7cc500def64b207b00ad3c3fba20e12917d453f74eb84650ef833",
+    "role": "owner",
+    "discord_id": "189055515819638794",
+    "created": "2026-08-24T16:52:31.569517+00:00",
+    "changed": "2026-08-27T15:57:12.502692+00:00"
+  },
+  {
+    "username": "mishari",
+    "salt": "9c172c17215c8aba390a6244a0bcd954",
+    "hash": "4cfef249c7b2c2210fdfb3fb30bd46a6333c68ff26171fa4c952be4ac0098b81aa8f468df0b11ad2b67ea4b264cae6b0f7837b7d9561c4890826468f775fe8ff",
+    "role": "decision_maker",
+    "lanes": [
+      "studenthub",
+      "plugn"
+    ],
+    "discord_id": "231861753082937346",
+    "created": "2026-08-24T16:52:31.703142+00:00"
+  }
+]

@@ -1,0 +1,57 @@
+<!-- ============================================================
+     Continue with Discord — drop-in block for fleet.bawes.net/login
+     Brand: dark #0B0E14 · gold #F0B429 (primary) · teal #2DD4BF (accent)
+     Paste INSIDE the existing login <form> container, BELOW the password
+     fields (after them, before the submit button's closing wrapper).
+     Self-contained: scoped under .bawes-discord, no global CSS touched.
+============================================================ -->
+<div class="bawes-discord" style="margin-top:1.25rem">
+  <style>
+    .bawes-discord { text-align: center; }
+    .bawes-discord .bdx-divider {
+      display: flex; align-items: center; gap: .75rem;
+      margin: 0 0 1rem; color: #5B667A;
+      font-size: .75rem; letter-spacing: .12em; text-transform: uppercase;
+    }
+    .bawes-discord .bdx-divider::before,
+    .bawes-discord .bdx-divider::after {
+      content: ""; flex: 1; height: 1px; background: #232B3A;
+    }
+    /* THE one gold button */
+    .bawes-discord .bdx-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: .6rem; width: 100%; max-width: 22rem;
+      padding: .85rem 1.5rem; border-radius: 12px; border: 0;
+      background: linear-gradient(180deg, #F6C64B, #E9A820);
+      color: #0B0E14; font-weight: 800; font-size: .95rem;
+      letter-spacing: .01em; cursor: pointer; text-decoration: none;
+      box-shadow: 0 0 0 0 rgba(45, 212, 191, 0);
+      transition: box-shadow .18s ease, transform .12s ease, filter .18s ease;
+    }
+    .bawes-discord .bdx-btn:hover {
+      filter: brightness(1.05);
+      box-shadow: 0 0 0 2px rgba(45, 212, 191, .55),
+                  0 8px 24px rgba(240, 180, 41, .25);   /* teal ring on hover */
+    }
+    .bawes-discord .bdx-btn:focus-visible {
+      outline: 2px solid #2DD4BF; outline-offset: 2px;
+    }
+    .bawes-discord .bdx-btn:active { transform: translateY(1px); }
+    .bawes-discord svg { width: 20px; height: 20px; fill: currentColor; flex: none; }
+    @media (prefers-reduced-motion: reduce) {
+      .bawes-discord .bdx-btn { transition: none; }
+    }
+  </style>
+
+  <div class="bdx-divider">or</div>
+
+  <!-- /auth/discord = route added to dashboard.py per README.md step 3 -->
+  <a class="bdx-btn" href="/auth/discord" rel="nofollow">
+    <!-- Discord mark (official glyph path) -->
+    <svg viewBox="0 0 127.14 96.36" aria-hidden="true">
+      <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/>
+    </svg>
+    Continue with Discord
+  </a>
+</div>
+<!-- ============ end Continue with Discord block ============ -->

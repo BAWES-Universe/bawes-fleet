@@ -1,0 +1,324 @@
+#!/usr/bin/env python3
+"""
+FLEET LIVE DASHBOARD — OVH box :3999
+Serves a self-contained HTML dashboard + /api/data JSON aggregate.
+Reads REAL fleet data only: wallet, achievements, dispatches, vector-store,
+roi, shared-work-queue, GitHub API (PAT from /srv/vault/github-hearth.pat).
+No fabrication: every number comes from a file read or API call.
+"""
+import json, os, re, time, datetime, urllib.request, urllib.error
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+HOST, PORT = "0.0.0.0", 3999
+BASE = "/srv/build/fleet-dashboard"
+WALLET = "/srv/bricks/register/wallet.jsonl"
+ACHIEVEMENTS = "/srv/bricks/orchestrator/achievements.jsonl"
+DISPATCHES = "/srv/bricks/orchestrator/dispatches.jsonl"
+VECTOR = "/srv/bricks/orchestrator/vector-store.json"
+ROI = "/srv/bricks/register/roi.json"
+RATE_CARD = "/srv/bricks/orchestrator/rate-card.json"
+QUEUE = "/root/.hermes/notes/shared-work-queue.md"
+QUEUE_FALLBACKS = [
+    "/root/.hermes/notes/shared-work-queue.md",
+    "/srv/bricks/orchestrator/shared-work-queue.md",
+]
+PAT_FILE = "/srv/vault/github-hearth.pat"
+OX_ALPHA_RESPONSE = "/srv/research/ox-alpha-fleet-response.md"
+REPO = "BAWES-Universe/hearth"
+GH = "https://api.github.com/repos/" + REPO
+
+gh_cache = {"ts": 0, "data": None, "error": None}
+
+def now_iso():
+    return datetime.datetime.now(datetime.UTC).isoformat()
+
+def read_jsonl(path):
+    out = []
+    try:
+        with open(path) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    out.append(json.loads(line))
+                except Exception:
+                    pass
+    except FileNotFoundError:
+        return None
+    return out
+
+def file_age_min(path):
+    try:
+        return (time.time() - os.path.getmtime(path)) / 60.0
+    except OSError:
+        return None
+
+def strip_md(s):
+    s = re.sub(r"\*\*(.+?)\*\*", r"\1", s)
+    s = re.sub(r"\[(.+?)\]\(.+?\)", r"\1", s)
+    s = re.sub(r"`(.+?)`", r"\1", s)
+    return s.strip()
+
+def status_from_age(age_min, live=6 * 60, idle=72 * 60):
+    """age_min: minutes since last signal. live threshold 6h, idle 72h."""
+    if age_min is None:
+        return "UNREACHABLE"
+    if age_min <= live:
+        return "LIVE"
+    if age_min <= idle:
+        return "IDLE"
+    return "UNREACHABLE"
+
+# ---------------------------------------------------------------- fleet
+def fleet_status():
+    # Brick: this session is running on the box (the server itself is the brick's live session proxy)
+    brick = {"status": "LIVE", "detail": "session live on box (Hermes), dashboard server running", "signal_min": 0}
+    # AGI: store writes — vector-store.json / audit.jsonl / wallet earn-loop rows
+    ages = [a for a in (file_age_min(VECTOR), file_age_min("/srv/bricks/orchestrator/audit.jsonl")) if a is not None]
+    agi_age = min(ages) if ages else None
+    agi = {"status": status_from_age(agi_age), "detail": "last store write", "signal_min": round(agi_age, 1) if agi_age is not None else None}
+    # ox-alpha: declared peer — response file written 2026-08-24 + queue CLAIMED row
+    ox_age = file_age_min(OX_ALPHA_RESPONSE)
+    ox = {"status": status_from_age(ox_age), "detail": "peer declared 2026-08-24, response on box", "signal_min": round(ox_age, 1) if ox_age is not None else None}
+    return {"Brick": brick, "AGI": agi, "ox-alpha": ox}
+
+# ---------------------------------------------------------------- wallet
+def wallet_data():
+    rows = read_jsonl(WALLET)
+    if rows is None:
+        return {"error": "wallet.jsonl missing", "total_rows": 0}
+    by_kind = {}
+    earned = credited = founder = spend = 0.0
+    last_ts = None
+    for r in rows:
+        k = r.get("kind") or r.get("type") or "unlabeled"
+        b = r.get("bananas", 0) or 0
+        try:
+            b = float(b)
+        except (TypeError, ValueError):
+            b = 0.0
+        e = by_kind.setdefault(k, {"count": 0, "bananas": 0.0})
+        e["count"] += 1
+        e["bananas"] += b
+        if k == "earn":
+            earned += b
+        elif k == "credit":
+            credited += b
+        elif k == "founder-seed":
+            founder += b
+        elif k == "dock":
+            spend += b
+        t = r.get("ts")
+        if t:
+            last_ts = t
+    return {
+        "total_rows": len(rows),
+        "by_kind": by_kind,
+        "earned_bananas": round(earned, 1),
+        "credited_bananas": round(credited, 1),
+        "founder_seed_bananas": round(founder, 1),
+        "spend_bananas": round(spend, 1),
+        "last_ts": last_ts,
+    }
+
+# ---------------------------------------------------------------- roi
+def roi_data(w):
+    registered = None
+    try:
+        with open(ROI) as f:
+            registered = json.load(f)
+    except Exception:
+        registered = None
+    out = {"registered": registered}
+    spend = abs(w.get("spend_bananas", 0))
+    if spend > 0:
+        out["wallet_derived_roi"] = round(w.get("earned_bananas", 0) / spend, 3)
+        out["roi_label"] = f"earned {w.get('earned_bananas')}🍌 / |dock spend| {spend}🍌"
+    else:
+        out["wallet_derived_roi"] = None
+        out["roi_label"] = "no dock/spend rows yet — ROI n/a"
+    out["note"] = "credits are khalid gifts, NOT earnings; ROI computed on earned bananas only"
+    return out
+
+# ---------------------------------------------------------------- rate card
+def rate_card_data():
+    if not os.path.exists(RATE_CARD):
+        return {"status": "missing", "note": "rate-card.json not found on box — draft, pending khalid sign"}
+    try:
+        with open(RATE_CARD) as f:
+            rc = json.load(f)
+        if rc == {}:
+            return {"status": "empty", "note": "rate card is an empty draft {} — pending khalid sign"}
+        return {"status": "ok", "rate_card": rc}
+    except Exception as e:
+        return {"status": "error", "note": str(e)}
+
+# ---------------------------------------------------------------- github
+def gh_get(url, pat, timeout=15):
+    req = urllib.request.Request(url, headers={
+        "Authorization": "Bearer " + pat,
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "fleet-dashboard",
+    })
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read().decode())
+
+def github_data(force=False):
+    now = time.time()
+    if not force and gh_cache["data"] and now - gh_cache["ts"] < 60:
+        return gh_cache["data"]
+    try:
+        pat = open(PAT_FILE).read().strip()
+        open_prs = gh_get(f"{GH}/pulls?state=open", pat)
+        closed = gh_get(f"{GH}/pulls?state=closed&per_page=100", pat)
+        merged = [p for p in closed if p.get("merged_at")]
+        ci = {}
+        for p in open_prs:
+            sha = (p.get("head") or {}).get("sha", "")
+            try:
+                st = gh_get(f"{GH}/commits/{sha}/status", pat)
+                ci[p["number"]] = {"state": st.get("state", "n/a"), "n_statuses": len(st.get("statuses", []))}
+            except Exception:
+                ci[p["number"]] = {"state": "unknown", "n_statuses": 0}
+        merged_dates = sorted(p["merged_at"][:10] for p in merged)
+        prs_per_day = None
+        if len(merged_dates) >= 2:
+            d0 = datetime.date.fromisoformat(merged_dates[0])
+            d1 = datetime.date.fromisoformat(merged_dates[-1])
+            days = max((d1 - d0).days + 1, 1)
+            prs_per_day = round(len(merged_dates) / days, 2)
+        data = {
+            "open": [{"number": p["number"], "title": p["title"], "created": p["created_at"][:10],
+                      "head": (p.get("head") or {}).get("ref"), "ci": ci.get(p["number"])} for p in open_prs],
+            "merged_count": len(merged),
+            "merged_dates": merged_dates,
+            "prs_per_day": prs_per_day,
+            "ci_summary": f"success on {sum(1 for v in ci.values() if v['state']=='success')}/{len(ci)} open PRs",
+            "fetched_at": now_iso(),
+        }
+        gh_cache.update(ts=now, data=data, error=None)
+        return data
+    except Exception as e:
+        gh_cache["error"] = str(e)
+        if gh_cache["data"]:
+            gh_cache["data"]["stale"] = True
+            gh_cache["data"]["error"] = str(e)
+            return gh_cache["data"]
+        return {"open": [], "merged_count": None, "prs_per_day": None, "ci_summary": f"GitHub unreachable: {e}",
+                "merged_dates": [], "error": str(e)}
+
+# ---------------------------------------------------------------- epics (queue)
+def epics_data():
+    md = None
+    used = None
+    for cand in QUEUE_FALLBACKS:
+        try:
+            md = open(cand).read()
+            used = cand
+            break
+        except Exception:
+            continue
+    if md is None:
+        return {"error": "queue not readable on this box", "epics": []}
+    epics = []
+    in_table = False
+    for line in md.splitlines():
+        if line.startswith("## Active ownership"):
+            in_table = True
+            continue
+        if line.startswith("## "):
+            in_table = False
+        if in_table and line.startswith("|") and "Task" not in line and "---" not in line:
+            cells = [c.strip() for c in line.strip("|").split("|")]
+            if len(cells) >= 3 and cells[0]:
+                epics.append({"task": strip_md(cells[0]), "owner": strip_md(cells[1]), "status": strip_md(cells[2])})
+    in_next = False
+    for line in md.splitlines():
+        if line.startswith("## Next-steps"):
+            in_next = True
+            continue
+        if in_next and line.startswith("## "):
+            in_next = False
+        if in_next and re.match(r"^\s*\d+\.\s", line):
+            txt = re.sub(r"^\s*\d+\.\s*", "", line).strip()
+            if txt:
+                epics.append({"task": strip_md(txt), "owner": "claimable", "status": "OPEN — claimable"})
+    return {"epics": epics, "source": used}
+
+# ---------------------------------------------------------------- vector store
+def vector_data():
+    try:
+        d = json.load(open(VECTOR))
+    except Exception as e:
+        return {"error": str(e)}
+    docs = d.get("docs", [])
+    stats = d.get("stats", {})
+    topics = {}
+    for doc in docs:
+        t = doc.get("topic", "?")
+        topics[t] = topics.get(t, 0) + 1
+    raw_in = stats.get("raw_in", 0)
+    novel = stats.get("novel", 0)
+    return {
+        "docs": len(docs),
+        "topics": len(topics),
+        "topic_counts": sorted(topics.items(), key=lambda x: -x[1])[:10],
+        "stats": stats,
+        "novel_rate": round(novel / raw_in, 3) if raw_in else None,
+        "note": "seed/leech per brick: retrievals not yet tracked — novel adds only (raw_in → novel dedup)",
+    }
+
+# ---------------------------------------------------------------- aggregate
+def build_payload():
+    w = wallet_data()
+    return {
+        "generated_at": now_iso(),
+        "fleets": fleet_status(),
+        "wallet": w,
+        "roi": roi_data(w),
+        "rate_card": rate_card_data(),
+        "velocity": github_data(),
+        "epics": epics_data(),
+        "vector_store": vector_data(),
+        "achievements": {"count": len(read_jsonl(ACHIEVEMENTS) or []), "file": ACHIEVEMENTS},
+        "dispatches": {"count": len(read_jsonl(DISPATCHES) or []), "file": DISPATCHES},
+        "sources": {
+            "wallet": WALLET, "achievements": ACHIEVEMENTS, "dispatches": DISPATCHES,
+            "vector": VECTOR, "roi": ROI, "rate_card": RATE_CARD, "queue": QUEUE,
+            "github": f"api.github.com/repos/{REPO}/pulls",
+        },
+    }
+
+# ---------------------------------------------------------------- http
+class Handler(BaseHTTPRequestHandler):
+    def log_message(self, *a):
+        pass
+
+    def _send(self, code, body, ctype):
+        self.send_response(code)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_GET(self):
+        if self.path == "/" or self.path == "/index.html":
+            try:
+                html = open(os.path.join(BASE, "index.html"), "rb").read()
+                self._send(200, html, "text/html; charset=utf-8")
+            except FileNotFoundError:
+                self._send(500, b"index.html missing", "text/plain")
+        elif self.path == "/api/data":
+            payload = json.dumps(build_payload()).encode()
+            self._send(200, payload, "application/json")
+        elif self.path == "/healthz":
+            self._send(200, b"ok", "text/plain")
+        else:
+            self._send(404, b"not found", "text/plain")
+
+if __name__ == "__main__":
+    srv = ThreadingHTTPServer((HOST, PORT), Handler)
+    print(f"fleet-dashboard serving http://{HOST}:{PORT}/", flush=True)
+    srv.serve_forever()

@@ -1,0 +1,2119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#06080f">
+<title>BAWES Fleet — Now</title>
+<style>
+:root{
+  --bg:#06080f; --bg2:#0a0f1a; --card:#0e1422; --card2:#131b2c; --line:#1d2940;
+  --txt:#edf2fa; --dim:#93a1b8; --faint:#5b6b85;
+  --gold:#f5b942; --gold2:#ffd97a; --green:#3dd6a4; --red:#ff6b7a; --blue:#6fb1ff; --vio:#a78bfa;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;
+  --mono:"SF Mono","JetBrains Mono",Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh}
+button,input,textarea{font-family:var(--sans);-webkit-tap-highlight-color:transparent}
+a{color:inherit;text-decoration:none}
+#stars{position:fixed;inset:0;z-index:0;pointer-events:none}
+.stage{position:relative;z-index:1;max-width:720px;margin:0 auto;padding:16px 14px calc(150px + env(safe-area-inset-bottom))}
+.hidden{display:none!important}
+
+/* ---------- HUD (level always visible) ---------- */
+.hud{position:sticky;top:0;z-index:50;background:rgba(6,8,15,.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.hud-in{max-width:720px;margin:0 auto;padding:8px 14px;display:flex;align-items:center;gap:10px}
+.mark{width:34px;height:34px;border-radius:10px;flex-shrink:0;background:radial-gradient(circle at 30% 25%,#2a2410,#14100a 70%);border:1px solid #4d3d14;display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--gold);font-size:15px;box-shadow:0 0 16px rgba(245,185,66,.15) inset}
+.bt{line-height:1.05}
+.bt b{font-size:14px;font-weight:800;letter-spacing:2px}
+.bt b span{color:var(--gold)}
+.bt i{display:block;font-style:normal;font-size:9.5px;color:var(--faint);letter-spacing:2.4px;text-transform:uppercase;margin-top:2px}
+.player{flex:1;min-width:0;display:flex;align-items:center;gap:9px;justify-content:flex-end}
+.lvl{background:linear-gradient(180deg,var(--gold2),var(--gold));color:#1a1204;font-weight:900;font-size:11.5px;border-radius:9px;padding:6px 9px;letter-spacing:.5px;flex-shrink:0;box-shadow:0 0 14px rgba(245,185,66,.3)}
+.lvl b{font-size:13px}
+.xpwrap{flex:1;max-width:170px;min-width:90px}
+.xpbar{height:9px;border-radius:999px;background:var(--bg2);border:1px solid var(--line);overflow:hidden}
+.xpbar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#b8860b,#f5b942 55%,#ffd97a);transition:width .6s ease}
+.xptxt{font-family:var(--mono);font-size:9px;color:var(--faint);margin-top:2px;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.who{font-size:12px;font-weight:700;color:var(--dim);white-space:nowrap;flex-shrink:0}
+.out{font-size:11px;color:var(--faint);border:1px solid var(--line);border-radius:999px;padding:5px 10px;flex-shrink:0}
+.out:active{transform:scale(.96)}
+
+/* ---------- bottom tab bar ---------- */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;background:rgba(8,11,20,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.tab{flex:1;border:none;background:none;color:var(--faint);padding:9px 0 10px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;cursor:pointer;min-width:0}
+.tab .ti{font-size:19px;line-height:1;filter:grayscale(1) opacity(.6)}
+.tab.on{color:var(--gold)}
+.tab.on .ti{filter:none}
+.tab.on::after{content:"";position:absolute;top:0;left:22%;right:22%;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.tab{position:relative}
+.tab .bub{position:absolute;top:3px;right:calc(50% - 26px);min-width:16px;height:16px;border-radius:999px;background:var(--red);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.tab .bub.hide{display:none}
+
+/* ---------- composer: the ONE input bar ---------- */
+.composer{position:fixed;left:8px;right:8px;bottom:calc(62px + env(safe-area-inset-bottom));z-index:59;display:flex;gap:8px;background:rgba(14,20,34,.96);border:1px solid rgba(245,185,66,.35);border-radius:16px;padding:8px;box-shadow:0 10px 34px rgba(0,0,0,.55),0 0 0 1px rgba(245,185,66,.06) inset}
+.composer input{flex:1;min-width:0;background:var(--bg2);border:1px solid var(--line);border-radius:11px;color:var(--txt);font-size:16px;padding:0 14px;height:46px}
+.composer input:focus{outline:none;border-color:var(--gold)}
+.composer input::placeholder{color:var(--faint)}
+.composer button{flex-shrink:0;border:none;border-radius:11px;background:linear-gradient(180deg,var(--gold2),var(--gold));color:#1a1204;font-weight:800;font-size:14px;letter-spacing:1px;padding:0 18px;cursor:pointer;height:46px}
+.composer button:active{transform:scale(.97)}
+.composer button:disabled{opacity:.5}
+
+/* ---------- generic cards ---------- */
+.hd{display:flex;align-items:baseline;gap:8px;margin:22px 2px 10px}
+.hd .n{font-family:var(--mono);font-size:10.5px;color:var(--gold);letter-spacing:2px}
+.hd h2{font-size:16px;font-weight:800;letter-spacing:.4px}
+.hd .q{margin-left:auto;font-size:11.5px;color:var(--faint)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px;min-width:0;overflow-wrap:break-word}
+.card h3{font-size:11px;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
+.lbl{font-size:10.5px;color:var(--faint);letter-spacing:1.4px;text-transform:uppercase;font-weight:800;margin-bottom:6px}
+.mono{font-family:var(--mono)}
+.muted{color:var(--faint);font-size:12.5px}
+.ok{color:var(--green)} .warn{color:var(--gold)} .bad{color:var(--red)}
+
+/* ---------- player hero ---------- */
+.phero{background:radial-gradient(120% 160% at 85% -20%,rgba(245,185,66,.14),transparent 55%),radial-gradient(120% 140% at -10% 110%,rgba(111,177,255,.08),transparent 50%),var(--card);border:1px solid rgba(245,185,66,.28);border-radius:20px;padding:20px 18px;position:relative;overflow:hidden}
+.phero::before{content:"";position:absolute;top:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,217,122,.5),transparent)}
+.prow{display:flex;align-items:center;gap:14px}
+.pbig{flex-shrink:0;text-align:center;width:74px}
+.pbig .plv{font-size:34px;font-weight:900;letter-spacing:-.5px;line-height:1;background:linear-gradient(120deg,var(--gold2),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 12px rgba(245,185,66,.35))}
+.pbig .pll{font-size:9px;color:var(--faint);letter-spacing:2px;font-weight:800;margin-top:3px}
+.pmid{flex:1;min-width:0}
+.pmid .pnm{font-size:19px;font-weight:900;letter-spacing:.3px}
+.pmid .pcv{font-size:12.5px;color:var(--dim);line-height:1.45;margin-top:2px}
+.xpbig{margin-top:12px}
+.xpbig .track{height:12px;border-radius:999px;background:var(--bg2);border:1px solid var(--line);overflow:hidden}
+.xpbig .track i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#b8860b,#f5b942 55%,#ffd97a);transition:width .6s ease;box-shadow:0 0 10px rgba(245,185,66,.4)}
+.xpbig .xrow{display:flex;justify-content:space-between;margin-top:6px;font-family:var(--mono);font-size:11px;color:var(--dim)}
+.skills{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.sk{font-size:11px;font-weight:700;color:var(--gold);border:1px solid rgba(245,185,66,.3);background:rgba(245,185,66,.07);border-radius:999px;padding:4px 11px}
+.sk em{font-style:normal;color:var(--faint);font-weight:600}
+.stats4{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.s4{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0}
+.s4 .v{font-size:19px;font-weight:800;letter-spacing:.2px;line-height:1.1}
+.s4 .v small{font-size:11px;color:var(--faint);font-weight:600}
+.s4 .l{font-size:9.5px;color:var(--faint);letter-spacing:.8px;text-transform:uppercase;font-weight:700;margin-top:2px;overflow-wrap:break-word}
+
+/* ---------- quest cards ---------- */
+.qcard{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:13px 14px;margin-bottom:10px;min-width:0}
+.qcard.done{border-color:rgba(61,214,164,.35)}
+.qcard.warn{border-color:rgba(245,185,66,.4)}
+.qhead{display:flex;align-items:center;gap:10px;min-width:0}
+.qic{font-size:20px;flex-shrink:0}
+.qt{flex:1;min-width:0}
+.qt b{display:block;font-size:14.5px;font-weight:800;letter-spacing:.2px}
+.qt .qs{display:block;font-size:11.5px;color:var(--dim);margin-top:1px;overflow-wrap:break-word}
+.qchip{flex-shrink:0;font-size:10px;font-weight:900;letter-spacing:1px;border-radius:999px;padding:5px 10px;text-transform:uppercase}
+.qchip.ok{background:rgba(61,214,164,.13);color:var(--green);border:1px solid rgba(61,214,164,.4)}
+.qchip.warn{background:rgba(245,185,66,.12);color:var(--gold);border:1px solid rgba(245,185,66,.4)}
+.qchip.gold{background:linear-gradient(180deg,var(--gold2),var(--gold));color:#1a1204}
+.qbar{height:7px;border-radius:999px;background:var(--bg);border:1px solid var(--line);overflow:hidden;margin-top:10px}
+.qbar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#b8860b,#f5b942)}
+.qbar i.ok{background:linear-gradient(90deg,#0f8f6a,#3dd6a4)}
+.qbar i.blue{background:linear-gradient(90deg,#2f6bb0,#6fb1ff)}
+.qbody{margin-top:10px;border-top:1px dashed rgba(29,41,64,.7);padding-top:9px}
+.qrule{display:flex;gap:10px;align-items:center;background:var(--card2);border:1px solid rgba(111,177,255,.22);border-radius:12px;padding:11px 13px;margin-bottom:8px;min-width:0}
+.qrule .qi{font-size:17px;flex-shrink:0}
+.qrule .qm{flex:1;min-width:0}
+.qrule .qm b{font-size:13px}
+.qrule .qm span{display:block;font-size:11px;color:var(--dim)}
+.qrule .qr{flex-shrink:0;font-size:10px;font-weight:900;color:var(--gold);font-family:var(--mono)}
+
+/* ---------- approval actions ---------- */
+.acts{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}
+.btn{flex:1;min-width:96px;min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--bg2);color:var(--txt);font-size:12.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;cursor:pointer}
+.btn:active{transform:scale(.97)}
+.btn.approve{background:rgba(61,214,164,.12);border-color:rgba(61,214,164,.5);color:var(--green)}
+.btn.reject{background:rgba(255,107,122,.12);border-color:rgba(255,107,122,.5);color:var(--red)}
+.btn.feedback{background:rgba(245,185,66,.1);border-color:rgba(245,185,66,.45);color:var(--gold)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.fbwrap{display:none;margin-top:10px}
+.fbwrap.open{display:block}
+textarea{width:100%;min-height:76px;background:var(--bg2);color:var(--txt);border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-size:15px;resize:vertical}
+textarea:focus{outline:none;border-color:var(--gold)}
+.mchip{font-family:var(--mono);font-size:10px;color:var(--dim);border:1px solid var(--line);background:var(--bg2);border-radius:999px;padding:3px 9px;display:inline-block}
+.mchip.g{color:var(--gold)}
+.dline{font-size:12.5px;color:var(--dim);line-height:1.55}
+
+/* ---------- agent rows ---------- */
+.agent{display:flex;align-items:center;gap:11px;padding:10px 2px;border-bottom:1px solid rgba(29,41,64,.55);min-width:0}
+.agent:last-of-type{border-bottom:none}
+.agent .who2{flex:1;min-width:0}
+.agent .nm{font-size:14.5px;font-weight:800}
+.agent .dt{font-size:11.5px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.state{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 11px;font-size:10.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;flex-shrink:0}
+.s-live{background:rgba(61,214,164,.12);color:var(--green);border:1px solid rgba(61,214,164,.4)}
+.s-idle{background:rgba(245,185,66,.11);color:var(--gold);border:1px solid rgba(245,185,66,.4)}
+.s-silent{background:rgba(255,107,122,.12);color:var(--red);border:1px solid rgba(255,107,122,.4)}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block}
+.dot.live{background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite}
+.dot.idle{background:var(--gold);box-shadow:0 0 8px var(--gold)}
+.dot.silent{background:var(--red)}
+.dot.dim{background:var(--faint)}
+@keyframes pulse{50%{opacity:.35}}
+
+/* ---------- world tiles ---------- */
+.wtiles{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}
+.wt{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 14px;min-width:0}
+.wt .wv{font-size:24px;font-weight:800;letter-spacing:.2px;line-height:1.1}
+.wt .wv small{font-size:12px;color:var(--faint);font-weight:600}
+.wt .wl{font-size:10px;color:var(--faint);letter-spacing:.8px;text-transform:uppercase;font-weight:700;margin-top:3px;overflow-wrap:break-word}
+.wt.gold{border-color:rgba(245,185,66,.35)}
+.wt.gold .wv{color:var(--gold)}
+.chiprow{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.rpill{font-size:9.5px;font-weight:800;letter-spacing:.8px;border-radius:999px;padding:3px 9px;text-transform:uppercase;border:1px solid var(--line)}
+.rpill.active{background:rgba(245,185,66,.12);color:var(--gold);border-color:rgba(245,185,66,.4)}
+.rpill.verified{background:rgba(61,214,164,.12);color:var(--green);border-color:rgba(61,214,164,.4)}
+.rpill.parked{background:var(--bg2);color:var(--faint)}
+
+/* ---------- the net ---------- */
+.netstage{position:relative;border:1px solid var(--line);border-radius:14px;background:radial-gradient(120% 120% at 50% 0%,#0c1322 0%,#080c16 70%);overflow:hidden;margin-top:10px}
+.netstage canvas{display:block;width:100%;height:340px}
+.net-hint{position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:10.5px;color:var(--faint);letter-spacing:.4px}
+.netpanel{display:none;margin-top:10px;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:14px}
+.netpanel.open{display:block}
+.np-id{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--gold)}
+.np-meta{margin:6px 0 10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.npill{font-size:9.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;border-radius:999px;padding:3px 9px;border:1px solid var(--line)}
+.npill.active{color:var(--gold);border-color:rgba(245,185,66,.45)}
+.npill.verified{color:var(--green);border-color:rgba(61,214,164,.45)}
+.npill.parked{color:var(--faint)}
+.npill.registered{color:var(--blue);border-color:rgba(111,177,255,.45)}
+.npill.retiring,.npill.retired{color:var(--red);border-color:rgba(255,107,122,.45)}
+.np-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ns{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:0}
+.ns .nsv{font-size:14px;font-weight:800;overflow-wrap:break-word}
+.ns .nsl{font-size:9px;color:var(--faint);letter-spacing:.7px;text-transform:uppercase;font-weight:700;margin-top:2px}
+.np-kids,.np-parent{margin-top:11px;font-size:12px;color:var(--dim)}
+.kchip{display:inline-flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--line);border-radius:999px;padding:5px 11px;margin:3px 4px 0 0;font-size:11.5px;cursor:pointer}
+.kchip b{color:var(--txt)}
+.nt-row{padding:8px 2px;border-bottom:1px solid rgba(29,41,64,.5);min-width:0}
+.nt-row:last-child{border-bottom:none}
+.nt-row .l1{display:flex;align-items:center;gap:8px;min-width:0}
+.nt-row .l1 .bid{font-family:var(--mono);font-size:11.5px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nt-row .l2{font-size:10.5px;color:var(--faint);margin-top:2px;overflow-wrap:break-word}
+
+/* ---------- feed ---------- */
+.fc-strip{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.fc-pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--bg2);border-radius:999px;padding:5px 11px;font-size:11px}
+.fc-pill b{font-weight:800}
+.fc-pill em{font-style:normal;color:var(--faint);font-size:10px}
+.fc-badge{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:6px 13px;font-size:11px;font-weight:800;letter-spacing:1px;border:1px solid var(--line)}
+.fc-badge.ok{background:rgba(61,214,164,.1);color:var(--green);border-color:rgba(61,214,164,.4)}
+.fc-badge.down{background:rgba(255,107,122,.1);color:var(--red);border-color:rgba(255,107,122,.4)}
+.fc-msg{border-left:3px solid var(--line);padding:9px 11px;margin-bottom:9px;background:var(--card2);border-radius:0 11px 11px 0;min-width:0}
+.fc-msg.fc-brick{border-left-color:var(--gold)}
+.fc-msg.fc-cloud{border-left-color:var(--green)}
+.fc-msg.fc-agi{border-left-color:var(--vio)}
+.fc-msg.fc-human{border-left-color:#c084fc}
+.fc-line{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;font-size:12px}
+.fc-line b{font-size:12.5px}
+.fc-arrow{color:var(--faint);font-size:10.5px}
+.fc-time{font-family:var(--mono);font-size:10px;color:var(--faint);margin-left:auto}
+.fc-body{font-size:12.5px;color:var(--dim);margin-top:4px;line-height:1.5;overflow-wrap:break-word}
+.fc-receipt{font-family:var(--mono);font-size:9.5px;color:var(--faint);margin-top:4px;overflow-wrap:break-word}
+.thought{display:flex;gap:10px;padding:9px 2px;border-bottom:1px solid rgba(29,41,64,.5);min-width:0}
+.thought:last-child{border-bottom:none}
+.thought .tw{flex-shrink:0;font-size:10px;font-weight:900;letter-spacing:1px;color:var(--gold);min-width:44px;padding-top:2px}
+.thought .tb{flex:1;min-width:0}
+.thought .tb .tm{font-size:12.5px;color:var(--dim);line-height:1.5;overflow-wrap:break-word}
+.thought .tb .tt{font-size:9.5px;color:var(--faint);font-family:var(--mono);margin-top:2px}
+.feedshell{max-height:56vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-right:2px}
+
+/* ---------- money ---------- */
+.hero-money{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.big-money{font-size:40px;font-weight:800;letter-spacing:-.5px;line-height:1;color:var(--gold)}
+.big-money small{font-size:13px;color:var(--dim);font-weight:600}
+.money-lbl{font-size:10.5px;color:var(--faint);letter-spacing:1.2px;text-transform:uppercase;font-weight:800}
+.bar{margin-top:13px}
+.bar .track{height:16px;background:var(--bg2);border:1px solid var(--line);border-radius:999px;overflow:hidden;display:flex}
+.bar .seg.spent{background:linear-gradient(90deg,#b45309,#f59e0b)}
+.bar .seg.left{background:linear-gradient(90deg,#0f8f6a,#3dd6a4)}
+.bar .legend{display:flex;gap:14px;margin-top:7px;font-size:11.5px;color:var(--dim);flex-wrap:wrap}
+.bar .legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:13px}
+.tile{background:var(--card2);border:1px solid var(--line);border-radius:13px;padding:12px 13px;min-width:0}
+.tile .tv{font-size:19px;font-weight:800;letter-spacing:.2px;overflow-wrap:break-word}
+.tile .tv small{font-size:11px;color:var(--faint);font-weight:600}
+.tile .tl{font-size:9.5px;color:var(--faint);letter-spacing:.7px;text-transform:uppercase;font-weight:700;margin-top:2px;overflow-wrap:break-word}
+.roi{background:var(--card2);border:1px solid rgba(245,185,66,.35);border-radius:13px;padding:13px 14px;margin-top:12px}
+.roi .rmult{font-size:26px;font-weight:800;color:var(--gold);letter-spacing:.3px}
+.roi .rmult small{font-size:11px;color:var(--dim);font-weight:600}
+.roi .rlabel{font-size:12px;color:var(--dim);margin-top:3px}
+.roi .rnote{font-size:10.5px;color:var(--faint);margin-top:5px}
+.ml-hero{display:flex;gap:9px;flex-wrap:wrap}
+.ml-hero .bh{flex:1;min-width:130px;background:var(--card2);border:1px solid var(--line);border-radius:13px;padding:12px 14px}
+.ml-hero .bh .bv{font-size:21px;font-weight:800;letter-spacing:.2px;line-height:1.1}
+.ml-hero .bh .bv small{font-size:11px;color:var(--faint);font-weight:600}
+.ml-hero .bh .bl{font-size:9.5px;color:var(--faint);letter-spacing:.7px;text-transform:uppercase;font-weight:700;margin-top:3px}
+.ml-split{margin-top:13px}
+.ml-bar{height:12px;border-radius:999px;overflow:hidden;display:flex;background:var(--bg2);border:1px solid var(--line)}
+.ml-bar i.paid{background:linear-gradient(90deg,#b8860b,#f5b942)}
+.ml-bar i.free{background:linear-gradient(90deg,#2f6bb0,#6fb1ff)}
+.ml-legend{display:flex;gap:14px;margin-top:7px;font-size:11px;color:var(--dim);flex-wrap:wrap}
+.ml-legend .sw{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}
+.ml-ticker{display:inline-block;border-radius:999px;padding:6px 13px;font-size:12px;font-weight:800;letter-spacing:.5px;margin-top:10px}
+.ml-ticker.pos{background:rgba(61,214,164,.13);color:var(--green);border:1px solid rgba(61,214,164,.45);animation:pulse 2.2s infinite}
+.ml-ticker.neg{background:rgba(255,107,122,.13);color:var(--red);border:1px solid rgba(255,107,122,.45)}
+.ml-ticker.eq{background:rgba(245,185,66,.12);color:var(--gold);border:1px solid rgba(245,185,66,.4)}
+.ml-spark{width:100%;height:56px;display:block;margin-top:12px}
+.ml-foot{font-size:10.5px;color:var(--faint);margin-top:8px;line-height:1.5}
+.honest{font-size:11px;color:var(--faint);margin-top:12px;line-height:1.55;border-top:1px dashed var(--line);padding-top:10px}
+.honest b{color:var(--dim)}
+.bananas{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
+.bchip{border:1px solid var(--line);background:var(--card2);border-radius:999px;padding:6px 12px;font-size:11.5px;color:var(--dim)}
+.bchip b{color:var(--gold)}
+
+/* ---------- misc rows ---------- */
+.row2{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid rgba(29,41,64,.5);min-width:0;font-size:13px}
+.row2:last-child{border-bottom:none}
+.row2 .rk{font-family:var(--mono);font-size:11px;color:var(--faint);flex-shrink:0}
+.row2 .rt{flex:1;min-width:0;overflow-wrap:break-word}
+.row2 .rv{flex-shrink:0;font-weight:800}
+.tmrail{position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--bg2)}
+.tmrail canvas{display:block;width:100%;height:64px}
+.tmplay{display:flex;align-items:center;gap:9px;margin-top:10px;flex-wrap:wrap}
+.tmplay button{width:40px;height:40px;border-radius:11px;border:1px solid var(--line);background:var(--card2);color:var(--gold);font-size:14px;cursor:pointer;flex-shrink:0}
+.tmslider{flex:1;min-width:110px;accent-color:var(--gold);height:26px}
+.tmtime{font-family:var(--mono);font-size:11.5px;color:var(--dim);flex-shrink:0}
+.tmspeed{display:flex;gap:5px}
+.tmspeed button{border:1px solid var(--line);background:var(--bg2);color:var(--faint);border-radius:8px;padding:7px 9px;font-size:11px;font-weight:800;cursor:pointer}
+.tmspeed button.on{color:var(--gold);border-color:rgba(245,185,66,.5)}
+.tmfeed{margin-top:10px}
+.tfrow{display:flex;gap:9px;align-items:baseline;padding:7px 2px;border-bottom:1px solid rgba(29,41,64,.5);font-size:12px;min-width:0}
+.tfrow:last-child{border-bottom:none}
+.tfrow .ti{flex-shrink:0}
+.tfrow .tt{flex:1;min-width:0;color:var(--dim);overflow-wrap:break-word}
+.tfrow .tt .ts{display:block;font-family:var(--mono);font-size:9.5px;color:var(--gold);letter-spacing:.5px}
+.tfrow .tx{flex-shrink:0;font-family:var(--mono);font-size:9.5px;color:var(--faint);max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tmempty{font-size:12px;color:var(--faint);padding:6px 2px}
+.lane-row{display:flex;align-items:center;gap:11px;padding:11px 2px;border-bottom:1px solid rgba(29,41,64,.55)}
+.lane-row:last-of-type{border-bottom:none}
+.lane-row .ln{flex:1;min-width:0}
+.lane-row .nm2{font-size:13.5px;font-weight:800}
+.lane-row .dt2{font-size:10.5px;color:var(--faint);margin-top:2px;overflow-wrap:break-word}
+.switch{position:relative;width:48px;height:28px;flex-shrink:0;cursor:pointer}
+.switch input{opacity:0;width:0;height:0;position:absolute}
+.switch .tr2{position:absolute;inset:0;border-radius:999px;background:var(--bg2);border:1px solid var(--line);transition:.18s;pointer-events:none}
+.switch .tr2:before{content:"";position:absolute;width:20px;height:20px;border-radius:50%;background:var(--faint);top:3px;left:3px;transition:.18s}
+.switch input:checked + .tr2{background:rgba(61,214,164,.22);border-color:rgba(61,214,164,.55)}
+.switch input:checked + .tr2:before{background:var(--green);transform:translateX(20px)}
+.perrow{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid rgba(29,41,64,.5);min-width:0;flex-wrap:wrap}
+.perrow:last-child{border-bottom:none}
+.perwho{flex:1;min-width:0;font-size:13.5px;font-weight:800}
+.rchip{font-size:9.5px;font-weight:800;letter-spacing:.8px;border-radius:999px;padding:3px 9px;text-transform:uppercase;border:1px solid var(--line)}
+.rchip.r-owner{color:var(--gold);border-color:rgba(245,185,66,.5)}
+.rchip.r-decision_maker{color:var(--blue);border-color:rgba(111,177,255,.5)}
+.rchip.r-contributor{color:var(--faint)}
+.rchip.r-brick_issuer{color:var(--green);border-color:rgba(61,214,164,.5)}
+.roleform{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.rlsel{flex:1;min-width:110px;background:var(--bg2);color:var(--txt);border:1px solid var(--line);border-radius:11px;padding:11px 12px;font-size:14px}
+.rlsel:focus{outline:none;border-color:var(--gold)}
+.rolelanes{margin-top:8px;font-size:12px;color:var(--dim)}
+.laneck{display:inline-flex;align-items:center;gap:5px;margin-right:10px;font-size:12px}
+.rolenote{font-size:10.5px;color:var(--faint);margin-top:9px;line-height:1.55}
+
+/* ---------- toast + level up ---------- */
+.toast{position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:90;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:13px;font-weight:700;box-shadow:0 12px 34px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .25s;max-width:86vw;text-align:center}
+.toast.show{opacity:1}
+.toast.ok{border-color:rgba(61,214,164,.5);color:var(--green)}
+.toast.err{border-color:rgba(255,107,122,.5);color:var(--red)}
+.lvlup{position:fixed;inset:0;z-index:95;display:none;align-items:center;justify-content:center;background:rgba(4,6,12,.72);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.lvlup.show{display:flex;animation:fadein .3s}
+.lvlup .box{text-align:center;padding:30px 40px;border-radius:22px;background:radial-gradient(120% 160% at 50% 0%,rgba(245,185,66,.18),transparent 60%),var(--card);border:1px solid rgba(245,185,66,.5);box-shadow:0 0 60px rgba(245,185,66,.25);animation:pop .45s cubic-bezier(.2,1.6,.4,1)}
+.lvlup .k{font-size:12px;font-weight:900;letter-spacing:4px;color:var(--gold);text-transform:uppercase}
+.lvlup .lv{font-size:64px;font-weight:900;line-height:1;margin:10px 0 4px;background:linear-gradient(120deg,var(--gold2),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent}
+.lvlup .tx{font-size:13px;color:var(--dim)}
+@keyframes fadein{from{opacity:0}}
+@keyframes pop{from{transform:scale(.7);opacity:0}}
+.empty{font-size:12.5px;color:var(--faint);padding:8px 2px;line-height:1.55}
+
+
+/* ---------- mission first-screen ---------- */
+.nowrow{display:flex;gap:10px;align-items:flex-start;padding:10px 2px;border-bottom:1px solid rgba(29,41,64,.5);min-width:0}
+.nowrow:last-child{border-bottom:none}
+.nw-ic{flex-shrink:0;font-size:15px;margin-top:1px}
+.nw-b{flex:1;min-width:0}
+.nw-t{font-size:13.5px;font-weight:800;line-height:1.35;overflow-wrap:break-word}
+.nw-m{font-size:11px;color:var(--faint);margin-top:2px}
+.nw-a2{margin-top:4px}
+.nw-a{flex-shrink:0;font-size:10.5px;color:var(--gold);font-weight:800;font-family:var(--mono)}
+.goalcard{background:var(--bg2);border:1px solid rgba(245,185,66,.35);border-radius:12px;padding:11px 13px;margin-top:9px}
+.g-t{font-size:14px;font-weight:800;line-height:1.35}
+.g-m{font-size:11px;color:var(--dim);margin-top:5px}
+.g-a{margin-top:6px}
+.velhead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.vel-t{flex:1;min-width:0}
+.vel-t b{font-size:13.5px;line-height:1.4;display:block}
+.vel-t span{display:block;font-size:11.5px;color:var(--faint);margin-top:3px;line-height:1.5}
+.velchip{font-size:10px;font-weight:900;letter-spacing:1px;border-radius:999px;padding:4px 10px;text-transform:uppercase;flex-shrink:0}
+.velchip.ok{color:var(--green);border:1px solid rgba(61,214,164,.5)}
+.velchip.warn{color:var(--red);border:1px solid rgba(255,107,122,.5)}
+.velbar{height:14px;border-radius:999px;background:var(--bg2);border:1px solid var(--line);margin-top:11px;overflow:hidden}
+.velbar i{display:block;height:100%;border-radius:999px;transition:width .6s}
+.velbar .fill-ok{background:linear-gradient(90deg,rgba(61,214,164,.55),var(--green))}
+.velbar .fill-warn{background:linear-gradient(90deg,rgba(255,107,122,.55),var(--red))}
+.velfoot{font-size:10.5px;color:var(--faint);margin-top:7px;line-height:1.5}
+.alivecard{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;background:rgba(61,214,164,.08);border:1px solid rgba(61,214,164,.35);border-radius:12px;padding:10px 13px;margin-top:9px}
+.a-id{font-size:13.5px;font-weight:800;font-family:var(--mono)}
+.a-m{font-size:11px;color:var(--dim);min-width:0;overflow-wrap:break-word;flex-basis:100%}
+.idlehead{display:flex;align-items:baseline;gap:9px;margin-top:14px;flex-wrap:wrap}
+.idletog{background:none;border:none;color:var(--gold);font-size:13.5px;font-weight:800;cursor:pointer;padding:6px 2px;text-align:left}
+.idlesub{font-size:10.5px;color:var(--faint)}
+.idlewrap{margin-top:6px;border-top:1px solid rgba(29,41,64,.5)}
+.brickrow{display:flex;gap:10px;align-items:center;padding:9px 2px;border-bottom:1px solid rgba(29,41,64,.45);min-width:0}
+.b-main{flex:1;min-width:0}
+.b-id{font-family:var(--mono);font-size:12.5px;font-weight:800;cursor:pointer;overflow-wrap:break-word}
+.b-meta{font-size:10.5px;color:var(--faint);margin-top:2px;overflow-wrap:break-word}
+.bdet{display:none;font-size:10.5px;color:var(--dim);margin-top:4px;line-height:1.5;overflow-wrap:break-word}
+.bdet.open{display:block}
+.b-acts{display:flex;gap:6px;flex-shrink:0}
+.bact{font-size:10.5px;font-weight:800;border-radius:9px;padding:7px 11px;cursor:pointer;border:1px solid var(--line);background:var(--bg2);color:var(--txt)}
+.bact.clone{color:var(--gold);border-color:rgba(245,185,66,.5)}
+.bact.wake{color:var(--green);border-color:rgba(61,214,164,.5)}
+.bact:disabled{opacity:.5;cursor:default}
+
+/* ---------- NOW hero + freshness + brick cards ---------- */
+.fresh{font-family:var(--mono);font-size:9.5px;color:var(--faint);letter-spacing:.4px;white-space:nowrap}
+.fresh.hot{color:var(--green)}
+.hd .fresh{margin-left:auto}
+.nowhero{background:radial-gradient(120% 160% at 85% -20%,rgba(61,214,164,.12),transparent 55%),var(--card);border:1px solid rgba(61,214,164,.35);border-radius:20px;padding:18px 16px;margin-bottom:12px;position:relative;overflow:hidden}
+.nowhero .nh-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.nh-live{display:inline-flex;align-items:center;gap:7px;font-size:10px;font-weight:900;letter-spacing:1.6px;color:var(--green);text-transform:uppercase}
+.nowbig{font-size:30px;font-weight:900;line-height:1.05;letter-spacing:-.4px}
+.nowbig small{font-size:14px;color:var(--dim);font-weight:700}
+.nh-sub{font-size:11.5px;color:var(--faint);margin-top:6px;line-height:1.5}
+.act{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid rgba(29,41,64,.5)}
+.act:last-child{border-bottom:none}
+.act .ai{flex-shrink:0;padding-top:2px}
+.act .aw{flex:1;min-width:0}
+.act .an{font-size:13.5px;font-weight:800}
+.act .at{font-size:12px;color:var(--dim);margin-top:1px;overflow-wrap:break-word;line-height:1.45}
+.act .aa{flex-shrink:0;font-family:var(--mono);font-size:9.5px;color:var(--faint);padding-top:3px}
+.brickgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:4px}
+.bcard{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px 13px;cursor:pointer;min-width:0}
+.bcard:active{transform:scale(.98)}
+.bcard.live{border-color:rgba(61,214,164,.4)}
+.bcard.sel{border-color:var(--gold)}
+.bcard .bn{font-size:13.5px;font-weight:800;display:flex;align-items:center;gap:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bcard .br{font-size:10.5px;color:var(--faint);margin-top:2px;overflow-wrap:break-word}
+.bcard .bt2{font-size:11.5px;color:var(--dim);margin-top:6px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.defline{background:rgba(111,177,255,.07);border:1px solid rgba(111,177,255,.25);border-radius:12px;padding:10px 13px;font-size:12.5px;color:var(--dim);line-height:1.55;margin-bottom:12px}
+.defline b{color:var(--txt)}
+.bd-panel{background:var(--card);border:1px solid rgba(245,185,66,.35);border-radius:16px;padding:16px;margin-bottom:12px}
+.epic{margin-bottom:13px}
+.epic .eh{display:flex;justify-content:space-between;gap:8px;font-size:13px;font-weight:800}
+.epic .eh small{color:var(--faint);font-weight:600;text-align:right}
+
+/* ---------- deep-dive + tickets (2026-08-26) ---------- */
+.tappable{cursor:pointer}
+.tappable:active{transform:scale(.98)}
+.ddback{display:inline-flex;align-items:center;gap:7px;background:none;border:1px solid var(--line);color:var(--gold);font-size:12px;font-weight:800;border-radius:999px;padding:8px 14px;cursor:pointer;margin-bottom:10px}
+.ddhead{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.ddname{font-size:19px;font-weight:900;letter-spacing:-.2px;overflow-wrap:break-word}
+.ddsub{font-size:11px;color:var(--faint);margin-top:3px;line-height:1.5;overflow-wrap:break-word}
+.skchips{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.skchip{font-family:var(--mono);font-size:9.5px;color:var(--gold);border:1px solid rgba(245,185,66,.4);border-radius:999px;padding:3px 9px;background:rgba(245,185,66,.06)}
+.trow{border-left:3px solid var(--line);padding:9px 11px;margin-bottom:8px;background:var(--card2);border-radius:0 11px 11px 0;min-width:0}
+.trow.t-out{border-left-color:var(--gold)}
+.trow.t-in{border-left-color:var(--green)}
+.tline{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:10.5px}
+.tline b{font-size:12px}
+.tarrow{color:var(--faint)}
+.tbody{font-size:12.5px;color:var(--dim);margin-top:5px;line-height:1.5;overflow-wrap:break-word;white-space:pre-wrap}
+.artrow{display:flex;align-items:center;gap:8px;padding:9px 2px;border-bottom:1px solid rgba(29,41,64,.45);min-width:0}
+.artrow:last-child{border-bottom:none}
+.artname{flex:1;min-width:0;font-family:var(--mono);font-size:11.5px;font-weight:700;overflow-wrap:break-word}
+.artview{flex-shrink:0;font-size:10.5px;font-weight:800;border-radius:9px;padding:6px 10px;cursor:pointer;border:1px solid rgba(245,185,66,.5);background:var(--bg2);color:var(--gold)}
+.artbody{display:none;margin-top:8px;background:#0a0f1c;border:1px solid var(--line);border-radius:11px;padding:11px;font-family:var(--mono);font-size:11px;color:var(--dim);white-space:pre-wrap;overflow-wrap:break-word;max-height:46vh;overflow-y:auto;line-height:1.5}
+.artbody.open{display:block}
+.contrib{margin-top:10px}
+.contrib textarea{width:100%;box-sizing:border-box;background:var(--bg2);border:1px solid var(--line);border-radius:11px;color:var(--txt);font-size:14px;padding:10px 12px;min-height:74px;resize:vertical;font-family:inherit}
+.contrib textarea:focus{outline:none;border-color:var(--gold)}
+.contrib .crow{display:flex;gap:8px;margin-top:8px}
+.tkpanel{position:fixed;left:8px;right:8px;top:calc(64px + env(safe-area-inset-top));z-index:70;background:linear-gradient(180deg,rgba(245,185,66,.14),rgba(14,20,34,.98));border:1px solid rgba(245,185,66,.55);border-radius:16px;padding:14px 15px;box-shadow:0 12px 40px rgba(0,0,0,.6);max-width:430px;margin:0 auto}
+.tkpanel .tkh{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:900;color:var(--gold)}
+.tkpanel .tkx{margin-left:auto;background:none;border:none;color:var(--faint);font-size:15px;cursor:pointer;padding:2px 6px}
+.tkid{font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-top:3px;overflow-wrap:break-word}
+.tksteps{display:flex;gap:5px;margin-top:10px;flex-wrap:wrap}
+.tkstep{flex:1;min-width:70px;text-align:center;font-size:9px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--faint);border:1px solid var(--line);border-radius:9px;padding:6px 4px;line-height:1.35}
+.tkstep.on{color:var(--gold);border-color:rgba(245,185,66,.6);background:rgba(245,185,66,.08)}
+.tkstep.done{color:var(--green);border-color:rgba(61,214,164,.5);background:rgba(61,214,164,.07)}
+.tkstatus{font-size:11.5px;color:var(--dim);margin-top:9px;line-height:1.5}
+.tkstatus b{color:var(--txt)}
+.tkart{margin-top:8px;font-size:11.5px;color:var(--green);overflow-wrap:break-word}
+.tkhint{font-size:10px;color:var(--faint);margin-top:8px;line-height:1.5}
+.goalcard.tappable:hover,.alivecard.tappable:hover,.nowrow.tappable:hover{background:rgba(245,185,66,.05)}
+
+/* ---------- desktop ---------- */
+@media (min-width:760px){
+  .tabbar{top:0;bottom:auto;border-top:none;border-bottom:1px solid var(--line);max-width:720px;left:50%;transform:translateX(-50%);border-radius:0 0 16px 16px}
+  .tab{flex-direction:row;gap:7px;padding:11px 0;font-size:12px}
+  .tab .ti{font-size:16px}
+  .tab.on::after{top:auto;bottom:0;left:26%;right:26%;height:2px}
+  .tab .bub{top:6px;right:calc(50% - 30px)}
+  .composer{left:auto;right:22px;bottom:22px;width:min(460px,calc(100vw - 44px))}
+  .stage{max-width:720px}
+}
+</style>
+</head>
+<body>
+<canvas id="stars" aria-hidden="true"></canvas>
+
+<header class="hud">
+  <div class="hud-in">
+    <div class="mark">B</div>
+    <div class="bt"><b>BAWES<span>FLEET</span></b><i>the game</i></div>
+    <div class="player">
+      <div class="lvl">LVL <b id="hud-level">—</b></div>
+      <div class="xpwrap">
+        <div class="xpbar"><i id="hud-xpfill" style="width:0%"></i></div>
+        <span class="xptxt" id="hud-xptxt">loading player…</span>
+      </div>
+      <span class="who" id="hud-who"></span>
+      <a class="out" href="/logout">leave</a>
+    </div>
+  </div>
+</header>
+
+<nav class="tabbar" id="tabbar" aria-label="Fleet screens">
+  <a class="tab" data-tab="floor" href="/floor"><span class="ti">🌌</span>Universe</a>
+  <button class="tab on" data-tab="now"><span class="ti">⚡</span>Now</button>
+  <button class="tab" data-tab="world"><span class="ti">🌐</span>World</button>
+  <button class="tab" data-tab="quests"><span class="ti">🎯</span>Quests</button>
+  <button class="tab" data-tab="ops"><span class="ti">🛠️</span>Ops<span class="bub hide" id="feed-bub">0</span></button>
+</nav>
+
+<main class="stage" id="app"><div class="empty" style="padding:40px 0;text-align:center">connecting to the fleet…</div></main>
+
+<form class="composer" id="composer" autocomplete="off">
+  <input id="msg" placeholder="Message the fleet — becomes a ticket" maxlength="500" aria-label="Message the fleet">
+  <button type="submit" id="send" title="Goes to all bricks as a ticket — the one whose lane matches picks it up. Claim → work → artifact → receipt.">Send</button>
+</form>
+
+<div class="toast" id="toast"></div>
+<div class="tkpanel" id="tkpanel" hidden></div>
+<div class="lvlup" id="lvlup"><div class="box"><div class="k">Level up</div><div class="lv" id="lvlup-n">4</div><div class="tx" id="lvlup-tx">the fleet levels with you</div></div></div>
+
+<script>
+"use strict";
+/* ================= helpers ================= */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const num=v=>{const n=typeof v==="number"?v:parseFloat(v);return isFinite(n)?n:null};
+const fmtU=v=>v==null?"—":"$"+Number(v).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtN=v=>v==null?"—":Number(v).toLocaleString("en-US");
+const fmtB=v=>{if(v==null)return"—";if(Math.abs(v)<0.01)return"$"+Number(v).toFixed(4);return fmtU(v)};
+const ago=sec=>{if(sec==null)return"—";if(sec<90)return"just now";if(sec<3600)return Math.round(sec/60)+" min ago";if(sec<86400)return Math.round(sec/3600)+" h ago";return Math.round(sec/86400)+" d ago"};
+const utcT=ts=>{if(ts==null)return"";const d=new Date(ts*1000);return ("0"+d.getUTCHours()).slice(-2)+":"+("0"+d.getUTCMinutes()).slice(-2)+":"+("0"+d.getUTCSeconds()).slice(-2)};
+const stateTag=s=>{
+  const up=(s||"").toUpperCase();
+  if(up==="LIVE")return'<span class="state s-live"><span class="dot live"></span>Live</span>';
+  if(up==="IDLE")return'<span class="state s-idle"><span class="dot idle"></span>Idle</span>';
+  if(up==="SILENT")return'<span class="state s-silent"><span class="dot silent"></span>Silent</span>';
+  if(up==="NO SIGNAL")return'<span class="state s-silent"><span class="dot silent"></span>No signal</span>';
+  return'<span class="state s-idle"><span class="dot dim"></span>'+esc(s||"?")+'</span>';
+};
+const statusWord=s=>{const t=(s||"").toLowerCase();if(/live|in progress|in flight|watching|claimed|wrote/.test(t))return"working";if(/done/.test(t))return"done";return"on the list"};
+const statusCls=s=>{const p=statusWord(s);return p==="working"?"s-live":p==="done"?"s-idle":"s-silent"};
+const dayShort=d=>{if(!d)return"—";const m={ "01":"Jan","02":"Feb","03":"Mar","04":"Apr","05":"May","06":"Jun","07":"Jul","08":"Aug","09":"Sep","10":"Oct","11":"Nov","12":"Dec"};const p=String(d).split("-");return (m[p[1]]||p[1])+" "+p[2]};
+const qCard=o=>'<div class="qcard'+(o.cls?" "+o.cls:"")+'"><div class="qhead"><span class="qic">'+o.icon+'</span><div class="qt"><b>'+o.title+'</b><span class="qs">'+o.sub+'</span></div>'+(o.chip?'<span class="qchip '+o.chipCls+'">'+o.chip+'</span>':"")+'</div>'+(o.bar!=null?'<div class="qbar"><i class="'+(o.barCls||"")+'" style="width:'+Math.max(0,Math.min(100,o.bar))+'%"></i></div>':"")+(o.body?'<div class="qbody">'+o.body+'</div>':"")+'</div>';
+
+/* ================= state ================= */
+const S={d:{},ap:{},comms:{},eco:{},net:{},pf:{},tf:{},ml:{},fc:{},fl:{},rl:{},pc:null,ms:{},nw:null,cap:null,capTs:0,at:{},tab:"now",prevLevel:null,prevXp:null,fetched:0};
+let msgTimer=null;
+function toast(kind,text){
+  const t=$("toast");if(!t)return;
+  t.className="toast show "+kind;t.textContent=text;
+  clearTimeout(msgTimer);msgTimer=setTimeout(()=>t.classList.remove("show"),4200);
+}
+
+/* ================= starfield ================= */
+(function(){
+  const cv=$("stars"),ctx=cv.getContext("2d");let W=0,H=0,stars=[];
+  function size(){W=cv.width=innerWidth;H=cv.height=innerHeight}
+  function mk(){stars=[];const n=Math.min(90,Math.floor(W*H/16000));for(let i=0;i<n;i++)stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.1+.2,a:Math.random()*.5+.15,tw:Math.random()*.02+.003,ph:Math.random()*6.28})}
+  size();mk();addEventListener("resize",()=>{size();mk()});
+  (function loop(t){
+    ctx.clearRect(0,0,W,H);
+    for(const s of stars){
+      const a=s.a*(0.55+0.45*Math.sin(t/1200+s.ph));
+      ctx.globalAlpha=Math.max(0,a);ctx.fillStyle="#cdd6f5";
+      ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,6.2832);ctx.fill();
+    }
+    ctx.globalAlpha=1;requestAnimationFrame(loop);
+  })(0);
+})();
+
+/* ================= tab switching ================= */
+function setTab(tab){
+  if(tab==="floor"){location.href="/floor";return}  /* Universe tab → THE FLOOR */
+  S.tab=tab;
+  document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on",b.dataset.tab===tab));
+  renderActive();
+}
+function bindTabs(){
+  document.querySelectorAll(".tab").forEach(b=>{
+    b.onclick=()=>setTab(b.dataset.tab);
+  });
+}
+
+/* ================= composer ================= */
+async function postComms(){
+  const el=$("msg");const body=(el.value||"").trim();
+  if(!body)return;
+  const b=$("send");b.disabled=true;
+  try{
+    const r=await fetch("/api/comms",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({body})});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(j.error||("HTTP "+r.status));
+    el.value="";
+    if(j.card&&j.card.id){
+      toast("ok","Sent — your message is now a ticket the fleet works.");
+      tkShow(j.card);
+      tkPoll();
+      if(window.tkIv)clearInterval(window.tkIv);
+      window.tkIv=setInterval(tkPoll,10000);
+    }else{
+      toast("ok","Sent — every agent hears it.");
+    }
+    if(S.tab==="feed"){refresh();}else{refreshSilent();}
+  }catch(e){
+    toast("err","Not sent: "+e.message);
+    b.disabled=false;
+  }
+}
+
+/* ================= fetch + render loop ================= */
+async function refresh(){
+  try{
+    const [rd,ra,rc,re,rn,rp,rt,rml,rfc,rl,rfl,rm]=await Promise.all([
+      fetch("/api/data",{cache:"no-store"}),
+      fetch("/api/approvals",{cache:"no-store"}),
+      fetch("/api/comms",{cache:"no-store"}),
+      fetch("/api/ecosystem",{cache:"no-store"}),
+      fetch("/api/network",{cache:"no-store"}),
+      fetch("/api/portfolio",{cache:"no-store"}),
+      fetch("/api/timeflow",{cache:"no-store"}),
+      fetch("/api/moneylive",{cache:"no-store"}),
+      fetch("/api/fleetcomms",{cache:"no-store"}),
+      fetch("/api/roles",{cache:"no-store"}),
+      fetch("/api/fleetlive",{cache:"no-store"}),
+      fetch("/api/mission",{cache:"no-store"})
+    ]);
+    if(rd.status===401||rm.status===401){location.href="/login";return}
+    S.d=await rd.json();S.ap=await ra.json();S.comms=await rc.json();
+    S.eco=await re.json();S.net=await rn.json();S.pf=await rp.json();
+    S.tf=await rt.json();S.ml=await rml.json();S.fc=await rfc.json();
+    S.rl=await rl.json();S.fl=await rfl.json();S.ms=await rm.json();
+    S.fetched++;
+    ["d","ap","comms","eco","net","pf","tf","ml","fc","rl","fl","ms"].forEach(k=>S.at[k]=Date.now());
+    session=S.d.session||session;
+    renderHud();
+    renderActive();
+    bindAll();
+    const nz=(S.d.fleets&&Object.values(S.d.fleets).filter(v=>v&&v.status==="LIVE").length)||0;
+    const pend=(S.ap.cards||[]).filter(c=>c.status==="PENDING").length;
+    const bub=$("feed-bub");
+    if(bub){bub.textContent=S.fetched>1?nz+pend:nz;bub.classList.toggle("hide",nz+pend===0)}
+  }catch(e){
+    if($("app"))$("app").innerHTML='<div class="empty" style="padding:30px 0">Couldn’t reach the fleet: '+esc(e.message)+' — retrying…</div>';
+  }
+}
+async function refreshSilent(){
+  try{
+    const r=await fetch("/api/data",{cache:"no-store"});
+    if(r.status===401){location.href="/login";return}
+    S.d=await r.json();
+    renderActive();
+  }catch(e){}
+}
+/* player card: level + XP + trust — own 15s cadence */
+let lvlupShown=false;
+async function loadPlayer(){
+  try{
+    const r=await fetch("/api/player-card",{cache:"no-store"});
+    if(!r.ok){if(r.status===401){location.href="/login";return}return}
+    S.pc=await r.json();
+    const p=S.pc["player-profile"]||{};
+    const lvl=num(p.level);
+    if(lvl!=null&&S.prevLevel!=null&&lvl>S.prevLevel){
+      showLevelUp(lvl,p);
+    }
+    S.prevLevel=lvl;
+    renderHud();
+    if(S.tab==="play")renderActive();
+  }catch(e){}
+}
+function showLevelUp(lvl,p){
+  const b=$("lvlup");if(!b)return;
+  $("lvlup-n").textContent=lvl;
+  $("lvlup-tx").textContent=(p.xp_to_next>0?(p.xp+" XP · "+p.xp_to_next+" to next level"):"max level")+" · "+(p.cv_line||"the fleet levels with you");
+  b.classList.add("show");
+  setTimeout(()=>b.classList.remove("show"),3400);
+}
+
+/* ================= HUD ================= */
+function renderHud(){
+  const who=session.user||"—";
+  $("hud-who").textContent=who;
+  const p=S.pc&&S.pc["player-profile"];
+  if(p){
+    const lvl=num(p.level);
+    const xp=num(p.xp),toNext=num(p.xp_to_next);
+    $("hud-level").textContent=lvl!=null?lvl:"—";
+    const fill=document.getElementById("hud-xpfill");
+    const pct=(xp!=null&&toNext!=null&&(xp+toNext)>0)?Math.round(100*xp/(xp+toNext)):(xp!=null&&toNext==null?100:0);
+    if(fill)fill.style.width=pct+"%";
+    const t=document.getElementById("hud-xptxt");
+    if(t)t.textContent=(xp!=null?(xp+" XP"):"—")+(toNext>0?" · "+toNext+" to next":"");
+  }
+}
+
+/* ================= PLAY ================= */
+function renderPlay(){
+  const d=S.d,p=S.pc&&S.pc["player-profile"];
+  const hero=p?playerHero(p):'<div class="card"><div class="empty">player profile loading…</div></div>';
+  const rules=levelRules(d,p);
+  const quests=questsHtml(d);
+  const trophies=trophiesHtml(d);
+  return '<div class="hd"><span class="n">PLAY</span><h2>Your game</h2><span class="q">level up, do work, earn</span></div>'+
+    hero+rules+quests+trophies;
+}
+function playerHero(p){
+  const lvl=num(p.level),xp=num(p.xp),toNext=num(p.xp_to_next);
+  const pct=(xp!=null&&toNext!=null&&(xp+toNext)>0)?Math.round(100*xp/(xp+toNext)):100;
+  const sk=(p.skills||[]).slice(0,5).map(s=>'<span class="sk">'+esc(s.name||"?")+'<em> ×'+fmtN(s.tasks)+'</em></span>').join("");
+  const lb=(p.leaderboard||[]).slice(0,3).map((e,i)=>'<div class="row2"><span class="rk">#'+(i+1)+'</span><span class="rt">'+(e.is_you?'<b style="color:var(--gold)">you</b>':esc(e.name))+'</span><span class="rv">'+fmtN(e.bananas)+'🍌</span></div>').join("");
+  return '<div class="phero">'+
+    '<div class="prow"><div class="pbig"><div class="plv">'+esc(lvl!=null?lvl:"—")+'</div><div class="pll">LEVEL</div></div>'+
+    '<div class="pmid"><div class="pnm">'+esc(p.player||session.user||"Player")+'</div>'+
+    '<div class="pcv">'+esc(p.cv_line||"")+'</div>'+
+    '<div class="xpbig"><div class="track"><i style="width:'+pct+'%"></i></div>'+
+    '<div class="xrow"><span>'+(xp!=null?fmtN(xp)+" XP":"—")+'</span><span>'+(toNext>0?fmtN(toNext)+" to next":"MAX")+'</span></div></div></div></div>'+
+    (sk?'<div class="skills">'+sk+'</div>':"")+
+    '<div class="stats4">'+
+      '<div class="s4"><div class="v">'+fmtN(p.verified_artifacts)+'</div><div class="l">Verified artifacts</div></div>'+
+      '<div class="s4"><div class="v">'+fmtN(p.my_earned_bananas)+'<small> 🍌</small></div><div class="l">Bananas earned</div></div>'+
+      '<div class="s4"><div class="v">#'+esc(fmtN(p.rank_vs_fleet))+'</div><div class="l">Rank in fleet</div></div>'+
+      '<div class="s4"><div class="v">'+fmtN(p.xp)+'</div><div class="l">Total XP</div></div>'+
+    '</div>'+
+    (lb?'<div style="margin-top:12px"><div class="lbl">Leaderboard</div>'+lb+'</div>':"")+
+    (p.next_quest_hint?'<div class="honest"><b>Next quest:</b> '+esc(p.next_quest_hint)+' — '+(p.note||"")+'</div>':"")+
+  '</div>';
+}
+function levelRules(d,p){
+  const w=d.wallet||{};
+  const clean=num(w.clean_earned_bananas);
+  const va=num(p&&p.verified_artifacts);
+  const xp=num(p&&p.xp);
+  const rows=[
+    {qi:"🍌",t:"Bananas",s:"clean earned "+(clean!=null?clean+" 🍌":"—")+" · contested excluded",r:"+100 XP"},
+    {qi:"📜",t:"Verified artifacts",s:(va!=null?va+" verified":"—")+" · checked by the fleet",r:"+50 XP"}
+  ].map(r=>'<div class="qrule"><span class="qi">'+r.qi+'</span><div class="qm"><b>'+r.t+'</b><span>'+r.s+'</span></div><span class="qr">'+r.r+'</span></div>').join("");
+  const math=(clean!=null&&va!=null&&xp!=null)
+    ? '<div class="dline" style="margin-top:8px">Your <b class="ok">'+fmtN(xp)+' XP</b> = '+fmtN(Math.round(clean*100))+' (🍌×100) + '+fmtN(va*50)+' (artifacts×50) — the level bar above is exactly this.</div>'
+    : "";
+  return '<div class="card"><h3>How you level up — the real rules</h3>'+rows+math+'</div>';
+}
+function questsHtml(d){
+  const ap=S.ap||{},fl=d.fleets||{},vel=d.velocity||{};
+  /* Q1 — your call (decisions) */
+  const cards=(ap.cards||[]).filter(c=>c.status==="PENDING");
+  const pend=cards.length;
+  const cardHtml=cards.map(c=>{
+    const id=esc(c.id);
+    const canAct=!!c.can_act;
+    const laneChip=c.lane?'<span class="mchip g">lane '+esc(c.lane)+'</span>':"";
+    const decChip=c.decider&&c.decider!==(session.user||"")?'<span class="mchip">'+esc(c.decider)+'’s call</span>':(c.decider?'<span class="mchip" style="color:var(--green)">your call</span>':"");
+    return '<div style="background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px 13px;margin-bottom:9px;min-width:0">'+
+      '<div style="font-size:13.5px;font-weight:800;line-height:1.35">'+esc(c.title)+'</div>'+
+      '<div style="margin-top:7px;display:flex;flex-wrap:wrap;gap:6px"><span class="mchip">from '+esc(c.proposer||"?")+'</span>'+laneChip+decChip+
+      (c.cost?'<span class="mchip g">'+esc(c.cost)+'</span>':"")+
+      (c.created_ts?'<span class="mchip">'+esc(String(c.created_ts).slice(0,16))+'</span>':"")+'</div>'+
+      (c.summary?'<div class="dline" style="margin-top:8px"><b style="color:var(--txt)">What it is</b> — '+esc(c.summary)+'</div>':"")+
+      (c.impact?'<div class="dline" style="margin-top:6px"><b style="color:var(--txt)">If you say yes</b> — '+esc(c.impact)+'</div>':"")+
+      (canAct
+        ? '<div class="acts">'+
+            '<button class="btn approve" data-act="approve" data-id="'+id+'">Approve</button>'+
+            '<button class="btn reject" data-act="reject" data-id="'+id+'">Reject</button>'+
+            '<button class="btn feedback" data-act="fb" data-id="'+id+'">Feedback</button>'+
+          '</div>'+
+          '<div class="fbwrap" data-fb="'+id+'"><textarea placeholder="Say what you need changed…"></textarea>'+
+          '<div class="acts"><button class="btn feedback" data-act="fbsend" data-id="'+id+'">Send feedback</button></div></div>'
+        : '<div class="dline" style="margin-top:9px;font-style:italic">'+(c.decider&&c.decider!==(session.user||"")
+            ? 'Routes to <b>'+esc(c.decider)+'</b> — their call'+(c.lane?' (lane '+esc(c.lane)+')':"")+'.'
+            : 'Read-only for you — you don’t decide this one.')+'</div>')+
+    '</div>';
+  }).join("");
+  const q1=pend>0
+    ? qCard({cls:"warn",icon:"🎯",title:"Your call",sub:pend+" decision"+(pend>1?"s":"")+" waiting on you — approve, reject or push back",bar:100,barCls:"",chip:pend+" open",chipCls:"warn",body:cardHtml})
+    : qCard({cls:"done",icon:"✅",title:"Your call",sub:"nothing waiting on you — the queue is clear",chip:"CLEAR",chipCls:"ok"});
+  /* Q2 — fleet alive */
+  const names=Object.keys(fl);
+  const liveN=names.filter(n=>fl[n]&&fl[n].status==="LIVE").length;
+  const rows=names.map(n=>{
+    const v=fl[n]||{};
+    const when=v.signal_min!=null?ago(v.signal_min*60):"no signal on this box yet";
+    return '<div class="agent"><div class="who2"><div class="nm">'+esc(n)+'</div><div class="dt">'+esc(v.detail||"")+' · '+when+'</div></div>'+stateTag(v.status)+'</div>';
+  }).join("");
+  const q2=qCard({
+    icon:"⚡",title:"Fleet alive",sub:liveN+" of "+names.length+" agents signalling live right now",
+    bar:names.length?Math.round(liveN/names.length*100):0,barCls:"ok",
+    chip:liveN+" live",chipCls:liveN?"ok":"warn",
+    body:'<div>'+rows+'</div><div class="dline" style="margin-top:8px">Signals come from real fleet state files on this box — a brick is live when its heartbeat is ≤ 5 min old.</div>'
+  });
+  /* Q3 — shipping */
+  const open=(vel.open||[]);
+  const prRows=open.length
+    ? open.slice(0,5).map(p=>'<div class="row2"><span class="rk">#'+esc(p.number)+'</span><span class="rt">'+esc(p.title)+'</span>'+(p.ci&&p.ci.state==="success"?'<span class="rv ok">CI ✓</span>':'<span class="rv warn">'+esc((p.ci&&p.ci.state)||"—")+'</span>')+'</div>').join("")
+    : '<div class="empty">no open pull requests — quiet shipyard</div>';
+  const q3=qCard({
+    icon:"🚀",title:"Shipping",sub:(vel.merged_count!=null?fmtN(vel.merged_count):"—")+" PRs merged"+(vel.prs_per_day!=null?" · "+vel.prs_per_day+" /day":"")+", "+open.length+" open",
+    bar:open.length?Math.min(100,open.length*12):100,barCls:open.length?"":"ok",
+    chip:fmtN(vel.merged_count)+" merged",chipCls:"ok",
+    body:'<div>'+prRows+'</div>'+(vel.ci_summary?'<div class="dline" style="margin-top:8px">'+esc(vel.ci_summary)+' — hearth repo, GitHub live.</div>':"")
+  });
+  return '<div class="card"><h3>Quests</h3>'+q1+q2+q3+'</div>';
+}
+function trophiesHtml(d){
+  const ach=d.achievements||{};
+  const disp=d.dispatches||{};
+  const vs=d.vector_store||{};
+  const w=d.wallet||{};
+  const rows=(ach.rows||[]).slice().reverse().slice(0,6).map(r=>
+    '<div class="row2"><span class="rk">🏆</span><span class="rt">'+esc(r.line||r.action||"—")+(r.contested?' <span class="mchip" style="color:var(--red)">contested</span>':"")+'</span>'+
+    '<span class="rv" style="color:var(--faint);font-size:11px">'+esc((r.iso||"").slice(0,10))+'</span></div>').join("");
+  return '<div class="card"><h3>Trophies &amp; progress</h3>'+
+    '<div class="stats4">'+
+      '<div class="s4"><div class="v gold">'+fmtN(ach.count)+'</div><div class="l">🏆 Achievements</div></div>'+
+      '<div class="s4"><div class="v" style="color:var(--blue)">'+fmtN(disp.count)+'</div><div class="l">📦 Dispatches</div></div>'+
+      '<div class="s4"><div class="v" style="color:var(--green)">'+fmtN(vs.docs)+'</div><div class="l">🧠 Knowledge docs</div></div>'+
+      '<div class="s4"><div class="v gold">'+fmtN(w.clean_earned_bananas)+'<small> 🍌</small></div><div class="l">Clean earned</div></div>'+
+    '</div>'+
+    (rows?'<div style="margin-top:10px">'+rows+'</div>':'<div class="empty">achievements ledger is empty so far — first verified cycle lands here.</div>')+
+  '</div>';
+}
+
+/* ================= WORLD ================= */
+const BRICK_DEF='A <b>brick</b> = one AI agent with a role and thread capacity. <b>Registered</b> = holds a seat in the live ledger. <b>Alive</b> = heartbeat within the hour. Old registry rows (Discord era) are history, not agents.';
+function worldBricks(){
+  const out={};
+  const nwb=(S.nw&&S.nw.bricks)||{};
+  Object.keys(nwb).forEach(k=>{
+    const b=nwb[k]||{};
+    out[k]={name:k,role:b.role,cap:b.capacity_threads,status:b.live?"LIVE":"IDLE",
+      hb_age_min:b.hb_age_min,bananas:b.bananas,mints:b.mints,roi:b.roi,
+      accomplishments_n:b.accomplishments_n,current_task:b.last_activity};
+  });
+  ((S.cap||{}).bricks||[]).forEach(c=>{
+    if(!c||!c.name)return;
+    const o=out[c.name]=out[c.name]||{name:c.name};
+    o.role=o.role||c.role;
+    if(o.cap==null)o.cap=c.cap;
+    if((o.hb_age_min==null)&&c.hb_age_min!=null)o.hb_age_min=c.hb_age_min;
+    if(o.bananas==null)o.bananas=c.bananas;
+    if(o.mints==null)o.mints=c.mints;
+    if(o.roi==null)o.roi=c.roi;
+    if(o.accomplishments_n==null)o.accomplishments_n=c.accomplishments_n;
+    if(!o.current_task&&c.status==="LIVE")o.current_task="alive — no task claimed";
+    o.status=c.status||o.status;
+  });
+  return out;
+}
+function brickCard(name,b){
+  const live=b.status==="LIVE";
+  return '<div class="bcard'+(live?" live":"")+(NET.selected===name?" sel":"")+'" data-brick="'+esc(name)+'">'+
+    '<div class="bn"><span class="dot '+(live?"live":"dim")+'"></span>'+esc(name)+'</div>'+
+    '<div class="br">'+esc(b.role||"—")+'</div>'+
+    '<div class="bt2">'+esc(b.current_task||("capacity "+(b.cap!=null?b.cap:"—")+" threads · idle"))+'</div>'+
+    '<div class="bmeta"><span class="mchip'+(live?" g":"")+'">'+esc(b.status)+"</span>"+
+    '<span class="mchip">'+fmtN(b.cap)+" thr</span>"+
+    (num(b.bananas)?'<span class="mchip g">'+fmtN(b.bananas)+"🍌</span>":"")+"</div></div>";
+}
+function renderWorld(){
+  const f=(S.nw&&S.nw.fleet)||{},net=S.net||{},host=(net.telemetry&&net.telemetry.host)||{};
+  const bricks=worldBricks();
+  const names=Object.keys(bricks).sort((a,b)=>(bricks[b].status==="LIVE")-(bricks[a].status==="LIVE"));
+  const grid=names.map(k=>brickCard(k,bricks[k])).join("");
+  const tiles='<div class="wtiles">'+
+    '<div class="wt gold"><div class="wv" style="color:var(--green)">'+fmtN(f.live)+'</div><div class="wl">⚡ Alive right now</div></div>'+
+    '<div class="wt"><div class="wv">'+fmtN(f.agents)+'</div><div class="wl">🧱 Agents registered (real)</div></div>'+
+    '<div class="wt"><div class="wv" style="color:var(--blue)">'+fmtN(f.registry_rows)+'</div><div class="wl">📜 Old registry rows (not agents)</div></div>'+
+    '<div class="wt"><div class="wv">'+(host.cpu_pct!=null?host.cpu_pct+"%":"—")+'</div><div class="wl">🖥️ Box CPU now</div></div>'+
+  '</div>';
+  return '<div class="hd"><span class="n">WORLD</span><h2>The bricks</h2>'+freshChip("now")+'</div>'+
+    '<div class="defline">'+BRICK_DEF+'</div>'+
+    tiles+
+    '<div id="brick-panel"></div>'+
+    '<div class="card"><h3>Every agent — tap for detail, clone or wake</h3><div class="brickgrid">'+grid+'</div>'+
+    '<div style="margin-top:9px">'+freshChip("cap")+" "+freshChip("now")+'</div></div>'+
+    netHtml(net)+
+    workingOnHtml(S.fl)+
+    leaderboardHtml()+
+    peopleHtml();
+}
+function bindBricks(){
+  document.querySelectorAll("[data-brick]").forEach(el=>el.onclick=()=>showBrick(el.dataset.brick));
+}
+function stat4(v,l){return '<div class="s4"><div class="v">'+v+'</div><div class="l">'+l+"</div>";}
+function showBrick(name){
+  const b=worldBricks()[name];
+  if(!b)return;
+  S.openBrick=name;
+  NET.selected=name;
+  document.querySelectorAll(".bcard").forEach(el=>el.classList.toggle("sel",el.dataset.brick===name));
+  const st=b.status==="LIVE"?"LIVE":(b.status==="STALE"?"IDLE":"NO SIGNAL");
+  const task=b.current_task||(st==="LIVE"?"alive — no task claimed":"idle");
+  const p=$("brick-panel");
+  if(!p)return;
+  p.innerHTML='<div class="bd-panel">'+
+    '<div style="display:flex;align-items:center;gap:9px"><div style="font-size:17px;font-weight:900">'+esc(name)+"</div>"+stateTag(st)+"</div>"+
+    '<div class="muted" style="margin-top:3px">role: '+esc(b.role||"—")+"</div>"+
+    '<div class="stats4" style="margin-top:12px">'+
+      stat4(esc(task),"Current task")+
+      stat4((b.cap!=null?b.cap:"—")+" threads","Capacity")+
+      stat4(fmtN(b.bananas)+" 🍌","Bananas earned")+
+      stat4(fmtN(b.mints),"Verified mints")+
+      stat4(b.roi!=null?(b.roi+"×"):"—","ROI")+
+      stat4(fmtN(b.accomplishments_n),"Artifacts done")+
+      stat4(b.hb_age_min!=null?ago(b.hb_age_min*60):"—","Last heartbeat")+
+      stat4(esc(b.status),"Ledger status")+
+    "</div>"+
+    '<div class="acts">'+
+      '<button class="btn approve" data-bact="wake" data-bname="'+esc(name)+'">Wake</button>'+
+      '<button class="btn feedback" data-bact="clone" data-bname="'+esc(name)+'">Clone</button>'+
+      '<button class="btn reject" data-bact="fund" data-bname="'+esc(name)+'">Fund</button>'+
+    "</div>"+
+    '<div class="rolenote">Wake and Clone hit the real brick endpoints (owner can act; others read-only). Fund sends your order on the fleet bus — every agent hears it.</div>'+
+  "</div>";
+  p.querySelectorAll("[data-bact]").forEach(btn=>btn.onclick=()=>brickAction(btn.dataset.bact,btn.dataset.bname));
+}
+async function brickAction(act,name){
+  if(act==="wake"||act==="clone")return actBrick(act,name);
+  try{
+    const r=await fetch("/api/comms",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({body:"[fund] "+name+" — order from "+(session.user||"player")+" via dashboard"})});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(j.error||("HTTP "+r.status));
+    toast("ok","FUND order for "+name+" sent to the fleet bus.");
+  }catch(e){toast("err","Not sent: "+e.message)}
+}
+
+function netHtml(n){
+  const nodes=(n&&n.nodes)||[],edges=(n&&n.edges)||[];
+  NET.nodes=nodes;NET.edges=edges;
+  const withTel=nodes.filter(x=>x.cpu!=null);
+  const rest=nodes.filter(x=>x.cpu==null);
+  const list=[...withTel,...rest].slice(0,16);
+  const rows=list.map(nn=>{
+    const la=nn.last_activity?ago(Math.max(0,(Date.now()/1000)-nn.last_activity)):"—";
+    const dot=nn.cpu!=null?'<span class="dot live"></span>':(nn.status==="active"?'<span class="dot idle"></span>':'<span class="dot dim"></span>');
+    return '<div class="nt-row"><div class="l1">'+dot+'<span class="bid">'+esc(nn.id)+'</span>'+
+      '<span class="npill '+esc(nn.status)+'">'+esc(nn.status)+'</span></div>'+
+      '<div class="l2">'+(nn.role?'role '+esc(nn.role)+' · ':"")+'cpu <b>'+(nn.cpu!=null?nn.cpu+"%":"—")+'</b> · ram <b>'+(nn.ram_mb!=null?Math.round(nn.ram_mb)+" MB":"—")+'</b> · last <b>'+la+'</b> · 🍌 <b>'+fmtN(nn.earns)+'</b></div></div>';
+  }).join("");
+  return '<div class="card"><h3>The Net — every brick, who spawned who</h3>'+
+    '<div class="netstage"><canvas id="net-canvas"></canvas><div class="net-hint">tap a node to inspect it — lines are spawn lineage</div></div>'+
+    '<div id="net-panel" class="netpanel"></div>'+
+    '<div style="margin-top:10px"><div class="lbl">Live stats — telemetry first</div>'+rows+
+    (nodes.length>16?'<div class="muted" style="margin-top:7px">…and '+fmtN(nodes.length-16)+' more parked bricks (tap the canvas to explore).</div>':"")+
+    '</div></div>';
+}
+function workingOnHtml(fl){
+  const wo=(fl.working_on||[]);
+  const rows=wo.slice(0,8).map(t=>
+    '<div class="row2"><span class="rk">'+(t.status==="done"?'✅':'🔨')+'</span><span class="rt">'+esc(t.title||t.id||"?")+'</span>'+
+    (t.assignee?'<span class="rv" style="color:var(--faint);font-size:11px;font-weight:600">'+esc(t.assignee)+'</span>':"")+'</div>').join("");
+  const contrib=fl.contributions_24h||[];
+  return '<div class="card"><h3>What they’re working on</h3>'+
+    (rows||'<div class="empty">no tasks in the queue right now — the fleet is idle.</div>')+
+    '<div class="dline" style="margin-top:9px">'+fmtN(fl.contribution_count)+' contributions in the last 24h · '+esc(fl.note||"")+'</div></div>';
+}
+function leaderboardHtml(){
+  const p=S.pc&&S.pc["player-profile"];
+  const lb=(p&&p.leaderboard)||[];
+  const rows=lb.slice(0,5).map((e,i)=>'<div class="row2"><span class="rk">#'+(i+1)+'</span><span class="rt">'+(e.is_you?'<b style="color:var(--gold)">you</b>':esc(e.name))+'</span><span class="rv">'+fmtN(e.bananas)+'🍌</span></div>').join("");
+  return '<div class="card"><h3>Leaderboard</h3>'+
+    (rows||'<div class="empty">leaderboard accrues as bricks verify — first verified cycle lands here.</div>')+
+    (lb.length===1?'<div class="dline" style="margin-top:8px">Only one ranked player so far — the fleet is young, the top is yours to take.</div>':"")+
+  '</div>';
+}
+function peopleHtml(){
+  const rl=S.rl||{};
+  const people=rl.people||[];
+  const myLanes=(session.lanes)||[];
+  const laneChips=ls=>ls.map(l=>'<span class="mchip g">'+esc(l)+'</span>').join("")||'<span class="mchip">—</span>';
+  const rows=people.map(p=>'<div class="perrow"><span class="perwho">'+esc(p.username)+(p.username===session.user?' <span class="mchip" style="color:var(--green)">you</span>':"")+'</span>'+
+    '<span class="rchip r-'+esc(p.role)+'">'+esc(p.role.replace("_"," "))+'</span>'+
+    (p.role==="decision_maker"?laneChips(p.lanes):"")+'</div>').join("");
+  const roleOpts=Object.keys(rl.roles||{}).map(r=>'<option value="'+esc(r)+'">'+esc(r)+'</option>').join("");
+  const laneBoxes=(rl.lanes||[]).map(l=>'<label class="laneck"><input type="checkbox" class="rolck" value="'+esc(l)+'"> '+esc(l)+'</label>').join("");
+  let admin="";
+  if(session.role==="owner"){
+    admin='<div style="margin-top:12px;border-top:1px dashed var(--line);padding-top:11px">'+
+      '<div class="lbl">Give someone a role</div>'+
+      '<div class="roleform">'+
+        '<select id="rl-person" class="rlsel">'+people.map(p=>'<option value="'+esc(p.username)+'">'+esc(p.username)+'</option>').join("")+'</select>'+
+        '<select id="rl-role" class="rlsel">'+roleOpts+'</select>'+
+      '</div>'+
+      '<div class="rolelanes" id="rl-lanes">lanes '+laneBoxes+'</div>'+
+      '<div class="acts"><button class="btn approve" data-role-act="grant">Grant / change</button>'+
+      '<button class="btn reject" data-role-act="revoke-sel" data-person="">Revoke</button></div>'+
+      '<div class="rolenote">Every change is audited and announced to the fleet. Revoke returns the person to read-only.</div>'+
+    '</div>';
+  }else if(session.role==="decision_maker"){
+    admin='<div style="margin-top:12px;border-top:1px dashed var(--line);padding-top:11px"><div class="lbl">Your lanes — your call</div>'+
+      '<div style="margin:6px 0 8px">'+laneChips(myLanes)+'</div>'+
+      '<div class="dline">Cards with your lane route to you. khalid keeps final oversight and can override any decision.</div></div>';
+  }else{
+    admin='<div class="dline" style="margin-top:11px">You’re signed in as <b>'+esc(session.user||"?")+'</b> — read-only. khalid can grant you a role from his panel.</div>';
+  }
+  return '<div class="card"><h3>The people</h3>'+rows+admin+'</div>';
+}
+function ecoHtml(e){
+  const c=(e&&e.counts)||{};
+  const bot=((e&&e.bottlenecks&&e.bottlenecks.latest)||[]).slice(0,3);
+  const sp=((e&&e.spawns&&e.spawns.latest)||[]).slice(0,3);
+  const bots=bot.map(b=>'<div class="row2"><span class="rk">🚩</span><span class="rt">'+esc(String(b.brick_id||"?"))+' — '+esc(String(b.reason||""))+(b.metric_value!=null?' ('+esc(String(b.metric_value))+')':"")+'</span>'+(b.ts?'<span class="rv" style="color:var(--faint);font-size:11px">'+ago(Math.max(0,(Date.now()/1000)-b.ts))+'</span>':"")+'</div>').join("");
+  const sps=sp.map(s=>'<div class="row2"><span class="rk">🧬</span><span class="rt">'+esc(String(s.new_brick_id||"?"))+' replaces '+esc(String(s.replaces||"?"))+'</span><span class="rv" style="color:var(--faint);font-size:11px">'+esc(String(s.reason||"").slice(0,28))+'</span></div>').join("");
+  return '<div class="card"><h3>Ecosystem engine — spawns &amp; flags</h3>'+
+    '<div class="chiprow"><span class="rpill active">spawned '+fmtN((e&&e.spawns&&e.spawns.total))+'</span>'+
+    '<span class="rpill verified">flags '+fmtN((e&&e.bottlenecks&&e.bottlenecks.total))+'</span>'+
+    '<span class="rpill parked">known '+fmtN((c.active||0)+(c.verified||0)+(c.registered||0))+'</span>'+
+    '<span class="rpill">empty wallets '+fmtN(e&&e.empty_wallets)+'</span></div>'+
+    '<div class="lbl" style="margin-top:11px">Latest flags</div>'+(bots||'<div class="empty">no bottleneck events yet</div>')+
+    '<div class="lbl" style="margin-top:10px">Latest spawns</div>'+(sps||'<div class="empty">no spawns yet</div>')+
+    '<div class="honest">'+esc((e&&e.note)||"")+'</div></div>';
+}
+function timeMachineHtml(tf){
+  tmReset(tf);
+  const byType=tf.by_type||{};
+  const typeChips=Object.keys(byType).map(t=>'<span class="mchip">'+esc(t)+' '+fmtN(byType[t])+'</span>').join(" ");
+  return '<div class="card"><h3>Time machine — replay the last 24h</h3>'+
+    '<div class="tmrail" id="tmrail" onclick="tmRailClick(event)"><canvas id="tmcan"></canvas></div>'+
+    '<div class="tmplay">'+
+      '<button id="tmplaybtn" onclick="tmToggle()">▶</button>'+
+      '<input type="range" class="tmslider" id="tmslider" min="0" max="'+(TM.len-1)+'" value="'+(TM.idx)+'" oninput="tmSeek(Number(this.value)/(this.max||1))">'+
+      '<span class="tmtime" id="tmtime">'+tmTimeLabel(TM.idx)+'</span>'+
+      '<span class="tmspeed"><button data-s="1" onclick="tmSpeed(1)">1×</button><button data-s="4" class="on" onclick="tmSpeed(4)">4×</button><button data-s="16" onclick="tmSpeed(16)">16×</button></span>'+
+    '</div>'+
+    '<div style="margin-top:6px">'+typeChips+'</div>'+
+    '<div class="tmfeed" id="tmfeed"></div>'+
+    '<div class="honest">'+(tf.capped?"capped to last 3000 events · ":"")+fmtN(tf.total_events)+' events in 24h · rail = 1 bar per minute, the playhead walks it second-accurate. '+(tf.note?esc(tf.note):"")+'</div></div>';
+}
+
+/* ================= freshness ================= */
+function freshChip(key,label){
+  return '<span class="fresh" data-fresh="'+key+'" data-label="'+(label||"updated")+'">'+(label||"updated")+"…</span>";
+}
+function tickFresh(){
+  document.querySelectorAll("[data-fresh]").forEach(el=>{
+    const t=S.at[el.dataset.fresh];
+    if(!t)return;
+    const s=Math.max(0,Math.round((Date.now()-t)/1000));
+    el.textContent=(el.dataset.label||"updated")+" "+ago(s);
+    el.classList.toggle("hot",s<15);
+  });
+}
+
+/* ================= NOW ================= */
+function actRow(a){
+  const ic=a.kind==="live"?'<span class="dot live"></span>':(a.kind==="done"?"✅":a.kind==="next"?"⏭️":"•");
+  return '<div class="act"><span class="ai">'+ic+'</span><div class="aw"><div class="an">'+esc(a.agent)+'</div>'+
+    '<div class="at">'+esc(a.task||"")+'</div></div>'+
+    (a.age_s!=null?'<span class="aa">'+ago(a.age_s)+"</span>":"")+"</div>";
+}
+function renderNow(){
+  const n=S.nw||{},f=n.fleet||{},q=n.queue||{},v=n.velocity||{};
+  const acts=(n.activities||[]);
+  const top=acts.slice(0,3);
+  const more=acts.length>3?'<div class="empty">+'+(acts.length-3)+" more signals on World → </div>":"";
+  const actHtml=top.length?top.map(actRow).join(""):'<div class="empty">no live signals yet — heartbeats land here.</div>';
+  /* velocity — peer mission payload */
+  const ms=S.ms||{},vel=ms.velocity||{};
+  const v1=num(vel.receipts_1h),v24=num(vel.receipts_24h);
+  const moving=!!vel.moving;
+  const velCard='<div class="card"><h3>Fleet velocity</h3>'+
+    '<div class="velhead"><div class="vel-t"><b>'+(v1!=null?(fmtN(v1)+" receipt"+(v1===1?"":"s")+" this hour · "+fmtN(v24)+" in 24h"):"velocity loads with the next full refresh")+'</b>'+
+    '<span>'+(moving?"the fleet is producing right now":"the fleet has gone quiet")+(vel.minutes_since_activity!=null?" — last receipt "+ago(vel.minutes_since_activity*60):"")+"</span></div>"+
+    '<span class="velchip '+(moving?"ok":"warn")+'">'+(moving?"MOVING":"STALLED")+"</span></div>"+
+    '<div class="velbar"><i class="'+(moving?"fill-ok":"fill-warn")+'" style="width:'+(num(vel.pct_1h)!=null?Math.max(2,Math.min(100,num(vel.pct_1h))):2)+'%"></i></div>'+
+    '<div style="margin-top:8px">'+freshChip("ms")+"</div></div>";
+  const rec=(ms.now||[]).slice(0,4);
+  const recRows=rec.length?'<div class="card"><h3>Latest receipts — proof of work</h3>'+
+    rec.map(r=>'<div class="nowrow'+(r.task_id?' tappable':'')+'"'+(r.task_id?' data-act="task" data-id="'+esc(r.task_id)+'"':'')+'><span class="nw-ic">⚡</span><div class="nw-b"><div class="nw-t">'+esc(r.title||"work completed")+'</div><div class="nw-m">by <b>'+esc(r.who||"fleet")+'</b>'+(r.lane?" · "+esc(r.lane):"")+(r.task_id?' · tap to open the task':"")+"</div></div>"+
+    '<span class="nw-a">'+ago(r.age_s)+"</span></div>").join("")+'<div style="margin-top:8px">'+freshChip("ms")+"</div></div>":"";
+  /* GOALS — ready kanban cards; tap any card for the full story */
+  const gs=ms.goals||[];
+  const goalCards=gs.map(g=>{
+    const own=g.owner?esc(g.owner):'<span style="color:var(--faint)">unassigned</span>';
+    return '<div class="goalcard tappable" data-act="task" data-id="'+esc(g.id)+'"><div class="g-t">🎯 '+esc(g.title)+'</div>'+
+      '<div class="g-m">owner '+own+' · <span class="mchip g">'+esc(g.status||"ready")+'</span> <span class="mchip">tap to dive deep</span></div></div>';
+  }).join("");
+  const goalsCard=gs.length
+    ? '<div class="card"><h3>GOALS — the current work</h3>'+
+      (ms.done_count!=null?'<div class="dline">Done: <b class="ok">'+fmtN(ms.done_count)+'</b> — these are the cards the fleet is chewing through. Tap any card to see its story.</div>':'')+
+      goalCards+'</div>':"";
+  /* BRICKS — alive + idle; tap any brick to dive deep */
+  const br=ms.bricks||{};
+  const alive=(br.alive||[]), idle=(br.idle||[]);
+  const brExplain=(alive.length||idle.length)
+    ? '<div class="honest" style="border-top:none;padding-top:0;margin-top:0"><b>What are bricks?</b> Bricks are worker identities — '+fmtN(br.badges)+' on file, <b class="ok">'+fmtN(br.live_count)+' working now</b>, '+fmtN(br.idle_count)+' idle. Tap any brick to dive deep: its thought process, receipts, artifacts, and where it&#39;s at right now.</div>'
+    : "";
+  const aliveHtml=alive.map(b=>{
+    const cpu=b.cpu!=null?fmtN(b.cpu)+"%":"—", ram=b.ram_mb!=null?fmtN(b.ram_mb)+" MB":"—";
+    return '<div class="alivecard tappable" data-act="brick" data-id="'+esc(b.id)+'"><div class="a-id">'+esc(b.id)+'</div>'+
+      '<span class="state s-live"><span class="dot live"></span>Working</span>'+
+      '<div class="a-m">'+(b.role?esc(b.role)+" · ":"")+'cpu '+cpu+' · ram '+ram+(b.earned?' · '+fmtN(b.earned)+'🍌 earned':"")+' · tap to dive deep</div></div>';
+  }).join("");
+  const idleRows=idle.map(b=>{
+    const bits=[];
+    if(b.role)bits.push("role "+esc(b.role));
+    if(b.parent)bits.push("parent "+esc(b.parent));
+    if(b.quality)bits.push(esc(b.quality));
+    if(b.skills&&b.skills.length)bits.push("skills "+esc(b.skills.join(", ")));
+    return '<div class="brickrow"><div class="b-main tappable" data-act="brick" data-id="'+esc(b.id)+'">'+
+      '<div class="b-id">'+esc(b.id)+'</div>'+
+      '<div class="b-meta">'+(b.role?esc(b.role):"worker")+(b.owner?' · '+esc(b.owner):"")+' · '+fmtN(b.earned)+'🍌 · tap to dive deep</div></div>'+
+      '<div class="b-acts"><button class="bact clone" data-act="clone" data-id="'+esc(b.id)+'">Clone</button>'+
+      '<button class="bact wake" data-act="wake" data-id="'+esc(b.id)+'">Wake</button></div></div>';
+  }).join("");
+  const bricksCard=(alive.length||idle.length)
+    ? '<div class="card"><h3>BRICKS — who works</h3>'+brExplain+
+      (alive.length?'<div class="lbl" style="margin-top:10px">Working now</div>'+aliveHtml:'')+
+      (idle.length?'<div class="idlehead" style="margin-top:12px"><button class="idletog" id="idle-tog">▸ idle bricks ('+fmtN(idle.length)+')</button>'+
+        '<span class="idlesub">'+fmtN(br.registry_rows)+' registration records · '+fmtN(br.badges)+' distinct bricks</span></div>'+
+        '<div class="idlewrap" id="idle-wrap" hidden>'+idleRows+'</div>':"")+
+      '</div>':"";
+  const pend=((S.ap||{}).cards||[]).filter(c=>c.status==="PENDING").length;
+  const teaser=pend>0
+    ? '<div class="qcard warn" onclick=\"setTab(\'quests\')\" style="cursor:pointer"><div class="qhead"><span class="qic">🎯</span><div class="qt"><b>'+pend+" decision"+(pend>1?"s":"")+" waiting on you</b><span class=\"qs\">tap to open Quests → Your call</span></div></div></div>"
+    : "";
+  return '<div class="hd"><span class="n">NOW</span><h2>What\u2019s happening right now</h2>'+freshChip("now")+"</div>"+
+    '<div class="nowhero">'+
+      '<div class="nh-top"><span class="nh-live"><span class="dot live"></span>LIVE</span>'+freshChip("now")+"</div>"+
+      '<div class="nowbig">'+fmtN(f.live)+' bricks alive <small>of '+fmtN(f.agents)+" agents</small></div>"+
+      '<div class="nh-sub">'+esc(f.note||"")+"</div>"+
+      '<div style="margin-top:8px">'+actHtml+"</div>"+more+
+    "</div>"+teaser+velCard+recRows+
+    trophiesHtml(S.d)+goalsCard+bricksCard;
+}
+
+/* ================= QUESTS ================= */
+function approvalsCard(){
+  const ap=S.ap||{};
+  const cards=(ap.cards||[]).filter(c=>c.status==="PENDING");
+  const pend=cards.length;
+  const cardHtml=cards.map(c=>{
+    const id=esc(c.id);
+    const canAct=!!c.can_act;
+    const laneChip=c.lane?'<span class="mchip g">lane '+esc(c.lane)+"</span>":"";
+    const decChip=c.decider&&c.decider!==(session.user||"")?'<span class="mchip">'+esc(c.decider)+"\u2019s call</span>":(c.decider?'<span class="mchip" style="color:var(--green)">your call</span>':"");
+    return '<div style="background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px 13px;margin-bottom:9px;min-width:0">'+
+      '<div style="font-size:13.5px;font-weight:800;line-height:1.35">'+esc(c.title)+"</div>"+
+      '<div style="margin-top:7px;display:flex;flex-wrap:wrap;gap:6px"><span class="mchip">from '+esc(c.proposer||"?")+"</span>"+laneChip+decChip+
+      (c.cost?'<span class="mchip g">'+esc(c.cost)+"</span>":"")+
+      (c.created_ts?'<span class="mchip">'+esc(String(c.created_ts).slice(0,16))+"</span>":"")+"</div>"+
+      (c.summary?'<div class="dline" style="margin-top:8px"><b style="color:var(--txt)">What it is</b> — '+esc(c.summary)+"</div>":"")+
+      (c.impact?'<div class="dline" style="margin-top:6px"><b style="color:var(--txt)">If you say yes</b> — '+esc(c.impact)+"</div>":"")+
+      (canAct
+        ? '<div class="acts">'+
+            '<button class="btn approve" data-act="approve" data-id="'+id+'">Approve</button>'+
+            '<button class="btn reject" data-act="reject" data-id="'+id+'">Reject</button>'+
+            '<button class="btn feedback" data-act="fb" data-id="'+id+'">Feedback</button>'+
+          "</div>"+
+          '<div class="fbwrap" data-fb="'+id+'"><textarea placeholder="Say what you need changed…"></textarea>'+
+          '<div class="acts"><button class="btn feedback" data-act="fbsend" data-id="'+id+'">Send feedback</button></div></div>'
+        : '<div class="dline" style="margin-top:9px;font-style:italic">'+(c.decider&&c.decider!==(session.user||"")
+            ? "Routes to <b>"+esc(c.decider)+"</b> — their call"+(c.lane?" (lane "+esc(c.lane)+")":"")+"."
+            : "Read-only for you — you don\u2019t decide this one.")+"</div>")+
+    "</div>";
+  }).join("");
+  return pend>0
+    ? qCard({cls:"warn",icon:"🎯",title:"Your call",sub:pend+" decision"+(pend>1?"s":"")+" waiting on you — approve, reject or push back",bar:100,barCls:"",chip:pend+" open",chipCls:"warn",body:cardHtml})
+    : qCard({cls:"done",icon:"✅",title:"Your call",sub:"nothing waiting on you — the queue is clear",chip:"CLEAR",chipCls:"ok"});
+}
+async function ensureCap(){
+  if(S.cap&&(Date.now()-S.capTs)<60000)return;
+  try{
+    const r=await fetch("/api/capacity",{cache:"no-store"});
+    if(r.status===401){location.href="/login";return}
+    S.cap=await r.json();
+    S.capTs=Date.now();
+    S.at.cap=Date.now();
+  }catch(e){}
+}
+function epicsCard(){
+  const cap=S.cap||{},eps=cap.epics||[],q=cap.queue||{};
+  const rows=eps.map(e=>'<div class="epic"><div class="eh"><span>'+esc(e.name)+"</span><small>"+fmtN(e.done)+"/"+fmtN(e.total)+" done"+(e.merges?" · "+fmtN(e.merges)+" merged":"")+"</small></div>"+
+    '<div class="qbar"><i class="'+(e.pct>=100?"ok":"")+'" style="width:'+(e.pct||0)+'%"></i></div></div>').join("");
+  const pendRows=((q.pending_goals)||[]).map(g=>'<div class="row2"><span class="rk">🔨</span><span class="rt"><b>'+esc(g.id)+"</b> — "+esc(g.short)+"</span></div>").join("");
+  const doneRows=((q.recent_done)||[]).map(g=>'<div class="row2"><span class="rk">✅</span><span class="rt">'+esc(g.id)+"</span></div>").join("");
+  return '<div class="card"><h3>Epics — initiatives with progress</h3>'+(rows||'<div class="empty">epics load in a moment…</div>')+
+    '<div style="margin-top:8px">'+freshChip("cap")+"</div></div"+
+    '><div class="card"><h3>The goal queue</h3>'+
+    '<div class="lbl">Next up — '+fmtN(q.pending)+" pending</div>"+(pendRows||'<div class="empty">queue empty.</div>')+
+    '<div class="lbl" style="margin-top:11px">Recently shipped — '+fmtN(q.done)+" total</div>"+(doneRows||"")+
+    '<div style="margin-top:8px">'+freshChip("cap")+"</div></div>";
+}
+function renderQuests(){
+  return '<div class="hd"><span class="n">QUESTS</span><h2>Goals &amp; decisions</h2>'+freshChip("ap")+"</div>"+
+    approvalsCard()+epicsCard();
+}
+
+/* ================= OPS ================= */
+function renderOps(){
+  return '<div class="hd"><span class="n">OPS</span><h2>Money, lanes &amp; machine room</h2>'+freshChip("ml")+"</div>"+
+    moneyTruthHtml(S.d)+
+    moneyLiveHtml(S.ml)+
+    portfolioHtml(S.pf)+
+    tapHtml(S.d)+
+    ecoHtml(S.eco)+
+    timeMachineHtml(S.tf)+
+    feedTopHtml(S.fc)+
+    trustHtml(S.pc)+
+    feedMsgsHtml(S.fc);
+}
+
+/* ================= MONEY ================= */
+function renderMoney(){
+  const d=S.d,ml=S.ml||{},pf=S.pf||{};
+  return '<div class="hd"><span class="n">MONEY</span><h2>Cost &amp; ROI</h2><span class="q">every dollar, visible</span></div>'+
+    moneyTruthHtml(d)+
+    moneyLiveHtml(ml)+
+    portfolioHtml(pf)+
+    tapHtml(d);
+}
+function moneyTruthHtml(d){
+  const m=d.money||{};
+  const rem=m.remaining||{};
+  const comm=(m.total_invested||{}).breakdown||{};
+  const commTotal=num(comm.total);
+  const remTotal=num(rem.total);
+  const spent=(commTotal!=null&&remTotal!=null&&remTotal<=commTotal)?commTotal-remTotal:null;
+  const metered=num(m.metered_usd);
+  const spentPct=spent!=null&&commTotal?Math.round(spent/commTotal*100):0;
+  const leftPct=spent!=null?100-spentPct:100;
+  const w=d.wallet||{};
+  const clean=num(w.clean_earned_bananas);
+  const bar=(spent!=null&&commTotal)
+    ? '<div class="bar"><div class="track">'+
+        '<div class="seg spent" style="width:'+spentPct+'%"></div>'+
+        '<div class="seg left" style="width:'+leftPct+'%"></div>'+
+      '</div><div class="legend"><span><i style="background:#f59e0b"></i>Spent '+fmtU(spent)+'</span>'+
+      '<span><i style="background:#3dd6a4"></i>Still there '+fmtU(remTotal)+'</span>'+
+      '<span>of '+fmtU(commTotal)+' committed</span></div></div>'
+    : '<div class="dline" style="margin-top:10px">Balance history isn’t complete enough to draw a spent-vs-left bar yet.</div>';
+  const ds=num(rem.deepseek), or=num(rem.openrouter);
+  const roi=d.roi||{};
+  const rmult=num(roi.roi_vs_metered_spend);
+  const roiHtml=rmult!=null
+    ? '<div class="roi"><div class="rmult">'+rmult+'×<small> roi vs metered spend</small></div>'+
+      '<div class="rlabel">'+esc(roi.label||"")+'</div>'+
+      '<div class="rnote">'+esc(roi.note||"")+' · banana peg $'+esc(String(roi.peg_usd_per_banana))+'</div></div>'
+    : '<div class="roi"><div class="rmult">—<small> roi</small></div><div class="rlabel">'+esc(roi.label||"no metered spend yet — ROI n/a")+'</div></div>';
+  return '<div class="card"><h3>The money truth</h3>'+
+    '<div class="hero-money"><div><div class="money-lbl">Still in the pot</div><div class="big-money">'+fmtU(remTotal)+'</div></div>'+
+    '<div style="padding-bottom:5px;font-size:11.5px;color:var(--faint)">deepseek '+fmtU(ds)+' · openrouter '+fmtU(or)+
+    (m.spend&&m.spend.latest_ts?' · snapshot '+esc(String(m.spend.latest_ts).slice(0,16))+'Z':"")+'</div></div>'+
+    bar+
+    '<div class="tiles">'+
+      '<div class="tile"><div class="tv">'+fmtU(remTotal)+'</div><div class="tl">Remaining credit</div></div>'+
+      '<div class="tile"><div class="tv">'+fmtU(commTotal)+'</div><div class="tl">Committed (lower bound)</div></div>'+
+      '<div class="tile"><div class="tv">'+(metered!=null?fmtU(metered):"—")+'</div><div class="tl">Metered burn, this box</div></div>'+
+      '<div class="tile"><div class="tv">'+fmtN(clean)+'<small> 🍌</small></div><div class="tl">Clean bananas earned</div></div>'+
+    '</div>'+roiHtml+
+    '<div class="bananas">'+
+      '<span class="bchip">🍌 <b>'+fmtN(clean)+'</b> earned (clean)</span>'+
+      '<span class="bchip">🍌 <b>'+fmtN(num(w.credited_bananas))+'</b> credited — gifts, not earnings</span>'+
+      '<span class="bchip">🍌 <b>'+fmtN(num(w.spend_bananas))+'</b> spent at the dock</span>'+
+    '</div>'+
+    '<div class="honest"><b>Read this the honest way.</b> Committed = the most credit each provider ever held. Metered burn shows “—” if the door-cost meter has no rows on this box yet — it is not $0. Per-brick cost is <b>not attributable</b> — no one number is divided across bricks. '+esc(m.note||"")+'</div>'+
+  '</div>';
+}
+function moneyLiveHtml(ml){
+  const s24=ml.spend_24h||{};
+  const roi=ml.roi||{};
+  const burn=ml.burn_rate||{};
+  const cov=ml.coverage||{};
+  const paidPct=s24.paid_pct!=null?s24.paid_pct:0;
+  const freePct=s24.free_pct!=null?s24.free_pct:0;
+  const rcls=roi.roi_label==="ROI positive"?"pos":roi.roi_label==="ROI negative"?"neg":"eq";
+  const ratioTxt=roi.roi_ratio!=null?(Number(roi.roi_ratio).toFixed(2)+"×"):"—";
+  const lrTxt=roi.lifetime_roi_ratio!=null?(Number(roi.lifetime_roi_ratio).toFixed(2)+"×"):"—";
+  const splitBars=(s24.calls!=null)
+    ? '<div class="ml-split"><div class="lbl">24h free vs paid</div>'+
+      '<div class="ml-bar"><i class="paid" style="width:'+paidPct+'%"></i><i class="free" style="width:'+freePct+'%"></i></div>'+
+      '<div class="ml-legend">'+
+        '<span><span class="sw" style="background:var(--gold)"></span>PAID <b>'+fmtB(s24.paid_usd)+'</b> · '+fmtN(s24.calls_paid)+' calls</span>'+
+        '<span><span class="sw" style="background:var(--blue)"></span>FREE <b>'+fmtN(s24.calls_free)+' calls</b> · $0</span>'+
+      '</div></div>'
+    : '<div class="ml-foot">free/paid split —</div>';
+  return '<div class="card"><h3>Money live</h3>'+freshChip("ml")+
+    '<div class="ml-hero">'+
+      '<div class="bh"><div class="bv">'+fmtB(burn.usd_per_hr)+'<small>/hr</small></div><div class="bl">Burn rate · '+(burn.usd_per_hr_calls!=null?fmtN(burn.usd_per_hr_calls)+" calls":"—")+' last hour</div></div>'+
+      '<div class="bh"><div class="bv">'+fmtB(burn.projected_daily)+'<small>/day</small></div><div class="bl">Projected · actual 24h '+fmtB(s24.total_usd)+'</div></div>'+
+    '</div>'+
+    splitBars+
+    '<div class="ml-split"><div class="lbl">ROI ticker</div>'+
+      '<div class="ml-legend" style="margin-top:0"><span>🍌 '+fmtN(roi.bananas_clean)+' clean × $'+(num(roi.peg_usd_per_banana)!=null?num(roi.peg_usd_per_banana).toFixed(2):"—")+' = '+fmtB(roi.bananas_value_usd)+'</span>'+
+      '<span>vs paid 24h '+fmtB(roi.paid_spend_usd)+'</span></div>'+
+      '<span class="ml-ticker '+rcls+'">'+ratioTxt+' · '+esc(roi.roi_label||"—")+'</span>'+
+      '<div class="ml-foot">lifetime: '+fmtB(roi.bananas_value_usd)+' earned value vs '+fmtB(roi.lifetime_paid_usd)+' paid spend = '+lrTxt+'</div>'+
+    '</div>'+
+    mlSpark(ml.spend_per_min)+
+    '<div class="ml-foot">rows: '+(cov.rows_used_24h!=null?fmtN(cov.rows_used_24h):"—")+' in last 24h · '+(cov.rows_total!=null?fmtN(cov.rows_total):"—")+' in ledger · source '+(cov.source?esc(String(cov.source).split("/").pop()):"—")+' · auto-refresh 30s</div>'+
+  '</div>';
+}
+function mlSpark(pm){
+  const W=640,H=56,pad=3;
+  const vals=(pm||[]).map(p=>num(p&&p.usd)||0);
+  const max=Math.max.apply(null,vals.concat([0.002]));
+  const pts=vals.map((v,i)=>((i+0.5)/Math.max(vals.length,1)*W)+","+(H-pad-(v/max)*(H-2*pad)));
+  const line=pts.join(" ");
+  const area="0,"+(H-pad)+" "+line+" "+W+","+(H-pad);
+  const nz=vals.filter(v=>v>0).length;
+  return '<svg class="ml-spark" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+
+    '<polygon points="'+area+'" fill="rgba(245,185,66,.10)"/>'+
+    '<polyline points="'+line+'" fill="none" stroke="#f5b942" stroke-width="2"/>'+
+    '</svg>'+
+    '<div class="ml-foot">Last 60 min spend — '+nz+' of 60 minutes carried spend · every spike is a real billed call.</div>';
+}
+function portfolioHtml(pf){
+  const w=pf.wallet||{};
+  const invs=(pf.investments||[]).slice().reverse();
+  const pends=(pf.pending_invests||[]);
+  const projs=(pf.projects&&pf.projects.projects)||[];
+  const bricks=(pf.my_bricks||[]);
+  const ach=(pf.fleet_accomplishments&&pf.fleet_accomplishments.rows)||[];
+  const invRows=invs.length?invs.slice(0,4).map(i=>'<div class="row2"><span class="rk">💼</span><span class="rt">'+esc(i.project_id||"?")+'</span><span class="rv">'+fmtN(i.bananas)+'🍌</span></div>').join(""):'<div class="empty">Nothing invested yet — proposals land here after a sign.</div>';
+  const projRows=projs.slice(0,3).map(p=>'<div class="row2"><span class="rk">🏗️</span><span class="rt">'+esc(p.name||p.project_id)+'</span><span class="rv" style="color:var(--gold)">'+(num(p.funded_bananas)!=null?fmtN(p.funded_bananas)+"🍌":"—")+'</span></div>').join("");
+  const brickRows=bricks.length?bricks.slice(0,4).map(b=>'<div class="row2"><span class="rk">🧱</span><span class="rt">'+esc(b.brick_id)+'</span><span class="rv">'+(b.earns!=null?fmtN(b.earns)+"🍌":"—")+'</span></div>').join(""):'<div class="empty">No bricks match your session user yet — a brick is “yours” when its id carries your name.</div>';
+  return '<div class="card"><h3>Your portfolio</h3>'+
+    '<div class="stats4">'+
+      '<div class="s4"><div class="v gold">'+fmtN(w.derived_balance)+'<small> 🍌</small></div><div class="l">Balance (F-19)</div></div>'+
+      '<div class="s4"><div class="v">'+fmtN(w.earned)+'</div><div class="l">Earned</div></div>'+
+      '<div class="s4"><div class="v">'+fmtN(w.credits)+'</div><div class="l">Gifts</div></div>'+
+      '<div class="s4"><div class="v">'+fmtN(w.invested)+'</div><div class="l">💼 Invested</div></div>'+
+    '</div>'+
+    '<div class="lbl" style="margin-top:12px">Investments</div>'+invRows+
+    (pends.length?'<div class="dline" style="color:var(--gold);margin-top:6px">⏳ '+pends.length+' proposal'+(pends.length>1?"s":"")+' awaiting your sign — approve or reject it on the Play screen.</div>':"")+
+    '<div class="lbl" style="margin-top:11px">Investable projects</div>'+(projRows||'<div class="empty">No investable projects seeded yet.</div>')+
+    '<div class="lbl" style="margin-top:11px">Your bricks</div>'+brickRows+
+    (ach.length?'<div class="lbl" style="margin-top:11px">Fleet accomplishments</div>'+ach.slice(0,3).map(r=>'<div class="row2"><span class="rk">🏆</span><span class="rt">'+esc(String(r.line||r.action||"—").slice(0,90))+'</span></div>').join(""):"")+
+    '<div class="honest">'+esc(w.note||"")+'</div>'+
+  '</div>';
+}
+function tapHtml(d){
+  const lanes=(d.lanes&&d.lanes.lanes)||[];
+  const can=!!(d.lane_control&&d.lane_control.can_control);
+  const rows=lanes.slice(0,8).map(l=>{
+    const on=!!l.on;
+    const free=l.free?'<span class="mchip" style="color:var(--green)">FREE</span>':'<span class="mchip" style="color:var(--red)">PAID</span>';
+    const paused=(!on&&l.control==="pause")?'<span class="mchip" style="color:var(--red)">paused</span>':"";
+    const last=l.last_call_ts!=null?' · last call '+ago(Math.max(0,(Date.now()/1000)-l.last_call_ts)):"";
+    return '<div class="lane-row"><div class="ln"><div class="nm2">'+esc(l.lane)+' '+free+paused+'</div>'+
+      '<div class="dt2">'+(l.model?esc(l.model)+" · ":"")+(l.calls!=null?fmtN(l.calls)+" calls":"0 calls")+last+(l.registered===false?' · no router lane':"")+'</div></div>'+
+      (can
+        ? '<label class="switch"><input type="checkbox" data-lane="'+esc(l.lane)+'"'+(on?" checked":"")+'><span class="tr2"></span></label>'
+        : '<span style="font-size:10px;color:var(--faint);flex-shrink:0">owner only</span>')+
+    '</div>';
+  }).join("");
+  return '<div class="card"><h3>The tap — cut burn</h3>'+
+    (rows||'<div class="empty">lanes not loaded yet.</div>')+
+    '<div class="honest">Flip a lane off and the fleet is told in-band (kanban) within seconds — the owner’s kill switch. '+(can?"":"You’re signed in as "+esc(session.role||"?")+" — read-only; only the owner can cut a lane.")+' '+(d.lanes&&d.lanes.note?esc(d.lanes.note):"")+'</div></div>';
+}
+
+/* ================= FEED ================= */
+function renderFeed(){
+  const fc=S.fc||{};
+  const pc=S.pc;
+  return '<div class="hd"><span class="n">FEED</span><h2>Fleet feed</h2><span class="q">everything said, out loud</span></div>'+
+    feedTopHtml(fc)+
+    trustHtml(pc)+
+    feedMsgsHtml(fc);
+}
+function feedTopHtml(fc){
+  const mcp=fc.mcp||{};
+  const pulse=fc.pulse||{};
+  const agents=fc.agents||[];
+  const ox=fc.ox_instances||[];
+  const mcpCls=mcp.status==="healthy"?"ok":"down";
+  const mcpTxt=mcp.status==="healthy"?("SHARED MCP · ONLINE · "+fmtN(mcp.tool_count)+" tools"):(mcp.status==="degraded"?"MCP · DEGRADED":"SHARED MCP · DOWN");
+  const strip=agents.length?agents.map(a=>'<span class="fc-pill"><span class="dot '+(a.status==="active"?"live":a.status==="idle"?"idle":"dim")+'"></span><b>'+esc(a.name)+'</b><em>'+ago(a.age_s)+'</em></span>').join(""):'<span class="muted">no agents signalled on the relay yet</span>';
+  const oxRows=ox.length?ox.map(o=>'<div class="row2"><span class="rk">☁️</span><span class="rt">'+esc(o.name)+'</span><span class="rv" style="font-size:11px;color:var(--faint)">'+esc(o.state)+' · '+ago(o.age_s)+'</span></div>').join(""):"";
+  return '<div class="card"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">'+
+    '<span class="fc-badge '+mcpCls+'"><span class="dot '+(mcp.status==="healthy"?"live":"silent")+'"></span>'+mcpTxt+'</span>'+
+    '<span class="fc-badge"><span class="dot idle"></span>last exchange '+ago(pulse.last_exchange_age_s)+' · '+fmtN(pulse.last_60s)+' msg/60s</span>'+
+  '</div>'+
+  '<div class="lbl">Who’s on the bus</div><div class="fc-strip">'+strip+'</div>'+
+  (oxRows?'<div class="lbl" style="margin-top:9px">Ox instances (Nous cloud)</div>'+oxRows:'')+
+  '<div class="honest">'+esc(fc.note||"")+' · auto-refresh 20s</div></div>';
+}
+function trustHtml(pc){
+  const t=pc&&pc["fleet-trust"];
+  if(!t)return '<div class="card"><h3>Fleet trust</h3><div class="empty">trust meter loading…</div></div>';
+  const h=t.hallucination_risk||{};
+  const v=t.verification||{};
+  const hPct=num(h.rate_pct);
+  const hCls=hPct==null?"eq":hPct<20?"ok":hPct<60?"warn":"bad";
+  const hColor=hPct==null?"var(--faint)":hPct<20?"var(--green)":hPct<60?"var(--gold)":"var(--red)";
+  const vPct=num(v.error_rate_pct);
+  const chain=t.thought_chain||{};
+  const chainRows=Object.keys(chain).slice(0,5).map(k=>{
+    const c=chain[k]||{};
+    return '<div class="thought"><span class="tw">'+esc(k)+'</span><div class="tb"><div class="tm">'+esc(String(c.msg||"").slice(0,180))+'</div>'+
+      '<div class="tt">'+esc(String(c.ts||"").slice(0,16))+' · '+esc(c.kind||"")+'</div></div></div>';
+  }).join("");
+  return '<div class="card"><h3>Fleet trust — how honest are the bricks</h3>'+
+    '<div class="stats4">'+
+      '<div class="s4"><div class="v" style="color:'+hColor+'">'+(hPct!=null?hPct+"%":"—")+'</div><div class="l">Hallucination risk <span class="'+hCls+'">('+(h.unbacked_claims!=null?h.unbacked_claims:"—")+'/'+(h.total_claims!=null?h.total_claims:"—")+' unbacked)</span></div></div>'+
+      '<div class="s4"><div class="v" style="color:'+(vPct!=null&&vPct<20?"var(--green)":vPct!=null&&vPct<60?"var(--gold)":"var(--faint)")+'">'+(vPct!=null?vPct+"%":"—")+'</div><div class="l">Verification error ('+(v.flagged!=null?v.flagged:"—")+'/'+(v.checked!=null?v.checked:"—")+' flagged)</div></div>'+
+    '</div>'+
+    '<div class="lbl" style="margin-top:12px">What they’re thinking — the chain</div>'+
+    (chainRows||'<div class="empty">thought chain not populated yet.</div>')+
+  '</div>';
+}
+function feedMsgsHtml(fc){
+  const msgs=(fc.relay&&fc.relay.messages)||[];
+  const clsOf=w=>{
+    const s=String(w||"").toLowerCase();
+    if(s==="brick")return"brick";
+    if(s==="cloud-agent"||s==="ox-alpha"||s==="oxalpha"||s==="oxbaby"||s==="hermes-local"||s==="brock")return"cloud";
+    if(s==="agi"||s==="da"||s==="rebel")return"agi";
+    if(s==="khalid")return"human";
+    return"system";
+  };
+  const rows=msgs.slice(0,40).map(m=>{
+    const arrow=(String(m.to||"").toLowerCase()==="all")?"→ fleet":("→ "+esc(m.to));
+    return '<div class="fc-msg fc-'+clsOf(m.from)+'">'+
+      '<div class="fc-line"><b>'+esc(m.from)+'</b> <span class="fc-arrow">'+arrow+'</span>'+
+      '<span class="mchip">'+esc(m.kind)+'</span><span class="fc-time">'+utcT(m.ts_epoch)+'Z</span></div>'+
+      '<div class="fc-body">'+esc(m.body_preview)+'</div>'+
+      (m.receipt?'<div class="fc-receipt">receipt '+esc(m.receipt)+'</div>':"")+
+    '</div>';
+  }).join("");
+  return '<div class="card"><h3>Live relay — every agent’s words</h3>'+
+    '<div class="feedshell">'+(rows||'<div class="empty">relay is quiet — nothing in the machine-to-machine log yet. Say something below 👇</div>')+'</div>'+
+  '</div>';
+}
+
+/* ================= the net (ported) ================= */
+const NET={nodes:[],edges:[],byId:{},selected:null,ctx:null,anim:0,w:0,h:0,pos:{}};
+const NCOLOR={active:"#f5b942",verified:"#3dd6a4",retiring:"#ff6b7a",retired:"#5a6577",parked:"#64748b",registered:"#6fb1ff"};
+function netLayout(){
+  const {nodes,edges}=NET;
+  const depth={};nodes.forEach(n=>depth[n.id]=0);
+  const kids={};edges.forEach(e=>{(kids[e.from]=kids[e.from]||[]).push(e.to)});
+  const stack=nodes.filter(n=>!n.parent).map(n=>n.id);
+  const seen={};stack.forEach(i=>seen[i]=1);
+  while(stack.length){
+    const id=stack.shift();
+    (kids[id]||[]).forEach(c=>{if(!seen[c]){seen[c]=1;depth[c]=Math.min(4,(depth[id]||0)+1);stack.push(c)}});
+  }
+  const maxD=Math.max(1,...nodes.map(n=>depth[n.id]||0));
+  const layers={};
+  nodes.forEach(n=>{(layers[depth[n.id]||0]=layers[depth[n.id]||0]||[]).push(n.id)});
+  const pos={};
+  const RX=Math.min(NET.w/2-26,300),RY=Math.min(NET.h/2-26,190),k=RY/RX;
+  Object.keys(layers).forEach(ds=>{
+    const d=+ds,ids=layers[ds];
+    const f=(maxD-d+1)/(maxD+1);
+    const circNeed=ids.length*15;
+    const aGuess=Math.max(40,circNeed/(2*Math.PI*Math.sqrt((1+k*k)/2)));
+    const rx=Math.min(RX*f,aGuess,RX);
+    const ry=Math.min(RY*f,rx*k,RY);
+    ids.forEach((id,i)=>{
+      const a=-Math.PI/2+d*0.35+(ids.length>1?(i/ids.length)*2*Math.PI:0);
+      pos[id]={x:NET.w/2+Math.cos(a)*rx,y:NET.h/2+Math.sin(a)*ry,ph:i*1.7,r:5.5};
+    });
+  });
+  NET.pos=pos;
+}
+function netDraw(t){
+  const ctx=NET.ctx;if(!ctx)return;
+  const {nodes,edges,pos}=NET;
+  ctx.clearRect(0,0,NET.w,NET.h);
+  edges.forEach((e,i)=>{
+    const a=pos[e.from],b=pos[e.to];
+    if(!a||!b)return;
+    const wf=1.6*Math.sin(t/800+(a.ph||0)),wf2=1.6*Math.cos(t/950+(b.ph||0));
+    const col=NCOLOR[(NET.byId[e.to]||{}).status]||NCOLOR.registered;
+    ctx.globalAlpha=0.2+0.12*Math.sin(t/1400+i*0.9);
+    ctx.strokeStyle=col;ctx.lineWidth=1.1;
+    ctx.beginPath();ctx.moveTo(a.x+wf,a.y+wf2);
+    ctx.quadraticCurveTo((a.x+b.x)/2,(a.y+b.y)/2-16,b.x+wf2,b.y+wf);ctx.stroke();
+  });
+  nodes.forEach(n=>{
+    const p=pos[n.id];if(!p)return;
+    const col=NCOLOR[n.status]||NCOLOR.registered;
+    const hot=(n.cpu!=null)||n.status==="active";
+    const dim=n.status==="parked"||n.status==="retired";
+    const r=p.r+(hot?2:0);
+    const wf=1.6*Math.sin(t/800+(p.ph||0)),wf2=1.6*Math.cos(t/950+(p.ph||0));
+    const x=p.x+wf,y=p.y+wf2;
+    if(hot){
+      const g=0.5+0.5*Math.sin(t/500+(p.ph||0));
+      const gr=ctx.createRadialGradient(x,y,0,x,y,r+4+g*7);
+      gr.addColorStop(0,col);gr.addColorStop(1,"rgba(0,0,0,0)");
+      ctx.globalAlpha=(dim?0.2:0.5)*(1-g*0.35);
+      ctx.fillStyle=gr;ctx.beginPath();ctx.arc(x,y,r+4+g*7,0,7);ctx.fill();
+    }
+    ctx.globalAlpha=dim?0.42:1;
+    ctx.fillStyle=col;
+    ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();
+    ctx.strokeStyle="rgba(6,8,15,.85)";ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.stroke();
+    if(hot&&!dim){
+      const label=n.id.length>16?n.id.slice(0,15)+"…":n.id;
+      ctx.globalAlpha=0.85;ctx.fillStyle="#edf2fa";ctx.font="9.5px 'SF Mono',Consolas,monospace";
+      const tw=ctx.measureText(label).width;
+      const lx=(x+tw+10>NET.w)?x-r-3-tw:x+r+3;
+      ctx.fillText(label,lx,y+3);
+    }
+    if(NET.selected===n.id){
+      ctx.globalAlpha=1;ctx.strokeStyle="#ffd97a";ctx.lineWidth=1.6;
+      ctx.beginPath();ctx.arc(x,y,r+4+2*Math.sin(t/300),0,7);ctx.stroke();
+    }
+  });
+  ctx.globalAlpha=1;
+}
+function netLoop(){NET.anim=requestAnimationFrame(netLoop);netDraw(performance.now())}
+function netHit(x,y){
+  let best=null,bd=30;
+  Object.keys(NET.pos).forEach(id=>{
+    const p=NET.pos[id],d=Math.hypot(x-p.x,y-p.y);
+    if(d<bd){bd=d;best=id}
+  });
+  return best;
+}
+function netShow(id){
+  NET.selected=id;
+  const n=NET.byId[id];if(!n)return;
+  const kids=(n.children||[]).map(c=>{
+    const k=NET.byId[c];
+    return '<span class="kchip" data-net="'+esc(c)+'"><span class="dot '+(k&&k.cpu!=null?"live":"idle")+'"></span><b>'+esc(c)+'</b>'+(k&&k.cpu!=null?' '+Math.round(k.cpu)+"%":"")+'</span>';
+  }).join("");
+  const parentHtml=n.parent?(NET.byId[n.parent]
+    ? ' · spawned from <a href="#" data-net="'+esc(n.parent)+'">'+esc(n.parent)+'</a>'
+    : ' · spawned from '+esc(n.parent)):"";
+  const p=$("net-panel");
+  p.className="netpanel open";
+  p.innerHTML='<div class="np-id">'+esc(n.id)+'</div>'+
+    '<div class="np-meta"><span class="npill '+esc(n.status)+'">'+esc(n.status)+'</span>'+(n.role?'<span class="mchip g">'+esc(n.role)+'</span>':"")+(n.quality?'<span class="mchip">'+esc(n.quality)+'</span>':"")+'</div>'+
+    '<div class="np-stats">'+
+      '<div class="ns"><div class="nsv">'+(n.cpu!=null?n.cpu+"%":"—")+'</div><div class="nsl">CPU now (ps)</div></div>'+
+      '<div class="ns"><div class="nsv">'+(n.ram_mb!=null?Math.round(n.ram_mb)+" MB":"—")+'</div><div class="nsl">RAM now</div></div>'+
+      '<div class="ns"><div class="nsv">'+((n.children||[]).length)+'</div><div class="nsl">Children</div></div>'+
+      '<div class="ns"><div class="nsv">'+ago(n.last_activity?Math.max(0,(Date.now()/1000)-n.last_activity):null)+'</div><div class="nsl">Last activity</div></div>'+
+      '<div class="ns"><div class="nsv">🍌 '+fmtN(n.earns)+'</div><div class="nsl">Earned (clean '+fmtN(n.earns_clean)+')</div></div>'+
+      ((n.procs&&n.procs.length)?'<div class="ns"><div class="nsv">'+esc((n.procs||[]).join(", ").slice(0,20))+'</div><div class="nsl">Processes</div></div>':"")+
+    '</div>'+
+    '<div class="np-kids"><div class="lbl">Child bricks — tap to drill down</div>'+(kids||'<div class="empty">no children in the registry</div>')+'</div>'+
+    '<div class="np-parent">'+parentHtml+'</div>';
+  document.querySelectorAll("[data-net]").forEach(el=>el.onclick=ev=>{ev.preventDefault();netShow(el.dataset.net)});
+}
+function netResize(){
+  const cv=$("net-canvas");if(!cv)return;
+  const cw=cv.parentElement.clientWidth;
+  const dpr=window.devicePixelRatio||1;
+  NET.w=cw;NET.h=cv.clientHeight||340;
+  cv.width=Math.round(cw*dpr);cv.height=Math.round(NET.h*dpr);
+  NET.ctx=cv.getContext("2d");NET.ctx.setTransform(dpr,0,0,dpr,0,0);
+  netLayout();
+}
+function bootNet(){
+  const cv=$("net-canvas");if(!cv)return;
+  NET.byId={};NET.nodes.forEach(n=>NET.byId[n.id]=n);
+  netResize();
+  cv.onclick=ev=>{
+    const r=cv.getBoundingClientRect();
+    const id=netHit(ev.clientX-r.left,ev.clientY-r.top);
+    if(id)netShow(id);else{NET.selected=null;const p=$("net-panel");if(p)p.className="netpanel"}
+  };
+  window.removeEventListener("resize",netResize);
+  window.addEventListener("resize",netResize);
+  cancelAnimationFrame(NET.anim);NET.anim=requestAnimationFrame(netLoop);
+}
+
+/* ================= time machine (ported) ================= */
+const TM={events:[],hist:[],start:0,idx:0,len:1440,playing:false,timer:null,speed:4};
+function tmReset(tf){
+  const newStart=(tf&&tf.window&&tf.window.start)||0;
+  const newLen=Math.max(60,((tf&&tf.histogram_60s)||[]).length||1440);
+  const keep=(TM.start===newStart&&TM.len===newLen);
+  TM.events=(tf&&tf.events)||[];
+  TM.hist=(tf&&tf.histogram_60s)||[];
+  TM.start=newStart;TM.len=newLen;
+  if(!keep)TM.idx=TM.len-1;
+  if(TM.idx>=TM.len)TM.idx=TM.len-1;
+}
+function tmTimeLabel(idx){
+  const d=new Date((TM.start+idx*60)*1000);
+  const pad=n=>String(n).padStart(2,"0");
+  return (d.getMonth()+1)+"/"+d.getDate()+" "+pad(d.getHours())+":"+pad(d.getMinutes());
+}
+function tmDraw(){
+  const cv=$("tmcan");if(!cv)return;
+  const ctx=cv.getContext("2d");
+  const W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle="#0a0f1a";ctx.fillRect(0,0,W,H);
+  const hist=TM.hist||[];let max=1;
+  hist.forEach(h=>{if(h.n>max)max=h.n});
+  const step=W/Math.max(hist.length,1);
+  hist.forEach((h,i)=>{
+    const bh=Math.max(2,Math.round(h.n/max*(H-10)));
+    const x=i*step;
+    ctx.fillStyle=h.n>0?"rgba(245,185,66,.85)":"rgba(29,41,64,.45)";
+    ctx.fillRect(x+(step>2?1:0),H-bh,Math.max(1,step-(step>2?2:0)),bh);
+  });
+  const px=(TM.idx+0.5)/TM.len*W;
+  ctx.fillStyle="#3dd6a4";
+  ctx.fillRect(px-1.5,0,3,H);
+  ctx.fillStyle="rgba(255,107,122,.9)";
+  ctx.beginPath();ctx.arc(W-8,6,3,0,7);ctx.fill();
+  ctx.fillStyle="rgba(255,107,122,.8)";ctx.font="9px monospace";
+  ctx.fillText("now",W-30,10);
+}
+function tmSeek(frac){
+  TM.idx=Math.max(0,Math.min(TM.len-1,Math.round(frac*(TM.len-1))));
+  tmDraw();tmFeed();
+  const s=$("tmslider");if(s)s.value=TM.idx;
+  const t=$("tmtime");if(t)t.textContent=tmTimeLabel(TM.idx);
+}
+function tmTick(){
+  if(TM.idx>=TM.len-1){
+    TM.playing=false;
+    if(TM.timer){clearInterval(TM.timer);TM.timer=null;}
+    const b=$("tmplaybtn");if(b)b.textContent="▶";
+  }else{
+    TM.idx++;
+    tmDraw();tmFeed();
+    const s=$("tmslider");if(s)s.value=TM.idx;
+    const t=$("tmtime");if(t)t.textContent=tmTimeLabel(TM.idx);
+  }
+}
+function tmToggle(){
+  const b=$("tmplaybtn");
+  if(TM.playing){
+    TM.playing=false;
+    if(TM.timer){clearInterval(TM.timer);TM.timer=null;}
+    if(b)b.textContent="▶";
+  }else{
+    if(TM.idx>=TM.len-1)TM.idx=0;
+    TM.playing=true;
+    if(b)b.textContent="⏸";
+    TM.timer=setInterval(tmTick,Math.max(120,900/TM.speed));
+  }
+}
+function tmSpeed(s){
+  TM.speed=s;
+  document.querySelectorAll(".tmspeed button").forEach(btn=>btn.classList.toggle("on",btn.dataset.s==String(s)));
+  if(TM.playing){clearInterval(TM.timer);TM.timer=setInterval(tmTick,Math.max(120,900/TM.speed));}
+}
+function tmFeed(){
+  const feed=$("tmfeed");if(!feed)return;
+  const t0=TM.start+TM.idx*60,t1=t0+60;
+  const inWin=TM.events.filter(e=>e.ts>=t0&&e.ts<t1).sort((a,b)=>a.ts-b.ts);
+  if(!inWin.length){feed.innerHTML='<div class="tmempty">'+tmTimeLabel(TM.idx)+' — quiet minute, nothing happened</div>';return;}
+  feed.innerHTML=inWin.map(e=>{
+    const d=new Date(e.ts*1000);const pad=n=>String(n).padStart(2,"0");
+    return '<div class="tfrow"><span class="ti">'+esc(e.icon||"•")+'</span>'+
+      '<span class="tt"><span class="ts">'+pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds())+' · '+esc(e.type)+'</span>'+esc(e.label)+'</span>'+
+      (e.sub?'<span class="tx" title="'+esc(e.sub)+'">'+esc(String(e.sub).slice(0,22))+'</span>':"")+'</div>';
+  }).join("");
+}
+function tmRailClick(ev){
+  const rail=$("tmrail");if(!rail)return;
+  const r=rail.getBoundingClientRect();
+  tmSeek((ev.clientX-r.left)/r.width);
+}
+
+
+/* ================= MISSION ================= */
+function nowSec(){return Math.floor(Date.now()/1000)}
+function renderMission(){
+  const ms=S.ms||{};
+  const now=(ms.now||[]);
+  const goals=(ms.goals||[]);
+  const ip=(ms.in_progress||[]);
+  const vel=ms.velocity||{};
+  const br=ms.bricks||{};
+  const alive=br.alive||[], idle=br.idle||[];
+  const doneN=num(ms.done_count);
+  /* NOW — last receipts, plain words */
+  const nowRows=now.length?now.map(r=>{
+    const art=r.artifact?'<div class="nw-a2"><span class="mchip" title="'+esc(r.artifact)+'">📄 '+esc(String(r.artifact).split("/").pop().slice(0,30))+'</span></div>':"";
+    return '<div class="nowrow"><span class="nw-ic">⚡</span>'+
+      '<div class="nw-b"><div class="nw-t">'+esc(r.title||"work completed")+'</div>'+
+      '<div class="nw-m">by <b>'+esc(r.who||"fleet")+'</b>'+(r.lane?' · '+esc(r.lane):"")+'</div>'+
+      art+'</div>'+
+      '<span class="nw-a">'+ago(r.age_s)+'</span></div>';
+  }).join(""):'<div class="empty">no work receipts yet this hour — the fleet is quiet</div>';
+  const ipLine=ip.length?'<div class="dline" style="margin-top:9px">⚙️ Working right now: <b>'+ip.map(t=>esc(t.title)).join("</b> · <b>")+'</b></div>':"";
+  /* GOALS — ready tasks as plain-word cards */
+  const goalCards=goals.length?goals.map(g=>{
+    const own=g.owner?esc(g.owner):'<span style="color:var(--faint)">unassigned</span>';
+    const art=g.artifact?'<span class="mchip" title="'+esc(g.artifact)+'">📄 '+esc(String(g.artifact).split("/").pop().slice(0,30))+'</span>':'<span class="mchip" style="color:var(--faint)">not started yet</span>';
+    return '<div class="goalcard"><div class="g-t">🎯 '+esc(g.title)+'</div>'+
+      '<div class="g-m">owner '+own+' · <span class="mchip g">ready to claim</span></div>'+
+      '<div class="g-a">'+art+'</div></div>';
+  }).join(""):'<div class="empty">no ready tasks right now — the queue is being refilled</div>';
+  const doneLine=(doneN!=null)?'These are the current goals. Done: <b class="ok">'+fmtN(doneN)+'</b>.':'These are the current goals.';
+  /* VELOCITY — one bar */
+  const v1=num(vel.receipts_1h), v24=num(vel.receipts_24h), pct=num(vel.pct_1h);
+  const moving=!!vel.moving;
+  const vfill=pct!=null?Math.max(2,Math.min(100,pct)):0;
+  const vNote=(v1!=null&&v24!=null)
+    ? v1+" receipt"+(v1===1?"":"s")+" this hour · "+fmtN(v24)+" in the last 24h ("+Math.round(v24/24)+"/h average)"
+    : "velocity report not generated yet";
+  const vSub=(moving?"the fleet is producing right now":"the fleet has gone quiet")+
+    (vel.minutes_since_activity!=null?" — last receipt "+ago(vel.minutes_since_activity*60):"");
+  const velBar='<div class="velhead"><div class="vel-t"><b>'+vNote+'</b><span>'+vSub+'</span></div>'+
+    '<span class="velchip '+(moving?"ok":"warn")+'">'+(moving?"MOVING":"STALLED")+'</span></div>'+
+    '<div class="velbar"><i class="'+(moving?"fill-ok":"fill-warn")+'" style="width:'+vfill+'%"></i></div>'+
+    '<div class="velfoot">bar = this hour vs the 24h average pace'+(vel.generated_at?' · report '+ago(nowSec()-num(vel.generated_at)):"")+'</div>';
+  /* BRICKS — explainer + alive + idle */
+  const brExplain='<div class="honest" style="border-top:none;padding-top:0;margin-top:0"><b>What are bricks?</b> Bricks are worker identities — '+fmtN(br.badges)+' on file, <b class="ok">'+fmtN(br.live_count)+' working now</b>, '+fmtN(br.idle_count)+' idle. Tap any brick to see details, clone it, or wake it.</div>';
+  const aliveHtml=alive.length?alive.map(b=>{
+    const cpu=b.cpu!=null?fmtN(b.cpu)+"%":"—", ram=b.ram_mb!=null?fmtN(b.ram_mb)+" MB":"—";
+    return '<div class="alivecard"><div class="a-id">'+esc(b.id)+'</div>'+
+      '<span class="state s-live"><span class="dot live"></span>Working</span>'+
+      '<div class="a-m">'+(b.role?esc(b.role)+" · ":"")+'cpu '+cpu+' · ram '+ram+(b.earned?' · '+fmtN(b.earned)+'🍌 earned':"")+'</div></div>';
+  }).join(""):'<div class="empty">no bricks with live telemetry right now</div>';
+  const idleRows=idle.map(b=>{
+    const bits=[];
+    if(b.role)bits.push("role "+esc(b.role));
+    if(b.parent)bits.push("parent "+esc(b.parent));
+    if(b.quality)bits.push(esc(b.quality));
+    if(b.skills&&b.skills.length)bits.push("skills "+esc(b.skills.join(", ")));
+    const det=bits.length?'<div class="bdet">'+bits.join(" · ")+'</div>':"";
+    return '<div class="brickrow"><div class="b-main">'+
+      '<div class="b-id" data-toggle="'+esc(b.id)+'">'+esc(b.id)+'</div>'+
+      '<div class="b-meta">'+(b.role?esc(b.role):"worker")+(b.owner?' · '+esc(b.owner):"")+' · '+fmtN(b.earned)+'🍌</div>'+det+'</div>'+
+      '<div class="b-acts"><button class="bact clone" data-act="clone" data-id="'+esc(b.id)+'">Clone</button>'+
+      '<button class="bact wake" data-act="wake" data-id="'+esc(b.id)+'">Wake</button></div></div>';
+  }).join("");
+  const idleHtml='<div class="idlehead"><button class="idletog" id="idle-tog">▸ idle bricks ('+fmtN(idle.length)+')</button>'+
+    '<span class="idlesub">'+fmtN(br.registry_rows)+' registration records · '+fmtN(br.badges)+' distinct bricks'+(br.capacity_pct!=null?" · capacity "+fmtN(br.capacity_pct)+"%":"")+'</span></div>'+
+    '<div class="idlewrap" id="idle-wrap" hidden>'+idleRows+'</div>';
+  return '<div class="hd"><span class="n">MISSION</span><h2>Where to look</h2><span class="q">the mission, live</span></div>'+
+    '<div class="card"><h3>NOW — what happened</h3>'+nowRows+ipLine+'</div>'+
+    '<div class="card"><h3>GOALS — the current work</h3><div class="dline">'+doneLine+'</div>'+goalCards+'</div>'+
+    '<div class="card"><h3>VELOCITY — are we moving?</h3>'+velBar+'</div>'+
+    '<div class="card"><h3>BRICKS — who works</h3>'+brExplain+'<div style="margin-top:12px"><div class="lbl">Working now</div>'+aliveHtml+'</div>'+idleHtml+'</div>';
+}
+async function actBrick(action,id){
+  try{
+    const r=await fetch("/api/brick/"+action+"?id="+encodeURIComponent(id),{cache:"no-store"});
+    const j=await r.json().catch(()=>({}));
+    if(r.status===403){toast("err",j.error||"only the owner can clone or wake bricks");return}
+    if(!r.ok||!j.ok)throw new Error(j.error||("HTTP "+r.status));
+    toast("ok",action==="clone"?("Cloned — new brick "+j.new_id+" registered."):("Wake sent — "+j.id+" is marked live."));
+    await refresh();
+  }catch(e){toast("err","That didn't go through: "+e.message)}
+}
+/* ================= deep-dive: brick + task (2026-08-26) ================= */
+async function openBrickView(id){
+  S.brickView=String(id);S.taskView=null;S.brd=null;
+  await loadBrick();
+  renderActive();bindAll();
+}
+async function loadBrick(){
+  if(!S.brickView)return;
+  try{
+    const r=await fetch("/api/brick/"+encodeURIComponent(S.brickView),{cache:"no-store"});
+    if(r.status===401){location.href="/login";return}
+    if(r.status===404){S.brd={found:false,error:"brick not found on the fleet"};return}
+    S.brd=await r.json();
+  }catch(e){}
+}
+async function openTaskView(id){
+  S.taskView=String(id);S.brickView=null;S.tkd=null;
+  await loadTask();
+  renderActive();bindAll();
+}
+async function loadTask(){
+  if(!S.taskView)return;
+  try{
+    const r=await fetch("/api/task/"+encodeURIComponent(S.taskView),{cache:"no-store"});
+    if(r.status===401){location.href="/login";return}
+    if(r.status===404){S.tkd={found:false,error:"task not found on the fleet board"};return}
+    S.tkd=await r.json();
+  }catch(e){}
+}
+function closeDetail(){
+  S.brickView=null;S.taskView=null;S.brd=null;S.tkd=null;
+  renderActive();bindAll();
+}
+async function dtTick(){
+  if(S.brickView){await loadBrick();if(S.brickView)renderActive();bindAll();}
+  else if(S.taskView){await loadTask();if(S.taskView)renderActive();bindAll();}
+}
+function renderBrickDetail(){
+  const id=S.brickView,b=S.brd;
+  if(!b)return '<div class="hd"><span class="n">BRICK</span><h2>'+esc(id)+'</h2><span class="q">dive deep</span></div>'+
+    '<div class="card"><div class="empty">diving in…</div></div>';
+  if(!b.found)return '<div class="hd"><span class="n">BRICK</span><h2>'+esc(id)+'</h2><span class="q">dive deep</span></div>'+
+    '<div class="card"><div class="empty">'+esc(b.error||b.note||"brick not found")+'</div>'+
+    '<div class="acts"><button class="btn feedback" data-act="ddback">← back</button></div></div>';
+  const p=b.profile||{};
+  const st=p.live?'<span class="state s-live"><span class="dot live"></span>Working</span>':'<span class="state s-idle"><span class="dot idle"></span>Idle</span>';
+  const sk=(p.skills||[]).map(s=>'<span class="skchip">'+esc(s)+'</span>').join("");
+  const ac=(p.accomplishments||[]);
+  const stats=b.stats||{};
+  const cur=b.current_task
+    ? '<div class="goalcard tappable" data-act="task" data-id="'+esc(b.current_task.id)+'"><div class="g-t">🎯 '+esc(b.current_task.title)+'</div>'+
+      '<div class="g-m">status <span class="mchip '+(b.current_task.status==="in_progress"?"g":"")+'">'+esc(b.current_task.status)+'</span> · tap to open the task</div></div>'
+    : '<div class="empty">no task assigned right now — it waits in the claim pool like everyone else.</div>';
+  const thread=(b.relay_thread||[]).map(m=>{
+    const mine=String(m.from||"")===id;
+    const toFleet=String(m.to||"").toLowerCase()==="all";
+    const arrow=toFleet?"→ fleet":("→ "+esc(m.to));
+    return '<div class="trow '+(mine?"t-out":"t-in")+'"><div class="tline"><b>'+esc(m.from||"?")+'</b> <span class="tarrow">'+arrow+'</span>'+
+      '<span class="mchip">'+esc(m.kind||"msg")+'</span><span class="fc-time">'+(m.ts_epoch?utcT(m.ts_epoch)+"Z":"")+'</span></div>'+
+      '<div class="tbody">'+esc(m.body)+'</div>'+
+      (m.receipt?'<div class="fc-receipt">receipt '+esc(String(m.receipt).slice(0,60))+'</div>':"")+'</div>';
+  }).join("");
+  const receipts=(b.receipts||[]).map(r=>{
+    const art=r.artifact?'<span class="mchip" title="'+esc(r.artifact)+'">📄 '+esc(String(r.artifact).split("/").pop().slice(0,26))+'</span>':"";
+    return '<div class="row2"><span class="rk">⚡</span><span class="rt"><b>'+esc(r.task_id||"work")+'</b>'+
+      (r.task_id?' <span class="mchip" style="cursor:pointer" data-act="task" data-id="'+esc(r.task_id)+'">open</span>':"")+
+      '<div style="font-size:11px;color:var(--faint);margin-top:2px">'+esc(r.claimer||"")+' · '+esc(r.lane||"—")+' · '+(r.cost!=null?fmtB(r.cost):"—")+'</div></span>'+
+      '<span class="rv" style="color:var(--gold);font-size:10.5px">'+ago(r.ts_epoch?(Date.now()/1000-r.ts_epoch):null)+'</span></div>'+
+      (art?'<div style="margin:2px 0 4px 26px">'+art+'</div>':"");
+  }).join("");
+  const arts=(b.artifacts||[]).map(a=>{
+    const sid=String(a.name).replace(/[^A-Za-z0-9_.-]/g,"_");
+    return '<div class="artrow"><span class="artname">📄 '+esc(a.name)+'</span>'+
+      '<span style="font-size:10px;color:var(--faint)">'+fmtN(a.size)+'B · '+ago(a.age_s)+'</span>'+
+      '<button class="artview" data-art="'+esc(a.name)+'" data-url="'+esc(a.url)+'">view</button></div>'+
+      '<div class="artbody" id="art-'+sid+'"></div>';
+  }).join("");
+  return '<div class="hd"><span class="n">BRICK</span><h2>'+esc(id)+'</h2><span class="q">dive deep</span></div>'+
+    '<button class="ddback" data-act="ddback">← back to the mission</button>'+
+    '<div class="card"><div class="ddhead">'+st+'<div><div class="ddname">'+esc(id)+'</div>'+
+    '<div class="ddsub">'+(p.role?"role <b>"+esc(p.role)+"</b> · ":"")+(p.owner?"owner <b>"+esc(p.owner)+"</b> · ":"")+
+    (p.quality?esc(p.quality)+" · ":"")+(p.parent?"spawned from "+esc(p.parent)+" · ":"")+
+    (p.cpu!=null?"cpu "+fmtN(p.cpu)+"% · ":"")+(p.ram_mb!=null?"ram "+fmtN(p.ram_mb)+" MB":"")+'</div>'+
+    (sk?'<div class="skchips">'+sk+'</div>':"")+'</div></div>'+
+    '<div class="stats4">'+
+      '<div class="s4"><div class="v gold">'+fmtN(stats.receipts_1h)+'</div><div class="l">Receipts 1h</div></div>'+
+      '<div class="s4"><div class="v">'+fmtN(stats.receipts_24h)+'</div><div class="l">Receipts 24h</div></div>'+
+      '<div class="s4"><div class="v">'+fmtB(stats.cost_24h)+'</div><div class="l">Cost 24h</div></div>'+
+      '<div class="s4"><div class="v gold">'+fmtN(p.earned)+'<small> 🍌</small></div><div class="l">Earned'+(p.roi_ratio!=null?' · '+p.roi_ratio+"× roi":"")+'</div></div>'+
+    '</div>'+
+    '<div class="honest" style="border-top:none;padding-top:0">last word '+ago(stats.last_activity_age_s)+(ac.length?" · "+fmtN(ac.length)+" accomplishments":"")+'</div></div>'+
+    '<div class="card"><h3>Where it&#39;s at right now</h3>'+cur+'</div>'+
+    '<div class="card"><h3>Thought process — its words on the relay</h3>'+
+      '<div class="thread">'+(thread||'<div class="empty">no relay messages from or to this brick yet — it reads the bus on its cycle.</div>')+'</div></div>'+
+    '<div class="card"><h3>Work done — receipts</h3>'+(receipts||'<div class="empty">no receipts under this brick id yet.</div>')+'</div>'+
+    '<div class="card"><h3>Artifacts — what it wrote</h3>'+(arts||'<div class="empty">no artifacts attributed to this brick yet.</div>')+'</div>'+
+    '<div class="card"><h3>Contribute to the discussion</h3>'+
+      '<div class="dline">Your words land on the shared relay addressed to <b>'+esc(id)+'</b> — it reads them on its next cycle, and the reply shows up right here in its thread.</div>'+
+      '<div class="contrib"><textarea id="contrib-tx" placeholder="Say something to '+esc(id)+'…" maxlength="1000"></textarea>'+
+      '<div class="crow"><button class="btn approve" data-act="contribute">Send to '+esc(id)+'</button></div></div></div>';
+}
+function renderTaskDetail(){
+  const id=S.taskView,t=S.tkd;
+  if(!t)return '<div class="hd"><span class="n">TASK</span><h2>'+esc(id)+'</h2><span class="q">dive deep</span></div>'+
+    '<div class="card"><div class="empty">diving in…</div></div>';
+  if(!t.found)return '<div class="hd"><span class="n">TASK</span><h2>'+esc(id)+'</h2><span class="q">dive deep</span></div>'+
+    '<div class="card"><div class="empty">'+esc(t.error||t.note||"task not found")+'</div>'+
+    '<div class="acts"><button class="btn feedback" data-act="ddback">← back</button></div></div>';
+  const k=t.task||{};
+  const stW=statusWord(k.status);
+  const art=t.artifact
+    ? '<div class="artrow"><span class="artname">📄 '+esc(t.artifact.name)+'</span>'+
+      '<button class="artview" data-art="'+esc(t.artifact.name)+'" data-url="'+esc(t.artifact.url)+'">view</button></div>'+
+      '<div class="artbody" id="art-'+String(t.artifact.name).replace(/[^A-Za-z0-9_.-]/g,"_")+'"></div>'
+    : '<div class="empty">no artifact yet — the work hasn&#39;t been done (or the file wasn&#39;t receipted).</div>';
+  const rec=t.receipt
+    ? '<div class="dline">by <b>'+esc(t.receipt.claimer||"?")+'</b> · lane '+esc(t.receipt.lane||"—")+' · cost '+(t.receipt.cost!=null?fmtB(t.receipt.cost):"—")+' · '+ago(t.receipt.ts_epoch?(Date.now()/1000-t.receipt.ts_epoch):null)+'</div>'
+    : '<div class="empty">no receipt yet — nothing receipted for this task.</div>';
+  const thread=(t.thread||[]).map(m=>{
+    const toFleet=String(m.to||"").toLowerCase()==="all";
+    const arrow=toFleet?"→ fleet":("→ "+esc(m.to));
+    return '<div class="trow"><div class="tline"><b>'+esc(m.from||"?")+'</b> <span class="tarrow">'+arrow+'</span>'+
+      '<span class="mchip">'+esc(m.kind||"msg")+'</span><span class="fc-time">'+(m.ts_epoch?utcT(m.ts_epoch)+"Z":"")+'</span></div>'+
+      '<div class="tbody">'+esc(m.body)+'</div></div>';
+  }).join("");
+  const cmts=(t.comments||[]).map(c=>'<div class="trow"><div class="tline"><b>'+esc(c.author)+'</b><span class="fc-time">'+utcT(c.created_at)+'Z</span></div><div class="tbody">'+esc(c.body)+'</div></div>').join("");
+  return '<div class="hd"><span class="n">TASK</span><h2>'+esc(k.title||id)+'</h2><span class="q">dive deep</span></div>'+
+    '<button class="ddback" data-act="ddback">← back</button>'+
+    '<div class="card"><div class="ddhead"><span class="mchip '+(stW==="working"?"g":stW==="done"?"":"")+'">'+esc(k.status||"ready")+'</span><div><div class="ddname">'+esc(k.title||id)+'</div>'+
+    '<div class="ddsub">'+(k.assignee?"assigned to <b>"+esc(k.assignee)+"</b> · ":"")+(k.created_by?"raised by "+esc(k.created_by)+" · ":"")+esc(id)+'</div></div></div>'+
+    '<div class="stats4">'+
+      '<div class="s4"><div class="v" style="font-size:13px;overflow-wrap:break-word">'+(k.assignee?esc(k.assignee):"—")+'</div><div class="l">Owner</div></div>'+
+      '<div class="s4"><div class="v" style="font-size:13px">'+(k.created_at?dayShort(new Date(k.created_at*1000).toISOString().slice(0,10)):"—")+'</div><div class="l">Created</div></div>'+
+      '<div class="s4"><div class="v" style="font-size:13px">'+(k.completed_at?dayShort(new Date(k.completed_at*1000).toISOString().slice(0,10)):"—")+'</div><div class="l">Completed</div></div>'+
+      '<div class="s4"><div class="v">'+(k.priority!=null?fmtN(k.priority):"—")+'</div><div class="l">Priority</div></div>'+
+    '</div>'+
+    (k.body?'<div class="dline" style="margin-top:11px">'+esc(k.body)+'</div>':"")+'</div>'+
+    '<div class="card"><h3>Artifact — the proof</h3>'+art+'</div>'+
+    '<div class="card"><h3>Receipt — who did it and what it cost</h3>'+rec+'</div>'+
+    '<div class="card"><h3>Thread — everyone who mentioned this task</h3>'+(thread||'<div class="empty">no relay messages mention this task id yet.</div>')+'</div>'+
+    (cmts?'<div class="card"><h3>Kanban comments</h3>'+cmts+'</div>':"");
+}
+async function contributeToBrick(){
+  const tx=$("contrib-tx");if(!tx)return;
+  const body=(tx.value||"").trim();if(!body)return;
+  const btn=document.querySelector("[data-act='contribute']");if(btn)btn.disabled=true;
+  try{
+    const r=await fetch("/api/comms",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({body,to:S.brickView})});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(j.error||("HTTP "+r.status));
+    tx.value="";
+    toast("ok","Delivered to "+S.brickView+" — the reply lands in its thread.");
+    await loadBrick();
+    if(S.brickView)renderActive();
+    bindAll();
+  }catch(e){
+    toast("err","Not delivered: "+e.message);
+    if(btn)btn.disabled=false;
+  }
+}
+function viewArt(name,url){
+  const el=document.getElementById("art-"+String(name).replace(/[^A-Za-z0-9_.-]/g,"_"));
+  if(!el)return;
+  if(el.classList.contains("open")){el.classList.remove("open");el.innerHTML="";return;}
+  el.classList.add("open");
+  if(el.dataset.loaded)return;
+  el.textContent="loading…";
+  fetch(url,{cache:"no-store"}).then(r=>{
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    return r.text();
+  }).then(txt=>{el.textContent=txt.slice(0,20000);el.dataset.loaded="1";})
+    .catch(e=>{el.textContent="couldn't load: "+e.message;});
+}
+/* ================= ticket tracker (message-the-fleet lifecycle) ================= */
+function tkShow(card){
+  S.ticket={id:card.id,status:card.status||"ready",ts:Date.now(),taskTitle:card.title||""};
+  tkRender();
+}
+function tkClose(){
+  S.ticket=null;
+  const p=$("tkpanel");if(p)p.hidden=true;
+}
+async function tkPoll(){
+  if(!S.ticket||!S.ticket.id)return;
+  try{
+    const r=await fetch("/api/task/"+encodeURIComponent(S.ticket.id),{cache:"no-store"});
+    if(r.status===401){location.href="/login";return}
+    if(r.status!==200)return;
+    const j=await r.json();
+    if(!j.found)return;
+    S.ticket.status=j.task.status;
+    S.ticket.artifact=j.artifact;
+    S.ticket.receipt=j.receipt;
+    S.ticket.taskTitle=j.task.title;
+    tkRender();
+  }catch(e){}
+}
+function tkRender(){
+  const p=$("tkpanel");if(!p)return;
+  const t=S.ticket;if(!t){p.hidden=true;return;}
+  p.hidden=false;
+  const st=t.status||"ready";
+  const done=st==="done";
+  const working=st==="in_progress";
+  const stepN=(n)=>{
+    if(n<=(done?4:working?2:1))return"done";
+    if(n===(working?2:1))return"on";
+    return"";
+  };
+  p.innerHTML='<div class="tkh">🎫 Your message became a ticket'+
+    '<button class="tkx" data-act="tkclose" aria-label="close">✕</button></div>'+
+    '<div class="tkid">'+esc(t.id)+' · '+esc(t.taskTitle||"")+'</div>'+
+    '<div class="tksteps">'+["claim","work","artifact","receipt"].map((s,i)=>'<div class="tkstep '+stepN(i+1)+'">'+s+'</div>').join("")+'</div>'+
+    '<div class="tkstatus">'+(done
+      ? "Done — <b>the fleet finished it</b>."+(t.receipt?" "+esc(t.receipt.claimer||"")+" receipted it for "+(t.receipt.cost!=null?fmtB(t.receipt.cost):"—")+".":"")
+      : working
+        ? "<b>A brick claimed it and is working it now.</b>"
+        : "<b>Waiting to be claimed</b> — the pool picks it up on its next cycle (usually within a few minutes).")+'</div>'+
+    (t.artifact?'<div class="tkart">📄 artifact: '+esc(t.artifact.name)+'</div>':"")+
+    '<div class="tkhint">goes to all bricks as a ticket — the one whose lane matches picks it up. Claim → work → artifact → receipt.</div>';
+  bindAll();
+}
+async function msTick(){
+  if(S.tab!=="mission")return;
+  try{
+    const r=await fetch("/api/mission",{cache:"no-store"});
+    if(r.status===401){location.href="/login";return}
+    S.ms=await r.json();
+    renderActive();
+  }catch(e){}
+}
+
+/* ================= actions ================= */
+async function actApproval(id,action,feedback){
+  const btn=document.querySelector('[data-id="'+id+'"][data-act="'+(action==="feedback"?"fb":action)+'"]');
+  if(btn)btn.disabled=true;
+  try{
+    const r=await fetch("/api/approvals/action",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({id,action,feedback:feedback||undefined})});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(j.error||("HTTP "+r.status));
+    toast("ok","Done — your call is recorded.");
+    await refresh();
+  }catch(e){
+    toast("err","That didn’t go through: "+e.message);
+    if(btn)btn.disabled=false;
+  }
+}
+async function toggleLane(lane,on){
+  const action=on?"resume":"pause";
+  try{
+    const r=await fetch("/api/lane-control",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({lane,action})});
+    const j=await r.json().catch(()=>({}));
+    if(r.status===403){toast("err","Only the owner can cut a lane.");await refresh();return;}
+    if(!r.ok)throw new Error(j.error||("HTTP "+r.status));
+    toast("ok",(action==="pause"?"Cut: ":"Resumed: ")+lane);
+    await refresh();
+  }catch(e){
+    toast("err","Toggle didn’t go through: "+e.message);
+    await refresh();
+  }
+}
+async function actRole(person,role,lanes,revoke){
+  try{
+    const r=await fetch("/api/roles",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({person,role,lanes,revoke})});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok||!j.ok)throw new Error(j.error||("HTTP "+r.status));
+    toast("ok",(revoke?"Revoked ":"Role set — ")+person+(revoke?"":" is now "+esc((j.user&&j.user.role)||role))+".");
+    await refresh();
+  }catch(e){toast("err","Role change failed: "+e.message)}
+}
+
+/* ================= binding ================= */
+function bindAll(){
+  document.querySelectorAll("[data-act='approve']").forEach(b=>b.onclick=()=>actApproval(b.dataset.id,"approve"));
+  document.querySelectorAll("[data-act='reject']").forEach(b=>b.onclick=()=>actApproval(b.dataset.id,"reject"));
+  document.querySelectorAll("[data-act='fb']").forEach(b=>b.onclick=()=>{
+    const w=document.querySelector('[data-fb="'+b.dataset.id+'"]');
+    if(w)w.classList.toggle("open");
+  });
+  document.querySelectorAll("[data-act='fbsend']").forEach(b=>b.onclick=()=>{
+    const w=document.querySelector('[data-fb="'+b.dataset.id+'"]');
+    const t=w?w.querySelector("textarea"):null;
+    actApproval(b.dataset.id,"feedback",t?t.value:"");
+  });
+  document.querySelectorAll(".switch input[data-lane]").forEach(c=>c.onchange=()=>toggleLane(c.dataset.lane,c.checked));
+  document.querySelectorAll("[data-act='clone']").forEach(b=>b.onclick=()=>actBrick("clone",b.dataset.id));
+  document.querySelectorAll("[data-act='wake']").forEach(b=>b.onclick=()=>actBrick("wake",b.dataset.id));
+  document.querySelectorAll("[data-act='brick']").forEach(el=>el.onclick=e=>{
+    if(e.target.closest("button"))return;
+    openBrickView(el.dataset.id);
+  });
+  document.querySelectorAll("[data-act='task']").forEach(el=>el.onclick=e=>{
+    if(e.target.closest("button"))return;
+    openTaskView(el.dataset.id);
+  });
+  document.querySelectorAll("[data-act='ddback']").forEach(b=>b.onclick=closeDetail);
+  document.querySelectorAll("[data-act='contribute']").forEach(b=>b.onclick=contributeToBrick);
+  document.querySelectorAll("[data-art]").forEach(b=>b.onclick=()=>viewArt(b.dataset.art,b.dataset.url));
+  document.querySelectorAll("[data-act='tkclose']").forEach(b=>b.onclick=()=>{tkClose();if(window.tkIv)clearInterval(window.tkIv);});
+  document.querySelectorAll("[data-toggle]").forEach(b=>b.onclick=()=>{
+    const row=b.closest(".brickrow");
+    if(row){const det=row.querySelector(".bdet");if(det)det.classList.toggle("open");}
+  });
+  const itog=$("idle-tog");
+  if(itog)itog.onclick=()=>{
+    const w=$("idle-wrap");
+    if(w){const open=w.hidden;w.hidden=!open;itog.textContent=(open?"▾":"▸")+" idle bricks ("+fmtN((S.ms.bricks||{}).idle_count)+")";}
+  };
+  document.querySelectorAll("[data-role-act]").forEach(b=>b.onclick=async()=>{
+    const act=b.dataset.roleAct;
+    if(act==="grant"){
+      const person=($("rl-person")||{}).value, role=($("rl-role")||{}).value;
+      const lanes=[...document.querySelectorAll(".rolck:checked")].map(c=>c.value);
+      if(!person||!role){toast("err","pick a person and a role");return}
+      await actRole(person,role,lanes,false);
+    }else if(act==="revoke-sel"){
+      const person=($("rl-person")||{}).value, role=($("rl-role")||{}).value;
+      if(!person){toast("err","pick a person");return}
+      await actRole(person,role,[],true);
+    }else if(act==="revoke"){
+      await actRole(b.dataset.person,b.dataset.role,[],true);
+    }
+  });
+  const rr=$("rl-role");
+  if(rr)rr.onchange=()=>{
+    const box=$("rl-lanes");
+    if(box)box.style.display=rr.value==="decision_maker"?"":"none";
+  };
+}
+
+/* ================= render active tab ================= */
+function renderActive(){
+  const app=$("app");
+  if(S.brickView){app.innerHTML=renderBrickDetail();}
+  else if(S.taskView){app.innerHTML=renderTaskDetail();}
+  else if(S.tab==="now"){app.innerHTML=renderNow();}
+  else if(S.tab==="world"){
+    app.innerHTML=renderWorld();bootNet();bindBricks();
+    if(S.openBrick)showBrick(S.openBrick);
+    ensureCap().then(()=>{if(S.tab==="world")renderActive();});
+  }
+  else if(S.tab==="quests"){
+    app.innerHTML=renderQuests();
+    ensureCap().then(()=>{if(S.tab==="quests")renderActive();});
+  }
+  else if(S.tab==="ops"){app.innerHTML=renderOps();tmDraw();tmFeed();const s=$("tmslider");if(s)s.value=TM.idx;const t=$("tmtime");if(t)t.textContent=tmTimeLabel(TM.idx);}
+  tickFresh();
+  bindAll();
+}
+
+/* ================= fleetcomms 20s tick (feed only) ================= */
+async function fcTick(){
+  try{
+    const r=await fetch("/api/fleetcomms",{cache:"no-store"});
+    if(r.status===401){location.href="/login";return}
+    S.fc=await r.json();
+    if(S.tab==="ops")renderActive();
+  }catch(e){}
+}
+
+/* ================= boot ================= */
+let session={user:null,role:null};
+bindTabs();
+$("composer").addEventListener("submit",e=>{e.preventDefault();postComms();});
+const m=$("msg");
+m.addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.metaKey||e.ctrlKey))postComms()});
+async function nowTick(){
+  try{
+    const r=await fetch("/api/now",{cache:"no-store"});
+    if(r.status===401){location.href="/login";return}
+    S.nw=await r.json();
+    S.at.now=Date.now();
+    const j=JSON.stringify(S.nw);
+    if(j!==nowTick.last){
+      nowTick.last=j;
+      if(S.tab==="now"||S.tab==="world")renderActive();else tickFresh();
+    }
+  }catch(e){}
+}
+refresh();
+loadPlayer();
+nowTick();
+setInterval(refresh,30000);
+setInterval(loadPlayer,15000);
+setInterval(nowTick,8000);
+setInterval(tickFresh,1000);
+setInterval(()=>{if(S.tab==="ops")fcTick();},20000);
+setInterval(msTick,60000);
+setInterval(dtTick,15000);
+if(window.EventSource){
+  const es=new EventSource("/api/events");
+  es.addEventListener("state",()=>{msTick();nowTick();});
+  es.onerror=()=>{};
+}
+</script>
+</body>
+</html>

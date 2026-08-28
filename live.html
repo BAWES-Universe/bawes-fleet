@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FLEET LIVE — every brick, right now</title>
+<style>
+  body{font-family:ui-monospace,Menlo,monospace;background:#0a0e1a;color:#d7e0ff;margin:0;padding:16px}
+  h1{font-size:18px;margin:0 0 4px;color:#7ee0a3}
+  .sub{color:#7c86a8;font-size:12px;margin-bottom:16px}
+  .kpis{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .kpi{background:#121a30;border:1px solid #223056;border-radius:8px;padding:8px 12px;font-size:12px}
+  .kpi b{display:block;font-size:18px;color:#7ee0a3}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #1a2444}
+  th{color:#7c86a8;position:sticky;top:0;background:#0a0e1a}
+  .LIVE{color:#7ee0a3}.parked{color:#e0c17e}.live{color:#7ee0a3}.DEAD{color:#e07e7e}.DELISTED{color:#555}
+  .badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;background:#1a2444}
+  .refresh{color:#7c86a8;font-size:11px;margin-top:10px}
+  #err{color:#e07e7e;margin-top:12px;font-size:12px}
+</style>
+</head>
+<body>
+<h1>FLEET LIVE</h1>
+<div class="sub" id="meta">loading…</div>
+<div class="kpis" id="kpis"></div>
+<table>
+  <thead><tr><th>STATUS</th><th>BRICK</th><th>ROLE</th><th>CAPACITY</th><th>TASKS</th><th>BANANAS</th><th>WORKING ON</th></tr></thead>
+  <tbody id="rows"></tbody>
+</table>
+<div class="refresh" id="ref"></div>
+<div id="err"></div>
+<script>
+async function load(){
+  try{
+    const r = await fetch('/api/fleet-answer');
+    const d = await r.json();
+    const v = d.fleet_velocity || {};
+    document.getElementById('meta').textContent =
+      'canonical truth · generated ' + (d.generated_at||'') + ' · fingerprint 44cf8611bd987e58';
+    document.getElementById('kpis').innerHTML =
+      '<div class="kpi">velocity 1h<b>'+(v.receipts_1h||'?')+'</b></div>'+
+      '<div class="kpi">velocity 24h<b>'+(v.receipts_24h||'?')+'</b></div>'+
+      '<div class="kpi">stalled<b>'+(v.stalled?'YES':'no')+'</b></div>'+
+      '<div class="kpi">tasks done<b>'+(d.tasks_done||'?')+'</b></div>'+
+      '<div class="kpi">bricks<b>'+(d.bricks_total||'?')+'</b></div>';
+    const rows = (d.bricks||[]).slice().sort((a,b)=>((b.earned_bananas||0)-(a.earned_bananas||0)));
+    document.getElementById('rows').innerHTML = rows.map(b=>{
+      const st = b.status||'?';
+      const caps = b.capabilities&&b.capabilities.length?b.capabilities.slice(0,2).join(', '):'—';
+      return '<tr><td class="'+st+'">'+st+'</td><td>'+b.id+'</td><td>'+((b.role_desc||b.role||'?')+'<br/><span class="badge">'+caps+'</span>')+'</td><td>—</td><td>'+(b.tasks_done||0)+'</td><td>'+(b.earned_bananas||0)+'</td><td>'+(b.working_on||'')+'</td></tr>';
+    }).join('');
+    document.getElementById('ref').textContent = 'auto-refresh every 30s · last '+new Date().toLocaleTimeString();
+  }catch(e){ document.getElementById('err').textContent = 'error: '+e; }
+}
+load(); setInterval(load, 30000);
+</script>
+</body>
+</html>

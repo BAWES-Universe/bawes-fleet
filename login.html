@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#06080f">
+<title>BAWES Fleet — Sign in to play</title>
+<style>
+:root{
+  --bg:#06080f; --bg2:#0a0f1a; --card:#0e1422; --card2:#131b2c; --line:#1d2940;
+  --txt:#edf2fa; --dim:#93a1b8; --faint:#5b6b85;
+  --gold:#f5b942; --gold2:#ffd97a; --green:#3dd6a4; --red:#ff6b7a;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;
+  --mono:"SF Mono","JetBrains Mono",Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:radial-gradient(900px 480px at 50% -12%,#131a2b 0%,var(--bg) 58%);color:var(--txt);font-family:var(--sans);font-size:16px;line-height:1.5;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px 16px;-webkit-font-smoothing:antialiased}
+.brand{display:flex;align-items:center;gap:14px;margin-bottom:24px}
+.mark{width:52px;height:52px;border-radius:14px;background:radial-gradient(circle at 30% 25%,#2a2410,#14100a 70%);border:1px solid #4d3d14;display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--gold);font-size:22px;box-shadow:0 0 22px rgba(245,185,66,.18) inset}
+.word{font-size:24px;font-weight:800;letter-spacing:3px;line-height:1.1}
+.word span{color:var(--gold)}
+.tag{font-size:11px;color:var(--dim);letter-spacing:2.4px;text-transform:uppercase;margin-top:3px}
+.card{width:100%;max-width:400px;background:var(--card);border:1px solid rgba(245,185,66,.22);border-radius:20px;padding:30px 26px 26px;box-shadow:0 18px 54px rgba(0,0,0,.5),0 0 0 1px rgba(245,185,66,.05) inset;position:relative;overflow:hidden}
+.card::before{content:"";position:absolute;top:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,217,122,.5),transparent)}
+.card h1{font-size:13px;font-weight:800;letter-spacing:2.2px;text-transform:uppercase;color:var(--dim)}
+.card h1 b{color:var(--gold)}
+.card .sub{font-size:13px;color:var(--faint);margin:7px 0 20px;line-height:1.6}
+label{display:block;font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:var(--dim);margin:15px 0 7px}
+input{width:100%;min-height:52px;background:var(--bg2);color:var(--txt);border:1px solid var(--line);border-radius:12px;padding:0 15px;font-size:16px;font-family:var(--sans);-webkit-appearance:none;appearance:none}
+input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(245,185,66,.13)}
+button[type=submit]{width:100%;min-height:54px;margin-top:24px;border:none;border-radius:12px;background:linear-gradient(180deg,var(--gold2),var(--gold));color:#1a1204;font-size:15.5px;font-weight:900;letter-spacing:2.2px;text-transform:uppercase;cursor:pointer;font-family:var(--sans);-webkit-tap-highlight-color:transparent;box-shadow:0 8px 26px rgba(245,185,66,.25)}
+button[type=submit]:active{transform:scale(.98)}
+.err{display:none;margin-top:18px;background:rgba(255,107,122,.1);border:1px solid rgba(255,107,122,.45);color:var(--red);border-radius:11px;padding:12px 14px;font-size:13px;line-height:1.5}
+.err.show{display:block}
+.err b{font-weight:800}
+.foot{margin-top:20px;font-size:11.5px;color:var(--faint);line-height:1.8;text-align:center;max-width:400px}
+.foot b{color:var(--dim)}
+/* discord */
+.bawes-discord{text-align:center}
+.bdx-divider{display:flex;align-items:center;gap:.75rem;margin:1.1rem 0 1rem;color:#5B667A;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase}
+.bdx-divider::before,.bdx-divider::after{content:"";flex:1;height:1px;background:#1d2940}
+.bdx-btn{display:inline-flex;align-items:center;justify-content:center;gap:.6rem;width:100%;padding:.85rem 1.5rem;border-radius:12px;border:1px solid rgba(245,185,66,.45);background:rgba(245,185,66,.08);color:var(--gold2);font-weight:800;font-size:.95rem;letter-spacing:.01em;cursor:pointer;text-decoration:none;transition:filter .18s ease,transform .12s ease}
+.bdx-btn:hover{filter:brightness(1.12);box-shadow:0 0 0 2px rgba(245,185,66,.25)}
+.bdx-btn:active{transform:translateY(1px)}
+.bdx-btn svg{width:20px;height:20px;fill:currentColor;flex:none}
+</style>
+</head>
+<body>
+  <div class="brand">
+    <div class="mark">B</div>
+    <div>
+      <div class="word">BAW<span>ES</span> FLEET</div>
+      <div class="tag">the game · sign in to play</div>
+    </div>
+  </div>
+
+  <form class="card" method="post" action="/login" autocomplete="on">
+    <h1>Player <b>Access</b></h1>
+    <div class="sub">Sign in to see the world, decide the cards, and watch your level climb — every number live from the fleet.</div>
+
+    <label for="username">Username</label>
+    <input id="username" name="username" type="text" inputmode="text" autocomplete="username"
+           placeholder="your username" required autofocus autocapitalize="none" spellcheck="false">
+
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" inputmode="text" autocomplete="current-password"
+           placeholder="••••••••••" required>
+
+    <input type="hidden" name="next" value="__NEXT__">
+
+    <button type="submit">Enter the game</button>
+
+    <div class="bawes-discord" style="margin-top:1.1rem">
+      <div class="bdx-divider">or</div>
+      <a class="bdx-btn" id="bdx-link" href="/oauth/discord" rel="nofollow">
+        <svg viewBox="0 0 127.14 96.36" aria-hidden="true">
+          <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/>
+        </svg>
+        Login with Discord
+      </a>
+    </div>
+
+    <div class="err" id="err">Invalid username or password — try again, or ask <b>khalid</b> for access.</div>
+  </form>
+
+  <div class="foot">
+    Access is by invitation — accounts are managed by the fleet owner.<br>
+    Session lasts 12 hours. Sign out from the top bar when done.
+  </div>
+
+  <script>
+    (function(){
+      var q=new URLSearchParams(location.search);
+      if(q.get("error")==="1"){document.getElementById("err").classList.add("show")}
+      var n=document.querySelector('input[name="next"]');
+      var nx=q.get("next");
+      n.value=(nx&&nx.indexOf("/")===0&&nx.indexOf("//")!==0)?nx:"/";
+      var l=document.getElementById("bdx-link");
+      if(l){l.href="/oauth/discord?next="+encodeURIComponent(n.value)}
+    })();
+  </script>
+</body>
+</html>

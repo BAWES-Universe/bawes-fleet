@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0e14">
+<title>BAWES Fleet — Capacity Board</title>
+<style>
+:root{
+  --bg:#0b0e14; --bg2:#10141c; --card:#131926; --card2:#1a2233; --line:#263041;
+  --txt:#eef2f8; --dim:#9aa7ba; --faint:#64748b;
+  --gold:#f5b942; --gold2:#ffd97a;
+  --teal:#3dd6a4; --teal-dim:rgba(61,214,164,.14);
+  --amber:#f5b942; --amber-dim:rgba(245,185,66,.13);
+  --red:#ff6b7a; --red-dim:rgba(255,107,122,.13);
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;
+  --mono:"SF Mono","JetBrains Mono",Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px 72px}
+
+header{position:sticky;top:0;z-index:50;background:rgba(11,14,20,.86);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.hrow{max-width:760px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:10px}
+.mark{width:36px;height:36px;border-radius:10px;flex-shrink:0;background:radial-gradient(circle at 30% 25%,#2a2410,#14100a 70%);border:1px solid #4d3d14;display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--gold);font-size:15px;box-shadow:0 0 18px rgba(245,185,66,.14) inset}
+.word{font-size:16px;font-weight:800;letter-spacing:2.2px;line-height:1.1}
+.word span{color:var(--gold)}
+.tag{font-size:10.5px;color:var(--dim)}
+.hright{margin-left:auto;display:flex;align-items:center;gap:8px}
+.backpill{display:flex;align-items:center;border:1px solid var(--line);background:var(--card);color:var(--dim);font-size:12.5px;font-weight:700;border-radius:999px;padding:8px 13px;min-height:40px}
+
+.card{border:1px solid var(--line);background:var(--card);border-radius:16px;padding:14px 16px;margin-top:14px}
+.beat-k{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
+.beat-k .num{font-family:var(--mono);font-weight:800;color:var(--gold);font-size:13px}
+.beat-k h2{font-size:15px;font-weight:800;letter-spacing:.4px;text-transform:uppercase}
+.beat-k .q{font-size:11.5px;color:var(--faint)}
+
+.strip{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:14px}
+@media(min-width:560px){.strip{grid-template-columns:repeat(5,1fr)}}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;min-width:0}
+.stat .v{font-family:var(--mono);font-size:17px;font-weight:800;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat .v em{font-style:normal;color:var(--teal)}
+.stat .v.gold{color:var(--gold)}
+.stat .l{font-size:9.5px;color:var(--faint);letter-spacing:.7px;text-transform:uppercase;font-weight:700;margin-top:2px}
+
+/* epics */
+.epic{margin-top:12px}
+.epic .erow{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.epic .ename{font-size:13.5px;font-weight:700}
+.epic .enums{font-family:var(--mono);font-size:11px;color:var(--dim)}
+.epic .enums b{color:var(--teal)}
+.bar{height:10px;border-radius:999px;background:var(--bg2);border:1px solid var(--line);overflow:hidden;margin-top:5px}
+.bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#1d8f6c,var(--teal));box-shadow:0 0 12px rgba(61,214,164,.35)}
+.mergedchip{display:inline-block;font-family:var(--mono);font-size:10px;color:var(--gold);border:1px solid rgba(245,185,66,.35);background:var(--amber-dim);border-radius:999px;padding:1px 8px;margin-left:6px}
+
+/* brick table */
+.bhead,.brow{display:grid;grid-template-columns:minmax(120px,1.5fr) 74px minmax(88px,1fr) 64px 56px 70px;gap:8px;align-items:center}
+.bhead{font-size:9.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--faint);font-weight:700;padding:0 2px 6px}
+.brow{border-top:1px solid var(--line);padding:9px 2px}
+.bname{min-width:0}
+.bname .bn{font-family:var(--mono);font-size:12.5px;font-weight:700;color:var(--gold2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bname .br{font-size:10.5px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:800;letter-spacing:.5px;border-radius:999px;padding:3px 9px}
+.chip .dot{width:6px;height:6px;border-radius:50%}
+.chip.live{color:var(--teal);background:var(--teal-dim)}.chip.live .dot{background:var(--teal)}
+.chip.stale{color:var(--amber);background:var(--amber-dim)}.chip.stale .dot{background:var(--amber)}
+.chip.idle{color:var(--red);background:var(--red-dim)}.chip.idle .dot{background:var(--red)}
+.tval{font-family:var(--mono);font-size:12px;color:var(--txt)}
+.tval small{color:var(--faint);font-size:9.5px;display:block}
+.roi{font-family:var(--mono);font-size:12px;color:var(--teal)}
+.ban{font-family:var(--mono);font-size:12px;color:var(--gold)}
+.minibtn{font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:.5px;color:var(--gold);border:1px solid rgba(245,185,66,.4);background:transparent;border-radius:8px;padding:5px 8px;cursor:pointer}
+.minibtn:active{transform:scale(.96)}
+
+/* actions */
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.abtn{flex:1;min-width:150px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;padding:11px 14px;font-weight:800;font-size:13px;cursor:pointer;border:1px solid}
+.abtn:active{transform:scale(.98)}
+.abtn.gold{color:#14100a;background:linear-gradient(180deg,var(--gold2),var(--gold));border-color:var(--gold)}
+.abtn.teal{color:#06251b;background:linear-gradient(180deg,#63e7bd,var(--teal));border-color:var(--teal)}
+
+/* queue */
+.qdepth{height:14px;border-radius:999px;background:var(--bg2);border:1px solid var(--line);overflow:hidden;margin-top:6px}
+.qdepth i{display:block;height:100%;background:linear-gradient(90deg,#b98a1e,var(--gold))}
+.goal{border-top:1px solid var(--line);padding:9px 2px;display:flex;gap:10px;align-items:flex-start}
+.gid{font-family:var(--mono);font-size:10px;color:var(--faint);white-space:nowrap;padding-top:2px}
+.gprompt{font-size:12px;color:var(--dim);line-height:1.45;min-width:0;word-break:break-word}
+.goal .claim{margin-left:auto;flex-shrink:0}
+
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;transition:.25s;background:var(--card2);border:1px solid rgba(245,185,66,.45);color:var(--gold2);font-size:12.5px;font-weight:700;border-radius:12px;padding:10px 16px;z-index:99;pointer-events:none;max-width:92vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+footer{margin-top:18px;font-size:10.5px;color:var(--faint);line-height:1.6}
+footer code{font-family:var(--mono);color:var(--dim)}
+.err{color:var(--red);font-size:12px;margin-top:8px}
+.loading{color:var(--dim);text-align:center;padding:48px 0}
+</style>
+</head>
+<body>
+<header><div class="hrow">
+  <div class="mark">B</div>
+  <div><div class="word">BAW<span>ES</span> CAPACITY</div><div class="tag">threads = capacity · bricks = identities</div></div>
+  <div class="hright"><a class="backpill" href="/">&larr; Ops index</a></div>
+</div></header>
+
+<div class="wrap" id="app"><div class="loading">Waking the fleet…</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let toastT=null;
+function toast(msg){const t=$("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),2600);}
+function visOnly(what){toast(what+" — visual only. The Bottleneck Engine wires this.");}
+
+function fmtAge(m){if(m==null)return "—";if(m<1)return "now";if(m<60)return m+"m";if(m<1440)return Math.round(m/60)+"h";return Math.round(m/1440)+"d";}
+
+function render(d){
+  const f=d.fleet||{}, q=d.queue||{}, rt=d.realtime||{};
+  const err=d.errors&&Object.keys(d.errors).length?'<div class="err">partial read: '+esc(Object.entries(d.errors).map(e=>e[0]+": "+e[1]).join(" · "))+"</div>":"";
+
+  const bricks=(d.bricks||[]).map(b=>{
+    const chip=b.status==="LIVE"?'<span class="chip live"><span class="dot"></span>LIVE</span>'
+             :b.status==="STALE"?'<span class="chip stale"><span class="dot"></span>STALE '+fmtAge(b.hb_age_min)+'</span>'
+             :'<span class="chip idle"><span class="dot"></span>IDLE'+(b.hb_age_min!=null?" "+fmtAge(b.hb_age_min):"")+'</span>';
+    return '<div class="brow">'+
+      '<div class="bname"><div class="bn">'+esc(b.name)+'</div><div class="br">'+esc(b.role||"—")+(b.accomplishments_n?' · '+b.accomplishments_n+' artifacts':"")+'</div></div>'+
+      "<div>"+chip+"</div>"+
+      '<div class="tval">'+esc(b.cap)+" <small>threads cap</small></div>"+
+      '<div class="roi">'+(b.roi!=null?esc(b.roi):"—")+' <small>roi</small></div>'+
+      '<div class="ban">'+esc(b.bananas||0)+'<small style="color:var(--faint);font-size:9.5px;display:block">🍌 mints '+esc(b.mints||0)+"</small></div>"+
+      '<button class="minibtn" onclick="visOnly(\'spawn '+esc(b.name)+'\')">SPAWN</button>'+
+      "</div>";
+  }).join("");
+
+  const epics=(d.epics||[]).map(e=>{
+    const pct=Math.max(0,Math.min(100,e.pct||0));
+    return '<div class="epic"><div class="erow"><span class="ename">'+esc(e.name)+
+      (e.merges?'<span class="mergedchip">+'+esc(e.merges)+' merged PR'+(e.merges===1?"":"s")+"</span>":"")+"</span>"+
+      '<span class="enums"><b>'+pct+"%</b> · "+e.done+" done / "+e.total+" goals</span></div>"+
+      '<div class="bar"><i style="width:'+pct+'%"></i></div></div>';
+  }).join("");
+
+  const pend=q.pending_goals||[];
+  const pendingRows=pend.slice(0,8).map(g=>
+    '<div class="goal"><span class="gid">'+esc(g.id)+'</span><div class="gprompt">'+esc(g.short)+"</div>"+
+    '<button class="minibtn claim" onclick="visOnly(\'claim '+esc(g.id)+'\')">CLAIM</button></div>'
+  ).join("")||'<div class="gprompt" style="padding:10px 0">Queue drained — no pending goals.</div>';
+
+  const doneRows=(q.recent_done||[]).map(g=>
+    '<div class="goal"><span class="gid">✔ '+esc(g.id)+'</span><div class="gprompt">'+esc(g.short)+"</div></div>"
+  ).join("")||'<div class="gprompt" style="padding:10px 0">No completed goals yet.</div>';
+
+  const qPct=q.total?Math.round(100*(q.done||0)/q.total):0;
+
+  $("app").innerHTML=
+    '<div class="strip">'+
+      stat(f.bricks_total,f.bricks_live_1h,"BRICKS LIVE / TOTAL")+
+      stat(f.threads_total,null,"THREADS CAP (LANES)")+
+      stat(rt.ovh_threads,null,"OS THREADS LIVE")+
+      stat((q.pending||0)+" <em>/ "+(q.total||0)+"</em>",null,"QUEUE PENDING/TOTAL")+
+      stat("🍌 "+(f.bananas_total||0),(f.mints_total?"· "+f.mints_total+" mints":""),"BANANAS EARNED")+
+    "</div>"+err+
+
+    '<div class="card"><div class="beat-k"><span class="num">01</span><h2>Time Machine family</h2><span class="q">progress from queue goals + merged PRs</span></div>'+epics+"</div>"+
+
+    '<div class="card"><div class="beat-k"><span class="num">02</span><h2>Per-brick capacity</h2><span class="q">threads vs live · idle flags</span></div>'+
+      '<div class="bhead"><div>brick</div><div>status</div><div>capacity</div><div>roi</div><div>🍌</div><div></div></div>'+bricks+"</div>"+
+
+    '<div class="card"><div class="beat-k"><span class="num">03</span><h2>Spawn &amp; claim</h2><span class="q">visual controls — wiring lands with the Bottleneck Engine</span></div>'+
+      '<div class="actions">'+
+        '<button class="abtn gold" onclick=\'visOnly("spawn brick")\'>⬢ SPAWN BRICK</button>'+
+        '<button class="abtn teal" onclick=\'visOnly("claim goal")\'>◈ CLAIM NEXT GOAL</button>'+
+      "</div>"+
+      '<div class="beat-k" style="margin-top:14px"><span class="q">pending — claim one</span></div>'+pendingRows+"</div>"+
+
+    '<div class="card"><div class="beat-k"><span class="num">04</span><h2>Queue depth</h2><span class="q">'+esc(q.done||0)+" of "+esc(q.total||0)+" goals done</span></div>"+
+      '<div class="qdepth"><i style="width:'+qPct+'%"></i></div>'+
+      '<div class="beat-k" style="margin-top:14px"><span class="q">recently done</span></div>'+doneRows+"</div>"+
+
+    '<footer>sources: <code>brick-ledger.json</code> · <code>queue.json</code> · <code>fleet-realtime.json</code> · merges: GitHub closed→merged PRs'+
+    "<br>generated "+esc(d.generated_at||"—")+" · auto-refresh 15s · taxonomy: "+esc(d.taxonomy||"bricks = identities; threads = capacity")+"</footer>";
+
+  function stat(v,l,label){return '<div class="stat"><div class="v '+(label.startsWith("BANANAS")?"gold":"")+'">'+v+(l?" <small style='font-size:10px;color:var(--faint)'>"+l+"</small>":"")+"</div><div class=\"l\">"+label+"</div></div>";}
+}
+
+async function load(){
+  try{
+    const r=await fetch("/api/capacity",{cache:"no-store"});
+    if(r.status===401){location.href="/login?next=/panel/capacity";return;}
+    render(await r.json());
+  }catch(e){$("app").innerHTML='<div class="loading">fleet unreachable — retrying…</div>';}
+}
+load();
+setInterval(load,15000);
+</script>
+</body>
+</html>

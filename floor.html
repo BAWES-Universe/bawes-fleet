@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#06080f">
+<title>BAWES Fleet — The Floor</title>
+<style>
+:root{
+  --bg:#06080f; --bg2:#0a0f1a; --card:#0e1422; --card2:#131b2c; --line:#1d2940;
+  --txt:#edf2fa; --dim:#93a1b8; --faint:#5b6b85;
+  --gold:#f5b942; --gold2:#ffd97a; --green:#3dd6a4; --red:#ff6b7a; --blue:#6fb1ff; --vio:#a78bfa;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;
+  --mono:"SF Mono","JetBrains Mono",Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased;min-height:100vh;overflow:hidden}
+button,input,textarea{font-family:var(--sans);-webkit-tap-highlight-color:transparent}
+a{color:inherit;text-decoration:none}
+.hidden{display:none!important}
+
+/* ---------- HUD ---------- */
+.hud{position:fixed;top:0;left:0;right:0;z-index:50;background:rgba(6,8,15,.9);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top)}
+.hud-in{max-width:720px;margin:0 auto;padding:7px 12px;display:flex;align-items:center;gap:8px}
+.back{flex-shrink:0;width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--bg2);color:var(--dim);font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.title{flex:1;min-width:0;line-height:1.05}
+.title b{font-size:13.5px;font-weight:800;letter-spacing:2px}
+.title b span{color:var(--gold)}
+.title i{display:block;font-style:normal;font-size:9px;color:var(--faint);letter-spacing:1.8px;text-transform:uppercase;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.invite{flex-shrink:0;border:1px solid rgba(245,185,66,.45);background:linear-gradient(180deg,rgba(245,185,66,.16),rgba(245,185,66,.06));color:var(--gold);font-size:11.5px;font-weight:800;letter-spacing:.6px;border-radius:999px;padding:7px 12px;cursor:pointer}
+.playerbar{max-width:720px;margin:0 auto;padding:6px 12px 8px;display:flex;align-items:center;gap:9px}
+.pav{width:38px;height:38px;border-radius:12px;flex-shrink:0;background:radial-gradient(circle at 30% 25%,#2a2410,#14100a 70%);border:1px solid #4d3d14;display:flex;align-items:center;justify-content:center;font-weight:900;color:var(--gold);font-size:16px;box-shadow:0 0 18px rgba(245,185,66,.22) inset;position:relative}
+.pav::after{content:"";position:absolute;inset:-4px;border-radius:14px;border:1px solid rgba(245,185,66,.35)}
+.pinfo{flex:1;min-width:0}
+.pinfo .pn{font-size:12.5px;font-weight:800}
+.pinfo .pn small{color:var(--faint);font-weight:600}
+.pinfo .px{display:flex;align-items:center;gap:6px;margin-top:3px}
+.xpwrap{flex:1;max-width:190px}
+.xpbar{height:7px;border-radius:999px;background:var(--bg2);border:1px solid var(--line);overflow:hidden}
+.xpbar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#b8860b,#f5b942 55%,#ffd97a);transition:width .6s ease}
+.xptxt{font-family:var(--mono);font-size:8.5px;color:var(--faint);margin-top:2px;letter-spacing:.3px;white-space:nowrap}
+.pstat{flex-shrink:0;font-size:11px;color:var(--gold);font-weight:800;text-align:right}
+.pstat small{display:block;color:var(--faint);font-weight:600;font-size:9px;letter-spacing:.5px}
+
+/* ---------- canvas ---------- */
+#wrap{position:fixed;top:0;left:0;right:0;bottom:44px;z-index:1}
+canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+#hint{position:absolute;left:50%;transform:translateX(-50%);bottom:8px;font-size:10px;color:var(--faint);letter-spacing:.8px;text-transform:uppercase;pointer-events:none;white-space:nowrap}
+
+/* ---------- events stream (real receipts, last 10 min) ---------- */
+#events{position:absolute;top:8px;left:8px;right:8px;z-index:5;pointer-events:none;display:flex;flex-direction:column;gap:5px;align-items:flex-start}
+.ev{max-width:86%;background:rgba(10,15,26,.82);border:1px solid rgba(245,185,66,.28);border-left:3px solid var(--gold);border-radius:10px;padding:6px 9px;font-size:10.5px;line-height:1.35;color:var(--txt);box-shadow:0 6px 20px rgba(0,0,0,.4);animation:evIn .5s ease;backdrop-filter:blur(6px)}
+.ev b{color:var(--gold);font-weight:800}
+.ev .lane{color:var(--faint);font-family:var(--mono);font-size:9px}
+.ev .age{color:var(--faint);font-size:9px}
+.ev.new{animation:evPulse 2.4s ease}
+@keyframes evIn{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
+@keyframes evPulse{0%{box-shadow:0 0 0 0 rgba(245,185,66,.55)}70%{box-shadow:0 0 0 12px rgba(245,185,66,0)}100%{box-shadow:none}}
+.ev.quiet{background:rgba(10,15,26,.82);border:1px solid var(--line);border-left-color:var(--faint);color:var(--dim)}
+#evhead{font-size:9px;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);font-weight:800}
+
+/* ---------- honesty bar ---------- */
+.hbar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:rgba(8,11,20,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line);padding:7px 12px calc(7px + env(safe-area-inset-bottom))}
+.hbar-in{max-width:720px;margin:0 auto;display:flex;align-items:center;gap:8px;font-size:10.5px;color:var(--dim)}
+.dot{width:8px;height:8px;border-radius:999px;flex-shrink:0;background:var(--faint)}
+.dot.moving{background:var(--gold);box-shadow:0 0 8px rgba(245,185,66,.8)}
+.hbar b{color:var(--txt);font-weight:800}
+.hbar .st{color:var(--gold);font-weight:800}
+.hbar .rule{color:var(--faint);font-size:9.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---------- deep-dive bottom sheet ---------- */
+#panel{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:70;max-height:78dvh;background:var(--card);border:1px solid var(--line);border-bottom:none;border-radius:20px 20px 0 0;box-shadow:0 -18px 60px rgba(0,0,0,.6);transform:translateY(105%);transition:transform .28s ease;display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom)}
+#panel.open{transform:none}
+#panel .grab{width:44px;height:4px;border-radius:999px;background:var(--line);margin:8px auto 2px;flex-shrink:0}
+#panel .ph{display:flex;align-items:flex-start;gap:10px;padding:6px 16px 10px;border-bottom:1px solid var(--line);flex-shrink:0}
+#panel .ph .av{width:44px;height:44px;border-radius:14px;background:radial-gradient(circle at 30% 25%,#2a2410,#14100a 70%);border:1px solid #4d3d14;display:flex;align-items:center;justify-content:center;font-weight:900;color:var(--gold);font-size:17px;flex-shrink:0}
+#panel .ph .mt{flex:1;min-width:0}
+#panel .ph .mt h2{font-size:16px;font-weight:800;letter-spacing:.3px;word-break:break-all}
+#panel .ph .mt .sub{font-size:11px;color:var(--faint);margin-top:2px}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.chip{font-size:9.5px;font-weight:700;letter-spacing:.5px;border-radius:999px;padding:3px 8px;background:var(--bg2);border:1px solid var(--line);color:var(--dim);text-transform:uppercase}
+.chip.gold{color:var(--gold);border-color:rgba(245,185,66,.4);background:rgba(245,185,66,.07)}
+.chip.green{color:var(--green);border-color:rgba(61,214,164,.35);background:rgba(61,214,164,.07)}
+.chip.red{color:var(--red);border-color:rgba(255,107,122,.35);background:rgba(255,107,122,.07)}
+.chip.gray{color:var(--faint)}
+#panel .close{margin-left:auto;flex-shrink:0;width:30px;height:30px;border-radius:10px;border:1px solid var(--line);background:var(--bg2);color:var(--dim);font-size:14px;cursor:pointer}
+#panel .pscroll{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 16px 26px}
+.sec{margin-bottom:16px}
+.sec h4{font-size:9.5px;letter-spacing:1.8px;text-transform:uppercase;color:var(--faint);font-weight:800;margin-bottom:7px;display:flex;align-items:center;gap:6px}
+.sec h4::after{content:"";flex:1;height:1px;background:var(--line)}
+.row{font-size:12.5px;color:var(--dim);margin-bottom:4px;line-height:1.5}
+.row b{color:var(--txt);font-weight:700}
+.bigstate{font-size:13px;font-weight:800;color:var(--gold);margin-bottom:2px}
+.bigstate.idle{color:var(--dim)}
+.bigstate.parked{color:var(--faint)}
+.taskline{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:9px 12px;font-size:12px;margin-top:2px}
+.taskline b{color:var(--txt)}
+.skill{display:inline-block;font-size:10.5px;font-weight:700;border-radius:8px;padding:3px 8px;background:var(--bg2);border:1px solid var(--line);color:var(--blue);margin:0 4px 4px 0}
+.thread{display:flex;flex-direction:column;gap:6px}
+.tmsg{font-size:11px;color:var(--dim);background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:7px 10px;line-height:1.45}
+.tmsg .from{color:var(--gold);font-weight:800;font-size:10.5px}
+.tmsg .k{font-family:var(--mono);font-size:8.5px;color:var(--faint);border:1px solid var(--line);border-radius:6px;padding:1px 5px;margin-left:5px;text-transform:uppercase}
+.tmsg .body{margin-top:3px;color:var(--txt);font-size:11.5px}
+.art{display:flex;align-items:center;gap:7px;font-size:11.5px;background:var(--bg2);border:1px solid var(--line);border-radius:9px;padding:6px 10px;margin-bottom:5px;color:var(--dim)}
+.art .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--blue)}
+.talk{display:flex;gap:7px}
+.talk input{flex:1;min-width:0;background:var(--bg2);border:1px solid var(--line);border-radius:11px;color:var(--txt);font-size:15px;padding:0 13px;height:44px}
+.talk input:focus{outline:none;border-color:var(--gold)}
+.talk button{flex-shrink:0;border:none;border-radius:11px;background:linear-gradient(180deg,var(--gold2),var(--gold));color:#1a1204;font-weight:800;font-size:13px;letter-spacing:.5px;padding:0 16px;cursor:pointer}
+.actrow{display:flex;gap:8px;margin-top:10px}
+.actrow button{flex:1;border-radius:11px;padding:11px 0;font-weight:800;font-size:12.5px;letter-spacing:.5px;cursor:pointer;border:1px solid var(--line);background:var(--bg2);color:var(--txt)}
+.actrow button.clone{border-color:rgba(245,185,66,.5);color:var(--gold);background:rgba(245,185,66,.08)}
+.actrow button:active{transform:scale(.97)}
+.actrow button:disabled{opacity:.45;cursor:not-allowed}
+.note{font-size:10px;color:var(--faint);margin-top:8px;line-height:1.5}
+#panel .pend{color:var(--faint);text-align:center;padding:30px 0;font-size:13px}
+
+/* ---------- invite modal ---------- */
+#modal{position:fixed;inset:0;z-index:90;background:rgba(3,5,10,.78);backdrop-filter:blur(6px);display:none;align-items:flex-end;justify-content:center}
+#modal.open{display:flex}
+.mcard{width:100%;max-width:720px;background:var(--card);border:1px solid var(--line);border-bottom:none;border-radius:20px 20px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));max-height:80dvh;overflow-y:auto}
+.mcard h2{font-size:17px;font-weight:800;letter-spacing:.5px}
+.mcard h2 span{color:var(--gold)}
+.mcard p{font-size:13px;color:var(--dim);margin-top:10px;line-height:1.55}
+.mcard .gate{margin-top:14px;background:var(--bg2);border:1px solid rgba(245,185,66,.35);border-radius:12px;padding:11px 13px;font-size:12px;color:var(--dim)}
+.mcard .gate b{color:var(--gold)}
+.mcard .rowbtn{display:flex;gap:8px;margin-top:16px}
+.mcard .rowbtn a{flex:1;text-align:center;border-radius:11px;padding:12px 0;font-weight:800;font-size:13px;letter-spacing:.5px;cursor:pointer;border:1px solid var(--line);background:var(--bg2);color:var(--txt)}
+.mcard .rowbtn a.primary{border:none;background:linear-gradient(180deg,var(--gold2),var(--gold));color:#1a1204}
+.mcard .close{position:absolute;top:16px;right:16px;width:30px;height:30px;border-radius:10px;border:1px solid var(--line);background:var(--bg2);color:var(--dim);font-size:14px;cursor:pointer}
+.mcard{position:relative}
+
+/* ---------- toast ---------- */
+#toast{position:fixed;left:50%;bottom:64px;transform:translateX(-50%) translateY(20px);z-index:99;background:var(--card2);border:1px solid var(--line);border-left:3px solid var(--gold);color:var(--txt);font-size:12.5px;padding:10px 16px;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:all .25s ease;max-width:88%;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.err{border-left-color:var(--red)}
+</style>
+</head>
+<body>
+
+<header class="hud">
+  <div class="hud-in">
+    <button class="back" id="back" aria-label="Back to MISSION">←</button>
+    <div class="title"><b>THE <span>FLOOR</span></b><i>universe — every brick, honest motion</i></div>
+    <button class="invite" id="invite">＋ Invite</button>
+  </div>
+  <div class="playerbar hidden" id="playerbar">
+    <div class="pav" id="pav">K</div>
+    <div class="pinfo">
+      <div class="pn" id="pname">khalid <small>· you</small></div>
+      <div class="px">
+        <div class="xpwrap"><div class="xpbar"><i id="xpfill" style="width:0%"></i></div><div class="xptxt" id="xptxt">—</div></div>
+        <div class="pstat" id="pstat">L—</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div id="wrap">
+  <canvas id="cv"></canvas>
+  <div id="events"></div>
+  <div id="hint">tap any brick to dive deep · idle bricks stand still</div>
+</div>
+
+<footer class="hbar">
+  <div class="hbar-in">
+    <span class="dot moving" id="hdot"></span>
+    <span id="hstats" class="st">…</span>
+    <span class="rule" id="hrule">avatars move only on real receipts — last 10 min</span>
+  </div>
+</footer>
+
+<section id="panel" aria-label="Brick deep-dive">
+  <div class="grab"></div>
+  <div class="ph" id="ph"></div>
+  <div class="pscroll" id="pscroll"><div class="pend">loading…</div></div>
+</section>
+
+<div id="modal">
+  <div class="mcard">
+    <button class="close" id="mclose">✕</button>
+    <h2>Invite friends <span>&amp;</span> coworkers</h2>
+    <p>This universe is built for more than one player. When invite opens, you'll send a link that lets people join as <b>contributors</b> — they can watch the floor, dive into bricks, talk to them, and help decide what gets built. Bricks they're issued get their own CV, bananas, and level, like yours.</p>
+    <div class="gate"><b>Not live yet — by design.</b> Staff rollout is gated on <b>khalid's ok</b>. Until he says go, nobody gets a link. The moment he signs it, this button becomes a real invite generator (it rides the existing role system — contributor / brick_issuer / owner — nothing new is minted).</div>
+    <div class="rowbtn">
+      <a href="/" id="mhome">← MISSION</a>
+      <a href="/approvals" class="primary" id="mapprovals">See the rollout queue →</a>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   THE FLOOR — 2D universe view.
+   HONESTY RULE (binding): an avatar MOVES only when a REAL
+   receipt exists in the last 10 min. Idle bricks stand still.
+   No fake activity, no idle quips, no simulated busyness.
+   ============================================================ */
+var W=720, H=1100;              /* world (portrait universe) */
+var WINDOW_S=600;               /* honesty window — mirrored from server */
+var cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+var wrap=document.getElementById("wrap");
+var DPR=Math.min(window.devicePixelRatio||1,2);
+var scale=1, ox=0, oy=0, cw=0, ch=0;
+
+var state={bricks:[],events:[],relay:[],player:null,honesty:null,fleet:null,seenTs:{},rings:[],sel:null,lastLoad:0};
+
+/* ---------- utils ---------- */
+function $(id){return document.getElementById(id)}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]})}
+function fmtAge(s){if(s==null)return "never";if(s<60)return Math.floor(s)+"s ago";if(s<3600)return Math.floor(s/60)+"m ago";if(s<86400)return Math.floor(s/3600)+"h ago";return Math.floor(s/86400)+"d ago"}
+function hashStr(s){var h=2166136261;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0)/4294967295}
+function trunc(s,n){s=String(s||"");return s.length>n?s.slice(0,n-1)+"…":s}
+var toastT=null;
+function toast(msg,isErr){var t=$("toast");t.textContent=msg;t.className="show"+(isErr?" err":"");clearTimeout(toastT);toastT=setTimeout(function(){t.className=""},3400)}
+
+/* ---------- layout: position every brick by role + lineage ---------- */
+var CLUSTERS={
+  core:   {x:360,y:250,label:"CORE · ROUTER · MOTHER",r:80},
+  science:{x:140,y:470,label:"SCIENCE",r:95},
+  workers:{x:580,y:470,label:"WORKERS · EARNERS",r:95},
+  ops:    {x:140,y:760,label:"OPS · SECURITY · MONEY",r:95},
+  pool:   {x:580,y:760,label:"POOL · FREE-OX · VELOCITY",r:95},
+  cloud:  {x:360,y:1000,label:"CLOUD",r:70}
+};
+var SWARM={x:360,y:610,rIn:330,rOut:430};
+var PLAYER_POS={x:360,y:610};
+
+function clusterFor(b){
+  var r=String(b.role||"?").toLowerCase();
+  if(r.indexOf("mother")>=0||r.indexOf("router")>=0||r.indexOf("brain")>=0||r.indexOf("ovh-server")>=0)return "core";
+  if(r.indexOf("neuro")>=0||r.indexOf("scient")>=0||r.indexOf("evolution")>=0||r.indexOf("agi")>=0||r.indexOf("research")>=0)return "science";
+  if(r.indexOf("worker")>=0||r.indexOf("child")>=0||r.indexOf("earn")>=0||r.indexOf("ox-worker")>=0)return "workers";
+  if(r.indexOf("secur")>=0||r.indexOf("reaper")>=0||r.indexOf("invest")>=0||r.indexOf("account")>=0||r.indexOf("audit")>=0)return "ops";
+  if(r.indexOf("pool")>=0||r.indexOf("velocity")>=0||r.indexOf("claimer")>=0||r.indexOf("machine-time")>=0)return "pool";
+  if(r.indexOf("cloud")>=0||r.indexOf("mishari")>=0)return "cloud";
+  return "swarm";
+}
+function scatter(h,rad){
+  var a=h*Math.PI*2, r=rad*(0.15+0.85*Math.sqrt(hashStr("r"+h)));
+  return {x:Math.cos(a)*r,y:Math.sin(a)*r};
+}
+function posFor(b,idx,byId){
+  var cl=clusterFor(b);
+  if(cl==="swarm"){
+    var h=hashStr(b.id),a=h*Math.PI*2,r=SWARM.rIn+(SWARM.rOut-SWARM.rIn)*hashStr("s"+b.id);
+    return {x:SWARM.x+Math.cos(a)*r,y:SWARM.y+Math.sin(a)*r,cl:"swarm"};
+  }
+  var c=CLUSTERS[cl],h=hashStr(b.id),s=scatter(h,c.r);
+  /* lineage: children sit near their parent, one hop */
+  var px=null;
+  if(b.parent&&byId[b.parent]){px=byId[b.parent].pos}
+  if(px){var o=scatter(hashStr("kid"+b.id),34);return {x:px.x+o.x,y:px.y+o.y,cl:cl}}
+  return {x:c.x+s.x,y:c.y+s.y,cl:cl};
+}
+function layoutBricks(){
+  var byId={};state.bricks.forEach(function(b){byId[b.id]=b});
+  state.bricks.forEach(function(b){b.pos=posFor(b,0,byId)});
+}
+
+/* ---------- canvas sizing ---------- */
+function resize(){
+  cw=wrap.clientWidth;ch=wrap.clientHeight;
+  cv.width=Math.round(cw*DPR);cv.height=Math.round(ch*DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  scale=Math.min(cw/W,ch/H);
+  ox=(cw-W*scale)/2;oy=(ch-H*scale)/2;
+}
+window.addEventListener("resize",resize);
+window.addEventListener("orientationchange",function(){setTimeout(resize,250)});
+
+/* ---------- fetch ---------- */
+function load(){
+  fetch("/api/floor",{cache:"no-store"}).then(function(r){
+    if(r.status===401){location.href="/login?next=/floor";return}
+    return r.json();
+  }).then(function(d){
+    if(!d)return;
+    WINDOW_S=d.honesty?d.honesty.window_s:600;
+    state.honesty=d.honesty;state.fleet=d.fleet;state.player=d.player;
+    state.events=d.events||[];state.relay=d.relay||[];
+    /* keep selection data fresh (deep-dive refetches anyway) */
+    state.bricks=d.bricks||[];
+    layoutBricks();
+    renderHud();renderEvents();renderHonesty();
+    if(!state.sel)return;
+    var still=state.bricks.some(function(b){return b.id===state.sel});
+    if(!still){closePanel()}
+  }).catch(function(e){console.warn("floor load",e)});
+}
+setInterval(load,8000);
+
+/* ---------- HUD: player ---------- */
+function renderHud(){
+  var p=state.player;
+  if(!p){$("playerbar").classList.add("hidden");return}
+  $("playerbar").classList.remove("hidden");
+  $("pav").textContent=String(p.id||"K").charAt(0).toUpperCase();
+  $("pname").innerHTML=esc(p.id||"khalid")+" <small>· you</small>";
+  $("pstat").innerHTML="L"+(p.level==null?"—":p.level)+(p.bananas!=null?"<small>"+p.bananas+" 🍌</small>":"");
+  var xp=p.xp||0,nx=p.xp_to_next||0;
+  var pct=nx>0?Math.min(100,Math.round(100*xp/(xp+nx))):(xp>0?100:0);
+  $("xpfill").style.width=pct+"%";
+  $("xptxt").textContent=(nx>0?xp+" / "+(xp+nx)+" XP":"level max")+(p.next_quest_hint?" · "+p.next_quest_hint:"");
+}
+
+/* ---------- events: REAL receipts as pulses ---------- */
+function renderEvents(){
+  var box=$("events");
+  var evs=state.events||[];
+  var head=document.createElement("div");head.id="evhead";head.textContent="NOW — real receipts";
+  box.innerHTML="";
+  box.appendChild(head);
+  if(!evs.length){
+    var q=document.createElement("div");q.className="ev quiet";
+    q.innerHTML="<b>Fleet is quiet</b> — no receipts in the last 10 min. That's honest: avatars only move on real work.";
+    box.appendChild(q);return;
+  }
+  var fresh=0;
+  evs.slice(0,7).forEach(function(e){
+    var el=document.createElement("div");el.className="ev";
+    var isNew=!state.seenTs[e.ts];
+    if(isNew){el.className="ev new";state.seenTs[e.ts]=1;fresh++}
+    var who=esc(e.brick_id||e.task_id||"fleet");
+    var title=e.title?esc(e.title):(e.task_id?esc(e.task_id):"");
+    var lane=e.lane?('<span class="lane"> '+esc(e.lane)+(e.cost!=null?" · $"+Number(e.cost).toFixed(3):"")+"</span>"):"";
+    el.innerHTML="<b>"+who+"</b> "+title+" <span class='age'>"+fmtAge(Math.max(0,(Date.now()/1000)-e.ts))+"</span>"+lane;
+    box.appendChild(el);
+  });
+  if(fresh>0){spawnRings()}
+}
+
+/* ---------- honesty bar ---------- */
+function renderHonesty(){
+  var h=state.honesty;
+  if(!h)return;
+  $("hstats").textContent=h.moving+" moving · "+h.live+" live · "+h.parked+" parked";
+  $("hdot").className="dot"+(h.moving>0?" moving":"");
+  $("hrule").textContent="avatars move only on real receipts — last "+(h.window_s/60)+" min · "+(state.fleet?state.fleet.bricks_total+" on file":"")+" · a quiet fleet renders quiet";
+}
+
+/* ---------- rings for freshly-arrived events ---------- */
+function spawnRings(){
+  var nowT=Date.now()/1000;            /* epoch — for the receipt recency gate */
+  var nowP=performance.now()/1000;     /* animation clock — matches rAF timestamps */
+  (state.events||[]).slice(0,7).forEach(function(e){
+    if(nowT-e.ts>WINDOW_S+2)return;
+    var b=state.bricks.filter(function(x){return x.id===e.brick_id})[0];
+    if(!b||!b.pos)return;
+    state.rings.push({x:b.pos.x,y:b.pos.y,t0:nowP});
+  });
+  if(state.rings.length>14)state.rings=state.rings.slice(-14);
+}
+
+/* ---------- draw ---------- */
+function draw(t){
+  var nowT=t/1000;
+  ctx.clearRect(0,0,cw,ch);
+  /* backdrop */
+  var g=ctx.createLinearGradient(0,0,0,ch);
+  g.addColorStop(0,"#06080f");g.addColorStop(.5,"#0a0f1c");g.addColorStop(1,"#06080f");
+  ctx.fillStyle=g;ctx.fillRect(0,0,cw,ch);
+  /* stars (static — decoration, not activity) */
+  for(var i=0;i<70;i++){
+    var hx=hashStr("star"+i),hy=hashStr("starY"+i);
+    var sx=ox+hx*W*scale, sy=oy+hy*H*scale;
+    ctx.globalAlpha=0.25+0.4*hashStr("sa"+i);
+    ctx.fillStyle="#8fa3c8";
+    ctx.fillRect(sx,sy,1.5,1.5);
+  }
+  ctx.globalAlpha=1;
+
+  ctx.save();
+  ctx.translate(ox,oy);ctx.scale(scale,scale);
+
+  /* faint cluster labels */
+  ctx.font="600 13px "+getComputedStyle(document.body).getPropertyValue("--sans");
+  Object.keys(CLUSTERS).forEach(function(k){
+    var c=CLUSTERS[k];
+    ctx.fillStyle="rgba(91,107,133,.30)";
+    ctx.fillText(c.label,c.x-c.r,c.y-c.r-6);
+  });
+  ctx.fillStyle="rgba(91,107,133,.30)";
+  ctx.fillText("DOOR SWARM — parked identities",SWARM.x,SWARM.y-SWARM.rIn-8);
+  /* swarm ring */
+  ctx.strokeStyle="rgba(29,41,64,.5)";ctx.setLineDash([4,8]);ctx.lineWidth=1;
+  ctx.beginPath();ctx.arc(SWARM.x,SWARM.y,SWARM.rIn,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.arc(SWARM.x,SWARM.y,SWARM.rOut,0,Math.PI*2);ctx.stroke();
+  ctx.setLineDash([]);
+
+  /* event one-shot rings (real receipt arrivals) */
+  state.rings=state.rings.filter(function(r){return nowT-r.t0<1.8});
+  state.rings.forEach(function(r){
+    var p=(nowT-r.t0)/1.8;
+    ctx.globalAlpha=0.55*(1-p);
+    ctx.strokeStyle="#f5b942";ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(r.x,r.y,10+p*34,0,Math.PI*2);ctx.stroke();
+  });
+  ctx.globalAlpha=1;
+
+  /* nodes */
+  state.bricks.forEach(function(b){
+    var p=b.pos;if(!p)return;
+    var moving=b.moving===true;
+    var live=b.live===true;
+    var r=moving?9:(live?6.5:3.2);
+    var bob=moving?Math.sin(nowT*3.2+hashStr(b.id)*9)*3.5:0;
+    var y=p.y+bob;
+    /* receipt-backed pulse: ONLY for moving bricks */
+    if(moving){
+      var ph=(nowT*0.9+hashStr(b.id)*2)%1;
+      ctx.globalAlpha=0.5*(1-ph);
+      ctx.strokeStyle="#f5b942";ctx.lineWidth=1.6;
+      ctx.beginPath();ctx.arc(p.x,y,r+4+ph*20,0,Math.PI*2);ctx.stroke();
+      ctx.globalAlpha=1;
+    }
+    /* selection */
+    if(state.sel===b.id){
+      ctx.strokeStyle="rgba(245,185,66,.9)";ctx.lineWidth=1.6;
+      ctx.beginPath();ctx.arc(p.x,y,r+7,0,Math.PI*2);ctx.stroke();
+    }
+    if(b.earned_bananas>0&&!moving){
+      ctx.strokeStyle="rgba(245,185,66,.4)";ctx.lineWidth=1;
+      ctx.beginPath();ctx.arc(p.x,y,r+2.5,0,Math.PI*2);ctx.stroke();
+    }
+    ctx.fillStyle=moving?"#f5b942":(live?"#8a6d1f":"#24324d");
+    ctx.beginPath();ctx.arc(p.x,y,r,0,Math.PI*2);ctx.fill();
+    /* labels */
+    ctx.font="600 10px "+getComputedStyle(document.body).getPropertyValue("--sans");
+    if(moving){
+      ctx.fillStyle="#f5b942";
+      ctx.fillText(trunc(b.last_task_title||b.id,30),p.x,y-r-7);
+    }else if(live){
+      ctx.fillStyle="rgba(147,161,184,.85)";
+      ctx.fillText(b.id,p.x,y+r+11);
+    }
+  });
+
+  /* player — khalid, at the heart of the universe (static: he watches, honestly) */
+  var pl=state.player;
+  if(pl){
+    var px=PLAYER_POS.x,py=PLAYER_POS.y;
+    ctx.strokeStyle="rgba(245,185,66,.55)";ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(px,py,20,0,Math.PI*2);ctx.stroke();
+    ctx.strokeStyle="rgba(245,185,66,.2)";ctx.lineWidth=1.4;
+    ctx.beginPath();ctx.arc(px,py,27,0,Math.PI*2);ctx.stroke();
+    var pg=ctx.createRadialGradient(px-6,py-7,2,px,py,16);
+    pg.addColorStop(0,"#ffd97a");pg.addColorStop(1,"#b8860b");
+    ctx.fillStyle=pg;
+    ctx.beginPath();ctx.arc(px,py,13,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#1a1204";ctx.font="900 13px "+getComputedStyle(document.body).getPropertyValue("--sans");
+    ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText(String(pl.id||"K").charAt(0).toUpperCase(),px,py+1);
+    ctx.textAlign="left";ctx.textBaseline="alphabetic";
+    ctx.fillStyle="#f5b942";ctx.font="800 12px "+getComputedStyle(document.body).getPropertyValue("--sans");
+    ctx.fillText("you · L"+(pl.level==null?"—":pl.level),px,py-27);
+  }
+
+  ctx.restore();
+  requestAnimationFrame(draw);
+}
+
+/* ---------- tap: hit-test nearest avatar ---------- */
+function tap(e){
+  var rect=cv.getBoundingClientRect();
+  var mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  var wx=(mx-ox)/scale,wy=(my-oy)/scale;
+  var best=null,bd=1e9;
+  state.bricks.forEach(function(b){
+    if(!b.pos)return;
+    var r=(b.moving?9:(b.live?6.5:3.2))+12;
+    var dx=wx-b.pos.x,dy=wy-b.pos.y,d=Math.sqrt(dx*dx+dy*dy);
+    if(d<r&&d<bd){bd=d;best=b}
+  });
+  if(best){openPanel(best.id)}
+}
+cv.addEventListener("pointerdown",function(e){tap(e)});
+
+/* ============================================================
+   DEEP-DIVE panel — thought process, CV, current task, talk, clone
+   ============================================================ */
+var panelOpen=false;
+function openPanel(id){
+  state.sel=id;
+  $("panel").classList.add("open");panelOpen=true;
+  $("ph").innerHTML='<div class="av">'+esc(String(id).charAt(0).toUpperCase())+'</div><div class="mt"><h2>'+esc(id)+'</h2><div class="sub">loading deep-dive…</div></div><button class="close" id="pclose">✕</button>';
+  $("pscroll").innerHTML='<div class="pend">loading…</div>';
+  $("pclose").onclick=closePanel;
+  fetch("/api/brick/"+encodeURIComponent(id),{cache:"no-store"}).then(function(r){
+    return r.json();
+  }).then(function(b){
+    if(!b||!b.found){$("pscroll").innerHTML='<div class="pend">brick not found</div>';return}
+    renderDeep(b);
+  }).catch(function(){ $("pscroll").innerHTML='<div class="pend">could not load</div>' });
+}
+function closePanel(){
+  $("panel").classList.remove("open");panelOpen=false;state.sel=null;
+  setTimeout(function(){if(!panelOpen)$("pscroll").innerHTML='<div class="pend">loading…</div>'},320);
+}
+$("panel").addEventListener("click",function(e){
+  if(e.target.id==="pclose")closePanel();
+});
+
+function renderDeep(b){
+  var pr=b.profile||{};
+  var live=pr.live===true;
+  var fl=state.bricks.filter(function(x){return x.id===b.brick_id})[0]||{};
+  var moving=fl.moving===true;
+  var age=fl.last_receipt_age_s;
+  var stCls=moving?"gold":(live?"green":"gray");
+  var stTxt=moving?("WORKING NOW — real receipt "+fmtAge(age)):(live?"LIVE — process up, standing still (no receipt in last 10 min)":"PARKED — stands still, no receipt in last 10 min");
+  if(moving&&fl.last_task_title)stTxt+=" · "+fl.last_task_title;
+
+  var skills=(pr.skills||[]).map(function(s){return '<span class="skill">'+esc(s)+'</span>'}).join("")||'<span class="row" style="margin:0">—</span>';
+  var arts=(b.artifacts||[]).slice(0,6).map(function(a){
+    return '<a class="art" href="'+esc(a.url)+'" target="_blank"><span class="nm">📄 '+esc(a.name)+'</span><span>'+esc(a.size?Math.max(1,Math.round(a.size/1024))+"KB":"")+'</span></a>';
+  }).join("");
+  var receipts=(b.receipts||[]).slice(0,5).map(function(r){
+    return '<div class="row">· <b>'+esc(r.task_id||"task")+'</b> — '+esc(r.lane||"?")+(r.cost!=null?" · $"+Number(r.cost).toFixed(3):"")+' <span style="color:var(--faint)">'+fmtAge(r.ts_epoch?Math.max(0,(Date.now()/1000)-r.ts_epoch):null)+'</span></div>';
+  }).join("")||'<div class="row">— no receipts yet</div>';
+  var thread=(b.relay_thread||[]).slice(-12).reverse().map(function(m){
+    return '<div class="tmsg"><span class="from">'+esc(m.from||"?")+'</span>→<span style="color:var(--dim)">'+esc(m.to||"?")+'</span>'+(m.kind?'<span class="k">'+esc(m.kind)+'</span>':'')+'<div class="body">'+esc(m.body||"")+'</div></div>';
+  }).join("");
+  var task=b.current_task
+    ? '<div class="taskline"><b>'+esc(task.title||task.id)+'</b><br><span style="color:var(--faint)">'+esc(task.id)+" · "+esc(task.status||"")+'</span></div>'
+    : '<div class="row">— no task claimed right now</div>';
+
+  $("ph").innerHTML='<div class="av">'+esc(String(b.brick_id).charAt(0).toUpperCase())+'</div><div class="mt"><h2>'+esc(b.brick_id)+'</h2><div class="sub">'+esc(pr.role||"brick")+(pr.owner?" · "+esc(pr.owner):"")+'</div><div class="chips"><span class="chip '+stCls+'">'+stTxt.split(" — ")[0]+'</span>'+(fl.quality?'<span class="chip">'+esc(fl.quality)+'</span>':"")+(pr.parent?'<span class="chip">clone of '+esc(pr.parent)+'</span>':"")+'</div></div><button class="close" id="pclose">✕</button>';
+  $("pclose").onclick=closePanel;
+
+  var session=window.SESSION||{};
+  var html="";
+  html+='<div class="sec"><h4>State</h4><div class="bigstate '+(moving?"":(live?"idle":"parked"))+'">'+esc(stTxt)+'</div>'+
+         '<div class="row">🍌 <b>'+fmtB(fl.earned_bananas)+'</b> earned'+(fl.clean_earned_bananas!=null?' · <b>'+fmtB(fl.clean_earned_bananas)+'</b> clean':"")+' · <b>'+esc(pr.value_usd!=null?"$"+Number(pr.value_usd).toFixed(2):"—")+'</b> value</div>'+
+         '<div class="row">last receipt: <b>'+fmtAge(age)+'</b>'+(fl.last_lane?' · lane <b>'+esc(fl.last_lane)+'</b>':"")+' · receipts 1h <b>'+esc(b.stats?(b.stats.receipts_1h==null?"—":b.stats.receipts_1h):"—")+'</b> / 24h <b>'+esc(b.stats?(b.stats.receipts_24h==null?"—":b.stats.receipts_24h):"—")+'</b></div></div>';
+  html+='<div class="sec"><h4>Current task</h4>'+task+'</div>';
+  html+='<div class="sec"><h4>CV — skills · bananas · artifacts</h4>'+skills+'<div class="row" style="margin-top:6px">tasks done <b>'+esc(fl.tasks_done||0)+'</b>'+(fl.cv_line?' · <span style="color:var(--faint)">'+esc(fl.cv_line)+'</span>':"")+'</div>'+(arts?'<div style="margin-top:8px">'+arts+'</div>':"")+'</div>';
+  html+='<div class="sec"><h4>Thought process — its relay thread</h4>'+(thread||'<div class="row">— no relay messages yet</div>')+'</div>';
+  html+='<div class="sec"><h4>Recent receipts</h4>'+receipts+'</div>';
+  html+='<div class="sec"><h4>Talk to this brick</h4><div class="talk"><input id="tmsg" placeholder="Say it — lands on the relay addressed to '+esc(b.brick_id)+'" maxlength="4000" aria-label="Message this brick"><button id="tsend">Send</button></div><div class="note">Targeted message — it reads the relay on its next cycle and the reply lands in this thread.</div></div>';
+  html+='<div class="sec"><h4>Clone</h4><div class="actrow"><button class="clone" id="clonebtn" '+(session.role!=="owner"?'disabled title="owner role required"':"")+'>⧉ Clone this brick</button></div><div class="note">'+(session.role!=="owner"?"Clone is owner-only — khalid's call.":"Creates a new registered identity copied from this brick — clone-&lt;brick&gt;-&lt;hex&gt;.")+'</div></div>';
+  html+='<div class="note" style="border-top:1px solid var(--line);padding-top:10px">deep-dive = /api/brick/'+esc(b.brick_id)+' · thought thread is this brick\'s own relay messages; receipts are work it receipted; artifacts are files that provably belong to it.</div>';
+  $("pscroll").innerHTML=html;
+  var send=$("tsend"),inp=$("tmsg");
+  if(send)send.onclick=function(){
+    var body=(inp.value||"").trim();
+    if(!body){toast("say something first");return}
+    send.disabled=true;
+    fetch("/api/comms",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({body:body,to:b.brick_id})})
+      .then(function(r){return r.json()})
+      .then(function(j){
+        if(j.ok){inp.value="";toast("delivered to "+b.brick_id+" on the relay")}
+        else toast(j.error||"failed",true);
+        send.disabled=false;
+      }).catch(function(){send.disabled=false;toast("could not send",true)});
+  };
+  var cb=$("clonebtn");
+  if(cb)cb.onclick=function(){
+    cb.disabled=true;
+    fetch("/api/brick/clone?id="+encodeURIComponent(b.brick_id),{cache:"no-store"})
+      .then(function(r){return r.json()})
+      .then(function(j){
+        if(j.ok){toast("Cloned — new brick "+j.new_id+" registered");load()}
+        else toast(j.error||"clone failed",true);
+        cb.disabled=false;
+      }).catch(function(){cb.disabled=false;toast("could not clone",true)});
+  };
+}
+function fmtB(v){if(v==null)return "0";return Number(v).toLocaleString(undefined,{maximumFractionDigits:2})}
+
+/* ---------- invite modal ---------- */
+$("invite").onclick=function(){$("modal").classList.add("open")};
+$("mclose").onclick=function(){$("modal").classList.remove("open")};
+$("modal").addEventListener("click",function(e){if(e.target.id==="modal")$("modal").classList.remove("open")});
+$("back").onclick=function(){location.href="/"};
+
+/* ---------- boot ---------- */
+window.SESSION={};
+fetch("/api/floor",{cache:"no-store"}).then(function(r){
+  if(r.status===401){location.href="/login?next=/floor";return}
+  return r.json();
+}).then(function(d){
+  if(!d)return;
+  window.SESSION=d.session||{};
+  state.honesty=d.honesty;state.fleet=d.fleet;state.player=d.player;
+  state.events=d.events||[];state.relay=d.relay||[];
+  state.bricks=d.bricks||[];
+  layoutBricks();
+  renderHud();renderEvents();renderHonesty();
+}).catch(function(e){console.warn("floor boot",e)});
+resize();
+requestAnimationFrame(draw);
+document.addEventListener("visibilitychange",function(){if(!document.hidden)load()});
+</script>
+</body>
+</html>

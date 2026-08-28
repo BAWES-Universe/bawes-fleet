@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="640" viewBox="0 0 1000 640">
+<rect width="100%" height="100%" fill="#04060d"/>
+<text x="40" y="45" fill="#f5c542" font-size="22" font-family="monospace">FLEET CONNECTION GRAPH — LIVE @ 11:42:06</text>
+<text x="40" y="70" fill="#8892a6" font-size="14" font-family="monospace">green=LIVE (publishing) · red=STALE (not publishing) · edges=real collaboration evidence</text>
+<line x1="250" y1="160" x2="290" y2="420" stroke="#f5c542" stroke-width="2" stroke-dasharray="6,4" opacity="0.8"/>
+<line x1="250" y1="160" x2="395" y2="420" stroke="#f5c542" stroke-width="2" stroke-dasharray="6,4" opacity="0.8"/>
+<line x1="250" y1="160" x2="500" y2="420" stroke="#f5c542" stroke-width="2" stroke-dasharray="6,4" opacity="0.8"/>
+<line x1="250" y1="160" x2="605" y2="420" stroke="#f5c542" stroke-width="2" stroke-dasharray="6,4" opacity="0.8"/>
+<circle cx="250" cy="160" r="30" fill="none" stroke="#3dd6a4" stroke-width="3"/>
+<circle cx="250" cy="160" r="26" fill="#3dd6a4" opacity="0.15"/>
+<text x="250" y="122" fill="#e8e6e3" font-size="13" font-family="monospace" text-anchor="middle">ovh-server-001</text>
+<text x="250" y="208" fill="#3dd6a4" font-size="12" font-family="monospace" text-anchor="middle">LIVE</text>
+<circle cx="750" cy="160" r="30" fill="none" stroke="#3dd6a4" stroke-width="3"/>
+<circle cx="750" cy="160" r="26" fill="#3dd6a4" opacity="0.15"/>
+<text x="750" y="122" fill="#e8e6e3" font-size="13" font-family="monospace" text-anchor="middle">agi-local-001</text>
+<text x="750" y="208" fill="#3dd6a4" font-size="12" font-family="monospace" text-anchor="middle">LIVE</text>
+<circle cx="290" cy="420" r="30" fill="none" stroke="#e05252" stroke-width="3"/>
+<circle cx="290" cy="420" r="26" fill="#e05252" opacity="0.15"/>
+<text x="290" y="382" fill="#e8e6e3" font-size="13" font-family="monospace" text-anchor="middle">brick</text>
+<text x="290" y="468" fill="#e05252" font-size="12" font-family="monospace" text-anchor="middle">STALE</text>
+<text x="290" y="486" fill="#8892a6" font-size="11" font-family="monospace" text-anchor="middle">task×3</text>
+<circle cx="395" cy="420" r="30" fill="none" stroke="#e05252" stroke-width="3"/>
+<circle cx="395" cy="420" r="26" fill="#e05252" opacity="0.15"/>
+<text x="395" y="382" fill="#e8e6e3" font-size="13" font-family="monospace" text-anchor="middle">ox-alpha</text>
+<text x="395" y="468" fill="#e05252" font-size="12" font-family="monospace" text-anchor="middle">STALE</text>
+<text x="395" y="486" fill="#8892a6" font-size="11" font-family="monospace" text-anchor="middle">task×4</text>
+<circle cx="500" cy="420" r="30" fill="none" stroke="#e05252" stroke-width="3"/>
+<circle cx="500" cy="420" r="26" fill="#e05252" opacity="0.15"/>
+<text x="500" y="382" fill="#e8e6e3" font-size="13" font-family="monospace" text-anchor="middle">oxbaby</text>
+<text x="500" y="468" fill="#e05252" font-size="12" font-family="monospace" text-anchor="middle">STALE</text>
+<text x="500" y="486" fill="#8892a6" font-size="11" font-family="monospace" text-anchor="middle">task×4</text>
+<circle cx="605" cy="420" r="30" fill="none" stroke="#e05252" stroke-width="3"/>
+<circle cx="605" cy="420" r="26" fill="#e05252" opacity="0.15"/>
+<text x="605" y="382" fill="#e8e6e3" font-size="13" font-family="monospace" text-anchor="middle">ox-worker</text>
+<text x="605" y="468" fill="#e05252" font-size="12" font-family="monospace" text-anchor="middle">STALE</text>
+<text x="605" y="486" fill="#8892a6" font-size="11" font-family="monospace" text-anchor="middle">task×2</text>
+<circle cx="710" cy="420" r="30" fill="none" stroke="#e05252" stroke-width="3"/>
+<circle cx="710" cy="420" r="26" fill="#e05252" opacity="0.15"/>
+<text x="710" y="382" fill="#e8e6e3" font-size="13" font-family="monospace" text-anchor="middle">da</text>
+<text x="710" y="468" fill="#e05252" font-size="12" font-family="monospace" text-anchor="middle">STALE</text>
+<circle cx="815" cy="420" r="30" fill="none" stroke="#e05252" stroke-width="3"/>
+<circle cx="815" cy="420" r="26" fill="#e05252" opacity="0.15"/>
+<text x="815" y="382" fill="#e8e6e3" font-size="13" font-family="monospace" text-anchor="middle">rebel</text>
+<text x="815" y="468" fill="#e05252" font-size="12" font-family="monospace" text-anchor="middle">STALE</text>
+<circle cx="920" cy="420" r="30" fill="none" stroke="#e05252" stroke-width="3"/>
+<circle cx="920" cy="420" r="26" fill="#e05252" opacity="0.15"/>
+<text x="920" y="382" fill="#e8e6e3" font-size="13" font-family="monospace" text-anchor="middle">ux-captain</text>
+<text x="920" y="468" fill="#e05252" font-size="12" font-family="monospace" text-anchor="middle">STALE</text>
+<circle cx="1025" cy="420" r="30" fill="none" stroke="#e05252" stroke-width="3"/>
+<circle cx="1025" cy="420" r="26" fill="#e05252" opacity="0.15"/>
+<text x="1025" y="382" fill="#e8e6e3" font-size="13" font-family="monospace" text-anchor="middle">velocity-captain</text>
+<text x="1025" y="468" fill="#e05252" font-size="12" font-family="monospace" text-anchor="middle">STALE</text>
+</svg>

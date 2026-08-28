@@ -1,0 +1,162 @@
+#!/usr/bin/env python3
+"""fleet-data MCP server v2 — reads fleet data files DIRECTLY on the box
+(filesystem source, no auth'd API dependency). Streamable HTTP + Bearer auth."""
+import os
+import sys
+
+TOKEN = os.environ.get("FLEET_MCP_TOKEN", "fleet-mcp-brick-b94d2f18")
+HOST = os.environ.get("FLEET_MCP_HOST", "0.0.0.0")
+PORT = int(os.environ.get("FLEET_MCP_PORT", "8004"))
+
+# Fleet machine identity (2026-08-25): the scoped agent bearer token
+# (/srv/vault/fleet-tokens/agent-api.token, 0600) is accepted too, so fleet
+# agents authenticate to MCP like logged-in citizens.
+AGENT_TOKEN_FILE = "/srv/vault/fleet-tokens/agent-api.token"
+
+
+def _agent_token():
+    try:
+        with open(AGENT_TOKEN_FILE) as f:
+            return f.read().strip()
+    except Exception:
+        return ""
+
+# DNS rebinding patch (brick-ask pattern)
+from mcp.server.transport_security import TransportSecurityMiddleware
+async def _patched_validate(self, request, is_post=False):
+    return None
+TransportSecurityMiddleware.validate_request = _patched_validate
+
+from mcp.server.fastmcp import FastMCP
+import json
+
+mcp = FastMCP("Fleet Data", instructions="""
+BAWES fleet live data. Tools:
+1. get_brick_status() - which bricks are alive/active/verified, counts
+2. get_burn() - spend: free vs paid, projected daily, lifetime
+3. get_epics() - epics on the board with owner and status
+4. get_bottlenecks() - latest bottleneck flags from the ecosystem engine
+5. get_spawns() - latest brick spawns
+6. get_earns() - recent banana earns (verified work)
+7. search_memory(query) - search the fleet vector store
+All return structured JSON. Start with get_brick_status() for the big picture.
+""")
+
+# ---- direct file sources (read-only) ----
+WALLET = "/srv/bricks/register/wallet.jsonl"
+REGISTRY = "/srv/bricks/register/registry.jsonl"
+BOTTLENECKS = "/srv/bricks/register/bottlenecks.jsonl"
+SPAWNS = "/srv/bricks/register/spawns.jsonl"
+VECTOR = "/srv/bricks/orchestrator/vector-store.json"
+
+def _read_jsonl(path, last_n=0):
+    rows = []
+    try:
+        with open(path) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rows.append(json.loads(line))
+                except Exception:
+                    pass
+    except Exception:
+        return []
+    return rows[-last_n:] if last_n else rows
+
+def _read_json(path):
+    try:
+        return json.load(open(path))
+    except Exception:
+        return {}
+
+@mcp.tool()
+def get_brick_status() -> str:
+    """Which bricks are alive/active/verified. Returns structured JSON."""
+    reg = _read_jsonl(REGISTRY)
+    ids = {}
+    for r in reg:
+        bid = r.get("brick_id") or r.get("id")
+        if bid:
+            ids[bid] = r
+    active = [bid for bid, r in ids.items() if r.get("status") in ("active", "verified", "running")]
+    return json.dumps({"total_registered": len(ids),
+                       "active_or_verified": len(active),
+                       "brick_ids_sample": sorted(ids)[:10]})
+
+@mcp.tool()
+def get_burn() -> str:
+    """Fleet spend summary from wallet + registry. JSON."""
+    w = _read_jsonl(WALLET)
+    earns = [x for x in w if x.get("kind") == "earn"]
+    opens = [x for x in w if x.get("kind") == "wallet-open"]
+    return json.dumps({"total_wallet_rows": len(w), "earns": len(earns),
+                       "wallet_opens": len(opens),
+                       "note": "burn panel lives in the auth dashboard"})
+
+@mcp.tool()
+def get_epics() -> str:
+    """Epics on the fleet board. Reads kanban SQLite via hermes kanban list."""
+    import subprocess
+    try:
+        out = subprocess.run(["hermes", "kanban", "list", "--json"], cwd="/srv/bricks",
+                             capture_output=True, text=True, timeout=15)
+        if out.returncode == 0:
+            return out.stdout[:2000]
+        return json.dumps({"error": out.stderr[:200]})
+    except Exception as e:
+        return json.dumps({"error": str(e)[:150]})
+
+@mcp.tool()
+def get_bottlenecks() -> str:
+    """Latest bottleneck flags from the ecosystem engine. JSON list."""
+    return json.dumps(_read_jsonl(BOTTLENECKS, 8))
+
+@mcp.tool()
+def get_spawns() -> str:
+    """Latest brick spawns. JSON list."""
+    return json.dumps(_read_jsonl(SPAWNS, 5))
+
+@mcp.tool()
+def get_earns() -> str:
+    """Recent banana earns (verified work). JSON list."""
+    w = _read_jsonl(WALLET)
+    earns = [x for x in w if x.get("kind") == "earn"][-10:]
+    return json.dumps(earns)
+
+@mcp.tool()
+def search_memory(query: str) -> str:
+    """Search the fleet vector store (shared brain). Returns top matches."""
+    d = _read_json(VECTOR)
+    docs = d.get("docs", [])
+    q = query.lower()
+    hits = [x for x in docs if q in str(x.get("text", "")).lower() or q in str(x.get("topic", "")).lower()]
+    out = [{"topic": x.get("topic"), "text": str(x.get("text"))[:200]} for x in hits[:5]]
+    return json.dumps(out)
+
+# ---- server wrapper with auth ----
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse
+
+class BearerAuthMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        if request.url.path in ("/health", "/health/"):
+            return JSONResponse({"status": "ok", "service": "fleet-data-mcp"})
+        auth = request.headers.get("Authorization", "")
+        if not auth.startswith("Bearer "):
+            return JSONResponse({"error": "Missing authorization - Bearer token"}, status_code=403)
+        presented = auth.removeprefix("Bearer ").strip()
+        if not presented or (presented != TOKEN and presented != _agent_token()):
+            return JSONResponse({"error": "Invalid token"}, status_code=403)
+        return await call_next(request)
+
+mcp.settings.stateless_http = True
+app = mcp.streamable_http_app()
+app.add_middleware(BearerAuthMiddleware)
+
+if __name__ == "__main__":
+    import uvicorn
+    print(f"Fleet-data MCP: http://{HOST}:{PORT}/mcp", file=sys.stderr)
+    print(f"Health: http://{HOST}:{PORT}/health", file=sys.stderr)
+    uvicorn.run(app, host=HOST, port=PORT, log_level="info")

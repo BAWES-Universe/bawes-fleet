@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FLEET COMMAND — BAWES</title>
+<style>
+:root{--bg:#04060d;--card:#0b1220;--gold:#f5c542;--teal:#3dd6a4;--red:#e05252;--dim:#8892a6;--txt:#e8e6e3}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--txt);font-family:ui-monospace,monospace;padding:24px;max-width:1200px;margin:0 auto}
+h1{color:var(--gold);font-size:22px;letter-spacing:1px}
+.sub{color:var(--dim);font-size:12px;margin:6px 0 20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid #1c2740;border-radius:10px;padding:14px}
+.card .name{font-size:14px;color:var(--txt);font-weight:bold}
+.card .role{color:var(--dim);font-size:11px;margin:2px 0 8px}
+.pill{display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;margin-bottom:8px}
+.live{background:rgba(61,214,164,.15);color:var(--teal);border:1px solid var(--teal)}
+.idle{background:rgba(245,197,66,.12);color:var(--gold);border:1px solid var(--gold)}
+.off{background:rgba(224,82,82,.12);color:var(--red);border:1px solid var(--red)}
+.hw{font-size:11px;color:var(--dim);margin:4px 0}
+.task{font-size:11px;color:var(--txt);border-top:1px solid #1c2740;padding-top:8px;min-height:30px}
+.evol{margin-top:24px;background:var(--card);border:1px solid #1c2740;border-radius:10px;padding:16px}
+.evol h2{color:var(--teal);font-size:14px;margin-bottom:10px}
+.evol .item{font-size:12px;color:var(--txt);padding:6px 0;border-bottom:1px solid #101a2e;display:flex;justify-content:space-between;gap:10px}
+.evol .item .t{color:var(--dim)}
+.stamp{color:var(--dim);font-size:10px;margin-top:16px;text-align:center}
+</style>
+</head>
+<body>
+<h1>⚡ FLEET COMMAND</h1>
+<div class="sub">Every brick · what they're working on · evolution — live, one screen · updated <span id="ago">now</span></div>
+<div id="grid" class="grid"><div class="card">loading fleet…</div></div>
+<div id="evol" class="evol"><h2>🌱 EVOLUTION</h2><div id="evolItems" class="item">loading…</div></div>
+<div class="stamp">fleet.bawes.net/fleet · data: /api/fleet + canonical report + spawns/findings · refreshes every 10s</div>
+<script>
+async function load(){
+  try{
+    const [net, rep] = await Promise.all([
+      fetch('/api/fleet').then(r=>r.json()).catch(()=>null),
+      fetch('/api/fleet/report').then(r=>r.json()).catch(()=>null)
+    ]);
+    const members = (net && net.members) || [];
+    let bricks = members.map(m=>({
+      id:m.brick_id, status:m.status||'LIVE',
+      hw:((m.cpu?m.cpu+'c ':'')+(m.ram_mb?m.ram_mb+'MB ':'')+'').trim()||'—',
+      task:m.working_on||'—'
+    }));
+    const box = await fetch('/api/fleet/report').then(r=>r.text()).catch(()=> '');
+    const grid=document.getElementById('grid');
+    if(!bricks.length){ grid.innerHTML='<div class="card">network empty — bricks join via POST /api/telemetry</div>'; }
+    else{
+      grid.innerHTML=bricks.map(b=>`
+        <div class="card">
+          <div class="name">${b.id}</div>
+          <div class="role">${b.hw}</div>
+          <span class="pill ${b.status==='LIVE'?'live':'off'}">${b.status}</span>
+          <div class="task">🛠 ${b.task}</div>
+        </div>`).join('');
+    }
+    const ev=document.getElementById('evolItems');
+    ev.innerHTML='<div class="item"><span>network members</span><span class="t">'+members.length+'</span></div>';
+  }catch(e){ document.getElementById('grid').innerHTML='<div class="card">error: '+e.message+'</div>'; }
+  document.getElementById('ago').textContent='just now';
+}
+load(); setInterval(load, 10000);
+</script>
+</body>
+</html>

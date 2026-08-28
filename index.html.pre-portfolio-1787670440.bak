@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0e14">
+<title>BAWES Fleet — one screen, live</title>
+<style>
+:root{
+  --bg:#0b0e14; --bg2:#10141c; --card:#131926; --card2:#1a2233; --line:#263041;
+  --txt:#eef2f8; --dim:#9aa7ba; --faint:#64748b;
+  --gold:#f5b942; --gold2:#ffd97a;
+  --green:#3dd6a4; --green-dim:rgba(61,214,164,.14);
+  --amber:#f5b942; --amber-dim:rgba(245,185,66,.13);
+  --red:#ff6b7a; --red-dim:rgba(255,107,122,.13);
+  --blue:#6fb1ff;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;
+  --mono:"SF Mono","JetBrains Mono",Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,textarea{font-family:var(--sans);-webkit-tap-highlight-color:transparent}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:680px;margin:0 auto;padding:0 16px 72px}
+
+/* ---------- header ---------- */
+header{position:sticky;top:0;z-index:50;background:rgba(11,14,20,.86);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.hrow{max-width:680px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:10px}
+.mark{width:36px;height:36px;border-radius:10px;flex-shrink:0;background:radial-gradient(circle at 30% 25%,#2a2410,#14100a 70%);border:1px solid #4d3d14;display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--gold);font-size:15px;box-shadow:0 0 18px rgba(245,185,66,.14) inset}
+.word{font-size:17px;font-weight:800;letter-spacing:2.2px;line-height:1.1}
+.word span{color:var(--gold)}
+.tag{font-size:10.5px;color:var(--dim);letter-spacing:.3px}
+.hright{margin-left:auto;display:flex;align-items:center;gap:8px}
+.clock{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:5px 10px;min-height:40px;line-height:1.2}
+.clock .c{font-family:var(--mono);font-size:14.5px;font-weight:700;color:var(--green)}
+.clock .c-t{font-family:var(--mono);font-size:9px;color:var(--faint);letter-spacing:.3px}
+.navpill{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);color:var(--dim);font-size:12.5px;font-weight:700;border-radius:999px;padding:8px 13px;min-height:40px}
+.navpill:active{transform:scale(.97)}
+.navpill .n{color:var(--gold);font-family:var(--mono);font-size:12px}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot.live{background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite}
+.dot.idle{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+.dot.silent{background:var(--red);box-shadow:0 0 8px var(--red)}
+.dot.amber{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+@keyframes pulse{50%{opacity:.35}}
+
+/* ---------- beats ---------- */
+.beat{margin-top:26px}
+.beat-k{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+.beat-k .num{font-family:var(--mono);font-size:12px;color:var(--gold);letter-spacing:2px}
+.beat-k h2{font-size:12.5px;font-weight:800;letter-spacing:2.4px;text-transform:uppercase;color:var(--txt)}
+.beat-k .q{margin-left:auto;font-size:12px;color:var(--faint)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px}
+.card+.card{margin-top:12px}
+
+/* ---------- beat 1: fleet pulse ---------- */
+.agent{display:flex;align-items:center;gap:13px;padding:13px 2px;border-bottom:1px solid rgba(38,48,65,.6)}
+.agent:last-of-type{border-bottom:none}
+.agent .who{flex:1;min-width:0}
+.agent .nm{font-size:16px;font-weight:800;letter-spacing:.2px}
+.agent .dt{font-size:12.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.state{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:6px 13px;font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;flex-shrink:0}
+.s-live{background:var(--green-dim);color:var(--green);border:1px solid rgba(61,214,164,.4)}
+.s-idle{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(245,185,66,.4)}
+.s-silent{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,107,122,.4)}
+.working{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.wchip{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:9px 12px;font-size:13px;color:var(--txt);flex:1 1 100%;line-height:1.4}
+.wchip b{display:block;font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);margin-bottom:2px}
+.wchip .who2{color:var(--gold);font-weight:700}
+.mini{display:flex;gap:10px;margin-top:12px}
+.mini .m{flex:1;min-width:0;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.mini .mv{font-size:26px;font-weight:800;letter-spacing:.3px;line-height:1.1;overflow-wrap:break-word}
+.mini .mv small{font-size:13px;color:var(--dim);font-weight:600}
+.mini .ml{font-size:11px;color:var(--faint);margin-top:3px;letter-spacing:.6px;text-transform:uppercase;font-weight:700;overflow-wrap:break-word}
+.mini .mv.g{color:var(--gold)} .mini .mv.t{color:var(--green)} .mini .mv.b{color:var(--blue)}
+.mini4{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.mini4 .m{min-width:0;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.prlist{margin-top:10px}
+.pr{display:flex;gap:9px;align-items:baseline;padding:7px 2px;font-size:13.5px;border-bottom:1px solid rgba(38,48,65,.4)}
+.pr:last-child{border-bottom:none}
+.pr .no{font-family:var(--mono);font-size:11.5px;color:var(--faint);flex-shrink:0}
+.pr .ok{margin-left:auto;color:var(--green);font-size:11px;font-weight:800;letter-spacing:.8px;flex-shrink:0}
+
+/* ---------- beat 2: money truth ---------- */
+.hero-money{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.big-money{font-size:46px;font-weight:800;letter-spacing:-.5px;line-height:1;color:var(--gold)}
+.big-money small{font-size:14px;color:var(--dim);font-weight:600;letter-spacing:0}
+.money-lbl{font-size:12px;color:var(--faint);letter-spacing:1.2px;text-transform:uppercase;font-weight:800}
+.bar{margin-top:16px}
+.bar .track{height:18px;background:var(--bg2);border:1px solid var(--line);border-radius:999px;overflow:hidden;display:flex}
+.bar .seg{height:100%}
+.bar .seg.spent{background:linear-gradient(90deg,#b45309,#f59e0b)}
+.bar .seg.left{background:linear-gradient(90deg,#10b981,#3dd6a4)}
+.bar .legend{display:flex;gap:18px;margin-top:9px;font-size:12px;color:var(--dim);flex-wrap:wrap}
+.bar .legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.tile{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:13px 14px}
+.tile .tv{font-size:21px;font-weight:800;letter-spacing:.2px}
+.tile .tv small{font-size:12px;color:var(--faint);font-weight:600}
+.tile .tl{font-size:10.5px;color:var(--faint);letter-spacing:.8px;text-transform:uppercase;font-weight:700;margin-top:2px}
+.roi{background:var(--card2);border:1px solid rgba(245,185,66,.35);border-radius:14px;padding:14px 16px;margin-top:14px}
+.roi .rhead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.roi .rmult{font-size:28px;font-weight:800;color:var(--gold);letter-spacing:.3px}
+.roi .rmult small{font-size:12px;color:var(--dim);font-weight:600}
+.roi .rlabel{font-size:12.5px;color:var(--dim);margin-top:4px;line-height:1.5}
+.roi .rnote{font-size:11px;color:var(--faint);margin-top:6px}
+.honest{font-size:12.5px;color:var(--faint);margin-top:14px;line-height:1.55;border-top:1px dashed var(--line);padding-top:12px}
+.honest b{color:var(--dim)}
+.bananas{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.bchip{border:1px solid var(--line);background:var(--card2);border-radius:999px;padding:7px 13px;font-size:12.5px;color:var(--dim)}
+.bchip b{color:var(--gold)}
+
+/* ---------- beat 3: needs you ---------- */
+.need-card{border-left:4px solid var(--amber)}
+.need-card .ttl{font-size:16.5px;font-weight:800;line-height:1.35}
+.need-card .meta{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px;align-items:center}
+.mchip{font-family:var(--mono);font-size:11px;color:var(--dim);border:1px solid var(--line);background:var(--bg2);border-radius:999px;padding:3px 10px}
+.mchip.g{color:var(--gold)}
+.need-card .row{margin-top:11px;font-size:13.5px;color:var(--dim)}
+.need-card .row b{display:block;font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--faint);margin-bottom:2px}
+.acts{display:flex;gap:9px;margin-top:14px;flex-wrap:wrap}
+.btn{flex:1;min-width:110px;min-height:50px;border-radius:13px;border:1px solid var(--line);background:var(--card2);color:var(--txt);font-size:14.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;cursor:pointer}
+.btn:active{transform:scale(.97)}
+.btn.approve{background:var(--green-dim);border-color:rgba(61,214,164,.5);color:var(--green)}
+.btn.reject{background:var(--red-dim);border-color:rgba(255,107,122,.5);color:var(--red)}
+.btn.feedback{background:var(--amber-dim);border-color:rgba(245,185,66,.45);color:var(--amber)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.fbwrap{display:none;margin-top:10px}
+.fbwrap.open{display:block}
+textarea{width:100%;min-height:84px;background:var(--bg2);color:var(--txt);border:1px solid var(--line);border-radius:13px;padding:12px 14px;font-size:16px;resize:vertical}
+textarea:focus{outline:none;border-color:var(--gold)}
+.fbsend{width:100%;margin-top:8px;background:linear-gradient(180deg,var(--gold2),var(--gold));color:#1a1204;border:none}
+.allgood{display:flex;align-items:center;gap:10px;background:var(--green-dim);border:1px solid rgba(61,214,164,.35);color:var(--green);border-radius:14px;padding:14px 16px;font-size:14px;font-weight:700}
+.readonly{font-size:12.5px;color:var(--faint);margin-top:12px;font-style:italic}
+/* message box */
+.sendbox{margin-top:14px}
+.sendbox .lbl2{font-size:11px;color:var(--faint);letter-spacing:1.4px;text-transform:uppercase;font-weight:800;margin-bottom:7px}
+.sendbox .send{width:100%;min-height:54px;margin-top:10px;border-radius:14px;background:linear-gradient(180deg,var(--gold2),var(--gold));color:#1a1204;font-size:16px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;border:none}
+.sendbox .send:disabled{opacity:.5}
+.feed{margin-top:14px}
+.fitem{display:flex;gap:10px;padding:10px 2px;border-bottom:1px solid rgba(38,48,65,.4);font-size:13.5px}
+.fitem:last-child{border-bottom:none}
+.fitem .who3{flex-shrink:0;font-weight:800;color:var(--gold);font-size:12.5px;min-width:52px}
+.fitem .fb{color:var(--dim);line-height:1.45;min-width:0;word-break:break-word}
+.fitem .fb .t{color:var(--faint);font-family:var(--mono);font-size:10.5px;display:block;margin-top:2px}
+
+/* ---------- beat 4: every brick (who / utilization / burn) ---------- */
+.alivenow{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.alivenow .an{flex:1;min-width:130px;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.alivenow .an .av{font-size:22px;font-weight:800;letter-spacing:.2px;line-height:1.15}
+.alivenow .an .av small{font-size:12px;color:var(--dim);font-weight:600}
+.alivenow .an .al2{font-size:10.5px;color:var(--faint);letter-spacing:.8px;text-transform:uppercase;font-weight:700;margin-top:3px}
+.taskline{font-size:12.5px;color:var(--dim);margin-top:4px;line-height:1.45}
+.taskline b{color:var(--gold);font-weight:700}
+.utilwrap{display:flex;align-items:center;gap:10px;margin-top:7px}
+.utilbar{flex:1;height:8px;border-radius:999px;background:var(--bg2);border:1px solid var(--line);overflow:hidden}
+.utilbar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#10b981,#3dd6a4)}
+.utilpct{font-family:var(--mono);font-size:12px;color:var(--dim);min-width:46px;text-align:right}
+.burnchip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--bg2);border-radius:999px;padding:4px 10px;font-size:11px;color:var(--faint);font-family:var(--mono)}
+.regrow{display:flex;align-items:center;gap:10px;padding:8px 2px;border-bottom:1px solid rgba(38,48,65,.4);font-size:12.5px}
+.regrow:last-child{border-bottom:none}
+.regrow .rid{font-family:var(--mono);font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rpill{flex-shrink:0;font-size:9.5px;font-weight:800;letter-spacing:.8px;border-radius:999px;padding:3px 9px;text-transform:uppercase}
+.rpill.live{background:var(--green-dim);color:var(--green)}
+.rpill.idle{background:var(--amber-dim);color:var(--amber)}
+.rpill.silent{background:var(--red-dim);color:var(--red)}
+.rpill.nosig{background:var(--bg2);color:var(--faint);border:1px solid var(--line)}
+
+/* ---------- beat 5: accomplishments ---------- */
+.ach{display:flex;gap:11px;padding:11px 2px;border-bottom:1px solid rgba(38,48,65,.4)}
+.ach:last-child{border-bottom:none}
+.ach .ab{font-size:16px;flex-shrink:0;padding-top:1px}
+.ach .al{min-width:0}
+.ach .al .at{font-size:13.5px;line-height:1.45;word-break:break-word}
+.ach .al .am{font-size:11px;color:var(--faint);margin-top:3px}
+.tagc{display:inline-block;font-size:9px;font-weight:800;letter-spacing:1px;border-radius:999px;padding:2px 7px;margin-left:6px;vertical-align:1px}
+.tagc.contested{background:var(--red-dim);color:var(--red)}
+.donefeed{margin-top:4px}
+.dfrow{display:flex;gap:10px;padding:9px 2px;border-bottom:1px solid rgba(38,48,65,.4);font-size:12.5px;align-items:baseline}
+.dfrow:last-child{border-bottom:none}
+.dfrow .dd{font-family:var(--mono);font-size:11px;color:var(--gold);flex-shrink:0;width:54px}
+.dfrow .di{color:var(--dim);line-height:1.5}
+.dfrow .di b{color:var(--txt);font-weight:700}
+
+/* ---------- beat 6: epics + velocity ---------- */
+.epicrow{padding:12px 2px;border-bottom:1px solid rgba(38,48,65,.6)}
+.epicrow:last-of-type{border-bottom:none}
+.epicrow .et{font-size:14px;font-weight:700;line-height:1.4}
+.epicrow .em{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px;align-items:center}
+.ochip{font-family:var(--mono);font-size:10.5px;border-radius:999px;padding:3px 10px;border:1px solid var(--line);background:var(--card2);color:var(--dim)}
+.ochip.brick{color:var(--green);border-color:rgba(61,214,164,.4)}
+.ochip.agi{color:var(--blue);border-color:rgba(111,177,255,.4)}
+.ochip.ox{color:var(--gold);border-color:rgba(245,185,66,.4)}
+.ochip.open{color:var(--faint)}
+.eta{font-size:10.5px;color:var(--faint);border:1px dashed var(--line);border-radius:999px;padding:3px 9px;font-family:var(--mono)}
+.epicrow .raw{font-size:11px;color:var(--faint);margin-top:5px;line-height:1.4}
+
+/* ---------- beat 7: burn / cut burn (v5) ---------- */
+.lane-row{display:flex;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid rgba(38,48,65,.6)}
+.lane-row:last-of-type{border-bottom:none}
+.lane-row .ln{flex:1;min-width:0}
+.lane-row .nm2{font-size:15px;font-weight:800}
+.lane-row .dt2{font-size:11.5px;color:var(--faint);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tagf{display:inline-block;font-size:10px;font-weight:800;letter-spacing:1px;border-radius:999px;padding:2px 8px;margin-left:6px;vertical-align:2px}
+.tagf.free{background:var(--green-dim);color:var(--green)}
+.tagf.paid{background:var(--red-dim);color:var(--red)}
+.tagf.off{background:var(--bg2);color:var(--faint)}
+.pausebadge{display:inline-block;font-size:10px;font-weight:800;letter-spacing:1px;background:var(--red-dim);color:var(--red);border-radius:999px;padding:2px 8px;margin-left:6px;vertical-align:2px}
+.switch{position:relative;width:52px;height:30px;flex-shrink:0;cursor:pointer}
+.switch input{opacity:0;width:0;height:0;position:absolute}
+.switch .tr2{position:absolute;inset:0;border-radius:999px;background:var(--bg2);border:1px solid var(--line);transition:.18s;pointer-events:none}
+.switch .tr2:before{content:"";position:absolute;width:22px;height:22px;border-radius:50%;background:var(--faint);top:3px;left:3px;transition:.18s}
+.switch input:checked + .tr2{background:rgba(61,214,164,.22);border-color:rgba(61,214,164,.55)}
+.switch input:checked + .tr2:before{background:var(--green);transform:translateX(22px)}
+.burnhero{display:flex;gap:10px;flex-wrap:wrap}
+.burnhero .bh{flex:1;min-width:130px;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.burnhero .bh .bv{font-size:23px;font-weight:800;letter-spacing:.2px;line-height:1.15}
+.burnhero .bh .bv small{font-size:12px;color:var(--dim);font-weight:600}
+.burnhero .bh .bl{font-size:10.5px;color:var(--faint);letter-spacing:.8px;text-transform:uppercase;font-weight:700;margin-top:3px}
+.splitbar{display:flex;height:16px;border-radius:999px;overflow:hidden;border:1px solid var(--line);margin-top:14px}
+.splitbar .free{background:linear-gradient(90deg,#10b981,#3dd6a4)}
+.splitbar .paid{background:linear-gradient(90deg,#b45309,#f59e0b)}
+.splitlegend{display:flex;gap:16px;margin-top:8px;font-size:12px;color:var(--dim);flex-wrap:wrap}
+.splitlegend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px}
+.freechips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.freechip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card2);border-radius:999px;padding:6px 11px;font-size:12px;color:var(--dim)}
+.freechip b{color:var(--green)}
+
+/* ---------- footer ---------- */
+footer{margin-top:40px;border-top:1px solid var(--line);padding-top:16px;font-size:12px;color:var(--faint);line-height:1.7}
+footer b{color:var(--dim)}
+footer .mono{font-family:var(--mono);font-size:11px;word-break:break-all}
+.msg{font-size:13.5px;padding:14px 16px;border-radius:13px;margin-top:12px}
+.msg.err{background:var(--red-dim);border:1px solid rgba(255,107,122,.4);color:var(--red)}
+.msg.ok{background:var(--green-dim);border:1px solid rgba(61,214,164,.35);color:var(--green)}
+.loading{color:var(--faint);font-size:13.5px;padding:26px 0;text-align:center}
+
+/* ---------- beat 9: the net ---------- */
+.net-tiles{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.net-tiles .nt{flex:1;min-width:96px;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:11px 13px}
+.net-tiles .nt .nv{font-size:21px;font-weight:800;letter-spacing:.2px;line-height:1.15}
+.net-tiles .nt .nv small{font-size:11.5px;color:var(--dim);font-weight:600}
+.net-tiles .nt .nl{font-size:10px;color:var(--faint);letter-spacing:.7px;text-transform:uppercase;font-weight:700;margin-top:3px}
+.netstage{position:relative;border:1px solid var(--line);border-radius:16px;background:radial-gradient(ellipse at 50% 28%,#101c2e 0%,#0b0e14 78%);overflow:hidden}
+#net-canvas{display:block;width:100%;height:430px;touch-action:manipulation}
+.net-hint{position:absolute;left:10px;bottom:8px;font-size:10.5px;color:var(--faint);pointer-events:none;letter-spacing:.3px;max-width:80%}
+.netpanel{display:none;margin-top:12px;border:1px solid rgba(245,185,66,.4);border-radius:16px;background:var(--card2);padding:14px 16px}
+.netpanel.open{display:block}
+.netpanel .np-id{font-family:var(--mono);font-size:15px;font-weight:800;color:var(--gold);word-break:break-all}
+.netpanel .np-meta{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px;align-items:center}
+.netpanel .np-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px}
+.netpanel .np-stats .ns{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:9px 11px;min-width:0}
+.netpanel .np-stats .ns .nsv{font-size:16px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.netpanel .np-stats .ns .nsl{font-size:9.5px;color:var(--faint);letter-spacing:.7px;text-transform:uppercase;font-weight:700;margin-top:1px}
+.netpanel .np-kids{margin-top:12px}
+.netpanel .np-kids .kchip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--bg2);border-radius:999px;padding:5px 11px;font-size:11.5px;color:var(--dim);cursor:pointer;margin:0 6px 6px 0;max-width:100%}
+.netpanel .np-kids .kchip:active{transform:scale(.97)}
+.netpanel .np-kids .kchip b{color:var(--txt);font-family:var(--mono);font-weight:700;overflow:hidden;text-overflow:ellipsis}
+.netpanel .np-parent{font-size:12px;color:var(--faint);margin-top:10px}
+.netpanel .np-parent a{color:var(--gold)}
+.nettable{margin-top:12px;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.nettable .nt-row{display:flex;flex-direction:column;gap:5px;padding:11px 14px;border-bottom:1px solid rgba(38,48,65,.5)}
+.nettable .nt-row:last-child{border-bottom:none}
+.nettable .nt-row .l1{display:flex;align-items:center;gap:9px;min-width:0}
+.nettable .nt-row .l1 .bid{font-family:var(--mono);font-size:12.5px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nettable .nt-row .l2{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;color:var(--faint);line-height:1.5}
+.nettable .nt-row .l2 b{color:var(--dim);font-family:var(--mono);font-weight:600}
+.npill{flex-shrink:0;font-size:9px;font-weight:800;letter-spacing:.8px;border-radius:999px;padding:3px 9px;text-transform:uppercase}
+.npill.active{background:var(--amber-dim);color:var(--gold);border:1px solid rgba(245,185,66,.45)}
+.npill.verified{background:var(--green-dim);color:var(--green);border:1px solid rgba(61,214,164,.4)}
+.npill.retiring{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,107,122,.4)}
+.npill.retired{background:var(--bg2);color:var(--faint);border:1px solid var(--line)}
+.npill.parked{background:var(--bg2);color:var(--faint);border:1px solid var(--line)}
+.npill.registered{background:rgba(111,177,255,.1);color:var(--blue);border:1px solid rgba(111,177,255,.35)}
+@media(min-width:720px){
+  .netpanel .np-stats{grid-template-columns:repeat(3,1fr)}
+  #net-canvas{height:480px}
+}
+
+@media(min-width:560px){
+  .wchip{flex:1 1 calc(50% - 4px)}
+  .tiles{grid-template-columns:repeat(4,1fr)}
+}
+@media(max-width:520px){
+  .hrow{flex-wrap:wrap;padding:8px 10px;gap:6px}
+  .tag{display:none}
+  .mark{width:32px;height:32px;font-size:13px}
+  .word{font-size:15px;letter-spacing:1.8px}
+  .clock{padding:3px 8px;min-height:34px}
+  .clock .c{font-size:12.5px}
+  .navpill{padding:6px 10px;min-height:36px;font-size:11.5px}
+  .hright{gap:6px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hrow">
+    <div class="mark">B</div>
+    <div>
+      <div class="word">BAW<span>ES</span> FLEET</div>
+      <div class="tag">People and AI Living Together</div>
+    </div>
+    <div class="hright">
+      <div class="clock"><span class="c" id="clock">--:--:--</span><span class="c-t" id="genat">data –</span></div>
+      <a class="navpill" href="/approvals" id="ap-pill"><span class="dot amber" id="ap-dot"></span>Needs you <span class="n" id="ap-count">–</span></a>
+      <a class="navpill" href="/comms">Messages</a>
+    </div>
+  </div>
+</header>
+
+<div class="wrap" id="app">
+  <div class="loading">Waking the fleet…</div>
+</div>
+
+<footer>
+  <div id="foot"></div>
+</footer>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const num=v=>{const n=typeof v==="number"?v:parseFloat(v);return isFinite(n)?n:null};
+const fmtU=v=>v==null?"—":"$"+Number(v).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtN=v=>v==null?"—":Number(v).toLocaleString("en-US");
+const ago=sec=>{if(sec==null)return"—";if(sec<90)return"just now";if(sec<3600)return Math.round(sec/60)+" min ago";if(sec<86400)return Math.round(sec/3600)+" h ago";return Math.round(sec/86400)+" d ago"};
+const stateTag=s=>{
+  const up=(s||"").toUpperCase();
+  if(up==="LIVE")return'<span class="state s-live"><span class="dot live"></span>Live now</span>';
+  if(up==="IDLE")return'<span class="state s-idle"><span class="dot idle"></span>Idle</span>';
+  if(up==="SILENT")return'<span class="state s-silent"><span class="dot silent"></span>Silent</span>';
+  if(up==="NO SIGNAL")return'<span class="state s-silent"><span class="dot silent"></span>No signal</span>';
+  return'<span class="state s-idle"><span class="dot amber"></span>'+esc(s||"?")+'</span>';
+};
+const plainStatus=s=>{
+  const t=(s||"").toLowerCase();
+  if(t.startsWith("live"))return"working";
+  if(t.startsWith("in progress"))return"working";
+  if(t.startsWith("in flight"))return"working";
+  if(t.startsWith("watching"))return"working";
+  if(t.startsWith("claimed"))return"working";
+  if(t.startsWith("wrote"))return"working";
+  if(t.startsWith("done"))return"done";
+  return"queued";
+};
+const statusClass=s=>{const p=plainStatus(s);return p==="working"?"s-live":p==="done"?"s-idle":"s-silent"};
+const statusWord=s=>{const p=plainStatus(s);return p==="working"?"Working":p==="done"?"Done":"On the list"};
+const dayShort=d=>{if(!d)return"—";const m={ "01":"Jan","02":"Feb","03":"Mar","04":"Apr","05":"May","06":"Jun","07":"Jul","08":"Aug","09":"Sep","10":"Oct","11":"Nov","12":"Dec"};const p=String(d).split("-");return (m[p[1]]||p[1])+" "+p[2]};
+
+let session={user:null,role:null};
+
+/* ---------------- beat 1: fleet pulse ---------------- */
+function renderPulse(d){
+  const fl=d.fleets||{};
+  const names=Object.keys(fl);
+  const rows=names.map(n=>{
+    const v=fl[n]||{};
+    const up=(v.status||"").toUpperCase();
+    const cls=up==="LIVE"?"live":up==="IDLE"?"idle":"silent";
+    const when=v.signal_min!=null?ago(v.signal_min*60):"no signal on this box yet";
+    return '<div class="agent"><div class="who"><div class="nm">'+esc(n)+'</div>'+
+      '<div class="dt">'+esc(v.detail||"")+' · signalled '+when+'</div></div>'+
+      stateTag(v.status)+'</div>';
+  }).join("");
+  const ep=(d.epics&&d.epics.epics)||[];
+  const inflight=ep.filter(e=>/live|in progress|watching|in flight|claimed|wrote/i.test(e.status||"")).slice(0,4);
+  const work=inflight.length
+    ? inflight.map(e=>'<div class="wchip"><b>'+statusWord(e.status)+' · '+esc(e.owner)+'</b>'+esc(e.task)+
+        '<span style="color:var(--faint);font-size:11.5px;display:block;margin-top:3px">'+esc(e.status)+'</span></div>').join("")
+    : '<div class="wchip"><b>Working</b>nothing marked in flight right now — queue is quiet</div>';
+  const vel=d.velocity||{};
+  const open=(vel.open||[]).slice(0,4);
+  const prs=open.length
+    ? open.map(p=>'<div class="pr"><span class="no">#'+esc(p.number)+'</span><span style="min-width:0">'+esc(p.title)+'</span>'+
+        ((p.ci&&p.ci.state==="success")?'<span class="ok">CI ✓</span>':'<span class="ok" style="color:var(--amber)">'+esc((p.ci&&p.ci.state)||"—")+'</span>')+'</div>').join("")
+    : '<div class="pr" style="color:var(--faint)">no open pull requests</div>';
+  const liveN=names.filter(n=>(fl[n]||{}).status==="LIVE").length;
+  return '<div class="beat">'+
+    '<div class="beat-k"><span class="num">01</span><h2>Fleet pulse</h2><span class="q">Is it alive?</span></div>'+
+    '<div class="card">'+rows+
+      '<div style="margin-top:6px;font-size:12.5px;color:var(--faint)">'+
+      (liveN===names.length?'All agents are live right now.':'')+
+      ' Signals come from real fleet state files on this box.</div>'+
+    '</div>'+
+    '<div class="card"><div class="money-lbl" style="margin-bottom:8px">Working right now</div>'+work+'</div>'+
+    '<div class="card"><div class="money-lbl" style="margin-bottom:10px">Shipping</div>'+
+      '<div class="mini">'+
+        '<div class="m"><div class="mv t">'+fmtN(vel.merged_count)+'</div><div class="ml">PRs merged</div></div>'+
+        '<div class="m"><div class="mv g">'+(vel.prs_per_day!=null?vel.prs_per_day+"<small>/day</small>":"—")+'</div><div class="ml">Merge pace</div></div>'+
+        '<div class="m"><div class="mv b">'+fmtN(open.length)+'</div><div class="ml">Open PRs</div></div>'+
+      '</div>'+
+      '<div class="prlist">'+prs+'</div>'+
+      (vel.ci_summary?'<div style="font-size:11.5px;color:var(--faint);margin-top:8px">'+esc(vel.ci_summary)+' · from GitHub, hearth repo</div>':"")+
+    '</div>'+
+  '</div>';
+}
+
+/* ---------------- beat 2: money truth (+ ROI) ---------------- */
+function renderMoney(d){
+  const m=d.money||{};
+  const rem=m.remaining||{};
+  const comm=(m.total_invested||{}).breakdown||{};
+  const commTotal=num(comm.total);
+  const remTotal=num(rem.total);
+  const spent=(commTotal!=null&&remTotal!=null&&remTotal<=commTotal)?commTotal-remTotal:null;
+  const metered=num(m.metered_usd);
+  const spentPct=spent!=null&&commTotal?Math.round(spent/commTotal*100):0;
+  const leftPct=spent!=null?100-spentPct:100;
+  const w=d.wallet||{};
+  const clean=num(w.clean_earned_bananas);
+  const bar=(spent!=null&&commTotal)
+    ? '<div class="bar"><div class="track">'+
+        '<div class="seg spent" style="width:'+spentPct+'%" title="spent '+fmtU(spent)+'"></div>'+
+        '<div class="seg left" style="width:'+leftPct+'%" title="remaining '+fmtU(remTotal)+'"></div>'+
+      '</div>'+
+      '<div class="legend"><span><i style="background:#f59e0b"></i>Spent '+fmtU(spent)+'</span>'+
+      '<span><i style="background:#3dd6a4"></i>Still there '+fmtU(remTotal)+'</span>'+
+      '<span>of '+fmtU(commTotal)+' committed</span></div></div>'
+    : '<div style="font-size:12.5px;color:var(--faint);margin-top:12px">Balance history isn\u2019t complete enough to draw a spent-vs-left bar yet.</div>';
+  const ds=num(rem.deepseek), or=num(rem.openrouter);
+  const dsTxt=ds!=null?fmtU(ds):"—";
+  const orTxt=or!=null?fmtU(or):"—";
+  /* ROI — real numbers from /api/data roi + burn */
+  const roi=d.roi||{};
+  const rmult=num(roi.roi_vs_metered_spend);
+  const roiHtml=rmult!=null
+    ? '<div class="roi"><div class="rhead"><span class="rmult">'+rmult+'×<small> roi vs metered spend</small></span></div>'+
+      '<div class="rlabel">'+esc(roi.label||"")+'</div>'+
+      '<div class="rnote">'+esc(roi.note||"")+' · banana peg $'+esc(String(roi.peg_usd_per_banana))+'</div></div>'
+    : '<div class="roi"><div class="rhead"><span class="rmult">—<small> roi</small></span></div>'+
+      '<div class="rlabel">'+esc(roi.label||"no metered spend yet — ROI n/a")+'</div>'+
+      '<div class="rnote">'+esc(roi.note||"")+'</div></div>';
+  /* free vs paid, real rows from burn */
+  const b=d.burn||{};
+  const fc=num(b.free&&b.free.calls), pc=num(b.paid&&b.paid.calls);
+  const fvpaid=(fc!=null&&pc!=null)
+    ? '<div style="font-size:12.5px;color:var(--dim);margin-top:10px"><b style="color:var(--green)">Free lanes</b> $0.00 across '+fmtN(fc)+' calls · '+
+      '<b style="color:var(--gold)">Paid lanes</b> '+fmtU(b.total_spend)+' across '+fmtN(pc)+' calls (router ledger, real rows)</div>'
+    : "";
+  return '<div class="beat">'+
+    '<div class="beat-k"><span class="num">02</span><h2>The money truth</h2><span class="q">Cost vs earned</span></div>'+
+    '<div class="card">'+
+      '<div class="hero-money">'+
+        '<div><div class="money-lbl">Still in the pot</div><div class="big-money">'+fmtU(remTotal)+'</div></div>'+
+        '<div style="padding-bottom:6px;font-size:12.5px;color:var(--faint)">deepseek '+dsTxt+' · openrouter '+orTxt+
+        (m.spend&&m.spend.latest_ts?' · snapshot '+esc(String(m.spend.latest_ts).slice(0,16))+'Z':"")+'</div>'+
+      '</div>'+bar+
+      '<div class="tiles">'+
+        '<div class="tile"><div class="tv">'+fmtU(remTotal)+'</div><div class="tl">Remaining credit</div></div>'+
+        '<div class="tile"><div class="tv">'+fmtU(commTotal)+'</div><div class="tl">Committed (lower bound)</div></div>'+
+        '<div class="tile"><div class="tv">'+(metered!=null?fmtU(metered):"—")+'</div><div class="tl">Metered burn on this box</div></div>'+
+        '<div class="tile"><div class="tv">$0.00</div><div class="tl">Free burn recorded</div></div>'+
+      '</div>'+
+      roiHtml+fvpaid+
+      '<div class="honest"><b>Read this the honest way.</b> '+
+        'Committed = the most credit each provider ever held (deepseek '+fmtU(num(comm.deepseek))+' · openrouter '+fmtU(num(comm.openrouter))+'). '+
+        'Metered burn shows "—" if the door-cost meter has no rows on this box yet — it is not $0. '+
+        'Free burn shows $0.00 recorded — free-tier usage isn\u2019t yet instrumented per model. '+
+        'Per-brick cost is <b>not attributable</b> — no one number is divided across bricks. '+
+        esc(m.note||"")+'</div>'+
+      '<div class="bananas">'+
+        '<span class="bchip">🍌 <b>'+fmtN(clean)+'</b> earned (clean)</span>'+
+        '<span class="bchip">🍌 <b>'+fmtN(num(w.credited_bananas))+'</b> credited — gifts, not earnings</span>'+
+        '<span class="bchip">🍌 <b>'+fmtN(num(w.spend_bananas))+'</b> spent at the dock</span>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+}
+
+/* ---------------- beat 3: needs you ---------------- */
+function renderNeeds(ap,comms){
+  const cards=(ap.cards||[]).filter(c=>c.status==="PENDING");
+  const isOwner=(session.role==="owner");
+  const cardHtml=cards.map(c=>{
+    const id=esc(c.id);
+    return '<div class="card need-card">'+
+      '<div class="ttl">'+esc(c.title)+'</div>'+
+      '<div class="meta"><span class="mchip">from '+esc(c.proposer||"?")+'</span>'+
+      (c.cost?'<span class="mchip g">'+esc(c.cost)+'</span>':"")+
+      (c.created_ts?'<span class="mchip">'+esc(String(c.created_ts).slice(0,16))+'</span>':"")+'</div>'+
+      (c.summary?'<div class="row"><b>What it is</b>'+esc(c.summary)+'</div>':"")+
+      (c.impact?'<div class="row"><b>What changes if you say yes</b>'+esc(c.impact)+'</div>':"")+
+      (isOwner
+        ? '<div class="acts">'+
+            '<button class="btn approve" data-act="approve" data-id="'+id+'">Approve</button>'+
+            '<button class="btn reject" data-act="reject" data-id="'+id+'">Reject</button>'+
+            '<button class="btn feedback" data-act="fb" data-id="'+id+'">Feedback</button>'+
+          '</div>'+
+          '<div class="fbwrap" data-fb="'+id+'"><textarea placeholder="Say what you need changed…"></textarea>'+
+          '<button class="btn fbsend" data-act="fbsend" data-id="'+id+'">Send feedback</button></div>'
+        : '<div class="readonly">Read-only view — approvals need the owner\u2019s sign.</div>')+
+    '</div>';
+  }).join("");
+  const pend=cards.length;
+  $("ap-count").textContent=pend;
+  $("ap-dot").classList.toggle("live",pend>0);
+  $("ap-dot").classList.toggle("amber",true);
+  const msgs=(comms.messages||[]).slice(0,6);
+  const feed=msgs.length
+    ? msgs.map(r=>'<div class="fitem"><div class="who3">'+esc(r.from||"?")+'</div>'+
+        '<div class="fb">'+esc(String(r.body||"").slice(0,220))+
+        '<span class="t">'+esc(String(r.ts||"").slice(0,16))+' → '+esc(r.to||"all")+'</span></div></div>').join("")
+    : '<div class="fitem" style="color:var(--faint)">no messages yet — send the first one</div>';
+  return '<div class="beat">'+
+    '<div class="beat-k"><span class="num">03</span><h2>Needs you</h2><span class="q">Your call</span></div>'+
+    (pend===0
+      ? '<div class="allgood"><span class="dot live"></span>Nothing is waiting on you right now.</div>'
+      : '<div class="card" style="border-color:rgba(245,185,66,.45);padding:14px 18px;font-size:14px"><b style="color:var(--gold)">'+pend+' decision'+(pend>1?"s":"")+'</b> waiting for your sign — each one changes what the fleet does.</div>')+
+    cardHtml+
+    '<div class="card sendbox">'+
+      '<div class="lbl2">Say it to the whole fleet</div>'+
+      '<textarea id="msg" placeholder="One message, all agents, within seconds…"></textarea>'+
+      '<button class="send" id="send">Send to all agents</button>'+
+      '<div class="feed" id="feed">'+feed+'</div>'+
+    '</div>'+
+  '</div>';
+}
+
+/* ---------------- beat 4: every brick — who, utilization, burn ---------------- */
+const fmtB=v=>{if(v==null)return"—";if(Math.abs(v)<0.01)return"$"+Number(v).toFixed(4);return fmtU(v)};
+/* derived utilization — real signal freshness mapped to 0–100 (labeled derived, not instrumented) */
+function derivedUtil(a,nowSec){
+  if(!a||!a.when)return 0;
+  const up=(a.status||"").toUpperCase();
+  if(up!=="LIVE")return 0;
+  const age=Math.max(0,nowSec-a.when);
+  if(age>300)return 0;
+  return Math.round(100*(1-age/300));
+}
+/* current task = epic owned by this agent (real queue data) */
+function taskFor(ownerKeys,epics){
+  const keys=(ownerKeys||[]).map(k=>String(k).toLowerCase());
+  const mine=(epics||[]).filter(e=>keys.indexOf(String(e.owner||"").toLowerCase())>=0);
+  if(!mine.length)return null;
+  const rank=e=>{
+    const s=(e.status||"").toLowerCase();
+    if(/live|in progress|in flight|watching|claimed|wrote/.test(s))return 0;
+    if(/done/.test(s))return 2;
+    return 1;
+  };
+  mine.sort((a,b)=>rank(a)-rank(b));
+  const top=mine[0];
+  return {task:top.task, status:top.status, active:rank(top)===0};
+}
+/* per-brick burn — only where the router ledger lane is attributable to the agent (real rows) */
+const LANE_OWNER={"free-ox":"ox-alpha"};
+function brickBurn(agentName,b){
+  const lane=Object.keys(LANE_OWNER).find(l=>LANE_OWNER[l]===String(agentName).toLowerCase());
+  if(!lane||!b)return null;
+  const bl=(b.free&&b.free.lanes||[]).concat((b.paid&&b.paid.lanes||[])).find(l=>l.lane===lane);
+  if(!bl)return null;
+  return {lane:lane, calls:bl.calls, cost:bl.cost};
+}
+function renderEveryBrick(d){
+  const nowSec=Date.now()/1000;
+  const w=(d.who&&d.who.agents)||[];
+  const ep=(d.epics&&d.epics.epics)||[];
+  const b=d.burn||{};
+  const hb=(d.bricks&&d.bricks.heartbeat)||{};
+  const reg=(d.bricks&&d.bricks.registry)||{};
+  const rows=w.map(a=>{
+    const when=a.when!=null?ago(Math.max(0,nowSec-a.when)):null;
+    const util=derivedUtil(a,nowSec);
+    const keys=[a.name];
+    if(/^ox-alpha$/i.test(a.name))keys.push("hermes-local");
+    const t=taskFor(keys,ep);
+    const bb=brickBurn(a.name,b);
+    const taskHtml=t
+      ? '<div class="taskline"><b>'+(t.active?"Doing: ":"Queued for: ")+'</b>'+esc(t.task)+'</div>'
+      : '<div class="taskline" style="color:var(--faint)">no task owned in the queue</div>';
+    const utilHtml=(a.when!=null)
+      ? '<div class="utilwrap"><div class="utilbar"><i style="width:'+util+'%"></i></div><span class="utilpct">'+util+'%</span></div>'
+      : "";
+    const burnHtml=bb
+      ? '<span class="burnchip">'+(bb.cost>0?fmtB(bb.cost):"$0.00")+' · '+fmtN(bb.calls)+' calls · '+esc(bb.lane)+'</span>'
+      : '<span class="burnchip">burn —</span>';
+    return '<div class="agent"><div class="who"><div class="nm">'+esc(a.name)+'</div>'+
+      '<div class="dt">'+esc(a.activity||"")+(when?' · '+when:"")+'</div>'+
+      taskHtml+utilHtml+
+      '<div style="margin-top:5px">'+burnHtml+'</div></div>'+
+      stateTag(a.status)+'</div>';
+  }).join("");
+  /* registered bricks — heartbeat ids + registry verified, cross-referenced */
+  const hbState={};
+  (hb.live||[]).forEach(r=>hbState[r.id]={state:r.state,seen:r.last_seen});
+  (hb.idle||[]).forEach(r=>hbState[r.id]={state:r.state,seen:r.last_seen});
+  (hb.silent||[]).forEach(r=>hbState[r.id]={state:r.state,seen:r.last_seen});
+  const regIds=[...(reg.verified||[]), ...Object.keys(hbState)];
+  const seen={};const uniq=[];
+  regIds.forEach(id=>{if(!seen[id]&&id){seen[id]=1;uniq.push(id)}});
+  const cluster=[],others=[];
+  uniq.forEach(id=>{
+    if(/^brick-9000/.test(id))cluster.push(id);else others.push(id);
+  });
+  const regRows=others.map(id=>{
+    const h=hbState[id];
+    const state=h?h.state:(reg.verified||[]).indexOf(id)>=0?"REGISTERED":"REGISTERED";
+    const cls=state==="LIVE"?"live":state==="IDLE"?"idle":state==="SILENT"?"silent":"nosig";
+    const seenTxt=h?(' · last seen '+esc(h.seen)):" · no heartbeat on this box yet";
+    return '<div class="regrow"><span class="rid">'+(id==="hermes-local"?"hermes-local (ox-alpha heartbeat)":esc(id))+seenTxt+'</span><span class="rpill '+cls+'">'+state+'</span></div>';
+  }).join("");
+  const clusterTxt=cluster.length
+    ? '<div class="regrow"><span class="rid">brick-9000000000000… ×'+cluster.length+' test ids (all idle since Aug 18)</span><span class="rpill idle">IDLE</span></div>'
+    : "";
+  const liveN=num(hb.live_count), knownN=num(hb.known_count);
+  const th=(d.threads&&d.threads.measured&&d.threads.measured.door_sessions)||{};
+  return '<div class="beat">'+
+    '<div class="beat-k"><span class="num">04</span><h2>Every brick</h2><span class="q">Alive? doing what?</span></div>'+
+    '<div class="card">'+
+      '<div class="alivenow">'+
+        '<div class="an"><div class="av">'+(liveN!=null?liveN:"—")+'<small> / '+(knownN!=null?knownN:"—")+'</small></div><div class="al2">Bricks heartbeating now (real)</div></div>'+
+        '<div class="an"><div class="av">'+(th.active_24h!=null?th.active_24h:"—")+'<small> / 20</small></div><div class="al2">Sessions active last 24h (door profile)</div></div>'+
+        '<div class="an"><div class="av">'+(reg.verified_count!=null?reg.verified_count:"—")+'<small> / '+(reg.registered_count!=null?reg.registered_count:"—")+'</small></div><div class="al2">Verified / registered bricks</div></div>'+
+      '</div>'+
+      rows+
+      '<div style="margin-top:8px;font-size:11.5px;color:var(--faint)">'+
+        'Utilization % is <b>derived</b> — how fresh each brick\u2019s last real signal is (100% = signalled in the last minute, 0% = silent over 5 min). True per-session utilization isn\u2019t instrumented on this box yet.'+
+      '</div>'+
+    '</div>'+
+    '<div class="card"><div class="money-lbl" style="margin-bottom:4px">Registered bricks (registry + heartbeat)</div>'+
+      '<div style="font-size:12px;color:var(--dim);margin-bottom:6px">registered ≠ working — live count comes from heartbeats, not this file</div>'+
+      regRows+clusterTxt+
+      '<div style="margin-top:8px;font-size:11.5px;color:var(--faint)">'+esc((d.who&&d.who.note)||"")+'</div>'+
+    '</div>'+
+  '</div>';
+}
+
+/* ---------------- beat 5: accomplishments ---------------- */
+function walletDeltaByDay(ws){
+  const maxByDay={};
+  (ws||[]).forEach(s=>{const c=s.cum_clean!=null?s.cum_clean:s.cum;if(c!=null)maxByDay[s.day]=Math.max(maxByDay[s.day]||0,c)});
+  const days=Object.keys(maxByDay).sort();
+  const deltas={};let prev=0;
+  days.forEach(day=>{deltas[day]=Math.round(((maxByDay[day]||0)-prev)*10)/10;prev=maxByDay[day]||0});
+  return deltas;
+}
+function renderAccomplishments(d){
+  const ach=d.achievements||{};
+  const disp=d.dispatches||{};
+  const ev=d.evolution||{};
+  const vs=d.vector_store||{};
+  const w=d.wallet||{};
+  const achRows=(ach.rows||[]).slice().reverse().map(r=>
+    '<div class="ach"><div class="ab">🏆</div><div class="al">'+
+      '<div class="at">'+esc(r.line||r.action||"—")+(r.contested?'<span class="tagc contested">contested</span>':"")+'</div>'+
+      '<div class="am">'+esc(r.iso||"")+(r.owner?' · '+esc(r.owner):"")+'</div>'+
+    '</div></div>').join("");
+  /* what got done — merged from real evolution series (per-day deltas) */
+  const docsByDay={},prsByDay={};
+  (ev.vector&&ev.vector.series||[]).forEach(s=>{docsByDay[s.day]=s.added});
+  (ev.prs&&ev.prs.series||[]).forEach(s=>{prsByDay[s.day]=s.merged});
+  const banByDay=walletDeltaByDay(ev.wallet&&ev.wallet.series);
+  const allDays={};
+  Object.keys(docsByDay).forEach(dd=>allDays[dd]=1);
+  Object.keys(prsByDay).forEach(dd=>allDays[dd]=1);
+  Object.keys(banByDay).forEach(dd=>allDays[dd]=1);
+  const days=Object.keys(allDays).sort().slice(-8).reverse();
+  const feed=days.length
+    ? days.map(day=>{
+        const bits=[];
+        if(docsByDay[day])bits.push('<b>+'+fmtN(docsByDay[day])+'</b> knowledge docs');
+        if(prsByDay[day])bits.push('<b>+'+fmtN(prsByDay[day])+'</b> PR'+(prsByDay[day]>1?"s":"")+' merged');
+        const bb=banByDay[day];
+        if(bb>0)bits.push('🍌 <b>+'+bb+'</b> clean-earned');
+        const txt=bits.length?bits.join(' · '):'quiet day';
+        return '<div class="dfrow"><span class="dd">'+esc(dayShort(day))+'</span><span class="di">'+txt+'</span></div>';
+      }).join("")
+    : '<div style="font-size:12.5px;color:var(--faint)">no history accrued yet — these curves build from now</div>';
+  return '<div class="beat">'+
+    '<div class="beat-k"><span class="num">05</span><h2>Accomplishments</h2><span class="q">What got done</span></div>'+
+    '<div class="card">'+
+      '<div class="mini mini4">'+
+        '<div class="m"><div class="mv g">'+fmtN(ach.count)+'</div><div class="ml">🏆 Achievements</div></div>'+
+        '<div class="m"><div class="mv b">'+fmtN(disp.count)+'</div><div class="ml">📦 Dispatches</div></div>'+
+        '<div class="m"><div class="mv t">'+fmtN(vs.docs)+'</div><div class="ml">🧠 Knowledge docs</div></div>'+
+        '<div class="m"><div class="mv">'+fmtN(w.clean_earned_bananas)+'</div><div class="ml">🍌 Clean earned</div></div>'+
+      '</div>'+
+      (achRows?'<div style="margin-top:12px">'+achRows+'</div>':"")+
+      (achRows?'':'<div style="font-size:12.5px;color:var(--faint);margin-top:12px">achievements ledger is empty so far — first verified cycle will land here</div>')+
+    '</div>'+
+    '<div class="card"><div class="money-lbl" style="margin-bottom:6px">What got done — by day (real series)</div>'+
+      '<div class="donefeed">'+feed+'</div>'+
+      '<div style="margin-top:8px;font-size:11.5px;color:var(--faint)">'+esc((ev.note)||"")+'</div>'+
+    '</div>'+
+  '</div>';
+}
+
+/* ---------------- beat 6: epics + velocity + ETA ---------------- */
+function renderEpics(d){
+  const ep=(d.epics&&d.epics.epics)||[];
+  const vel=d.velocity||{};
+  const open=(vel.open||[]).length;
+  const rows=ep.map(e=>{
+    const owner=String(e.owner||"claimable").toLowerCase();
+    const ocls=owner==="brick"?"brick":owner==="agi"?"agi":(/ox|hermes-local/.test(owner)?"ox":"open");
+    const ownTxt=(owner==="claimable")?"claimable":(e.owner||"?");
+    return '<div class="epicrow">'+
+      '<div class="et">'+esc(e.task)+'</div>'+
+      '<div class="em">'+
+        '<span class="ochip '+ocls+'">'+esc(ownTxt)+'</span>'+
+        '<span class="state '+statusClass(e.status)+'" style="padding:4px 11px;font-size:10px">'+statusWord(e.status)+'</span>'+
+        '<span class="eta">ETA —</span>'+
+      '</div>'+
+      '<div class="raw">'+esc(e.status)+'</div>'+
+    '</div>';
+  }).join("");
+  return '<div class="beat">'+
+    '<div class="beat-k"><span class="num">06</span><h2>Epics + velocity</h2><span class="q">What\u2019s moving</span></div>'+
+    '<div class="card">'+
+      '<div class="mini">'+
+        '<div class="m"><div class="mv t">'+fmtN(vel.merged_count)+'</div><div class="ml">PRs merged</div></div>'+
+        '<div class="m"><div class="mv g">'+(vel.prs_per_day!=null?vel.prs_per_day+"<small>/day</small>":"—")+'</div><div class="ml">Merge pace</div></div>'+
+        '<div class="m"><div class="mv b">'+fmtN(open)+'</div><div class="ml">Open PRs</div></div>'+
+      '</div>'+
+      (vel.ci_summary?'<div style="font-size:12px;color:var(--faint);margin-top:10px">'+esc(vel.ci_summary)+' · hearth repo, GitHub live</div>':"")+
+    '</div>'+
+    '<div class="card">'+
+      '<div class="money-lbl" style="margin-bottom:6px">Queue — the whole list</div>'+
+      rows+
+      '<div style="margin-top:10px;font-size:11.5px;color:var(--faint)">'+
+        'ETA shows "—" because the queue file doesn\u2019t track dates yet — statuses come straight from '+esc((d.epics&&d.epics.source)||"the queue")+'.'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+}
+
+/* ---------------- beat 7: burn + cut burn (the tap) ---------------- */
+function renderBurn(d){
+  const b=d.burn||{};
+  const freeCalls=num(b.free&&b.free.calls), paidCalls=num(b.paid&&b.paid.calls);
+  const totalCalls=(freeCalls!=null&&paidCalls!=null)?freeCalls+paidCalls:null;
+  const freePct=(totalCalls&&freeCalls!=null)?Math.round(freeCalls/totalCalls*100):0;
+  const paidPct=totalCalls?100-freePct:0;
+  const dd=b.drawdown||{};
+  const carrying=(b.free&&b.free.carrying)||[];
+  const chips=carrying.length
+    ? carrying.map(l=>'<span class="freechip">'+esc(l)+' <b>free</b></span>').join("")
+    : '<span class="freechip" style="color:var(--faint)">no free-lane calls recorded yet</span>';
+  const ddLine=dd.per_day!=null
+    ? '<div style="margin-top:10px;font-size:12.5px;color:var(--dim)"><b style="color:var(--gold)">deepseek drawdown:</b> '+
+      fmtU(dd.per_day)+'/day between snapshots ('+esc(String(dd.from_ts||"").slice(0,10))+' '+fmtU(dd.from)+' → '+
+      esc(String(dd.to_ts||"").slice(0,10))+' '+fmtU(dd.to)+') — balance change, not metered usage</div>'
+    : "";
+  return '<div class="card"><div class="money-lbl" style="margin-bottom:10px">Burn rate — real rows only</div>'+
+    '<div class="burnhero">'+
+      '<div class="bh"><div class="bv">'+fmtB(b.per_hour)+'<small>/hr</small></div><div class="bl">Current burn · '+(b.per_hour_calls!=null?b.per_hour_calls+" calls":0)+' last hour</div></div>'+
+      '<div class="bh"><div class="bv">'+fmtB(b.per_day)+'<small>/24h</small></div><div class="bl">Last 24h · '+(b.per_day_calls!=null?b.per_day_calls+" calls":0)+' calls</div></div>'+
+      '<div class="bh"><div class="bv">'+fmtB(b.total_spend)+'</div><div class="bl">Lifetime · '+(b.rows!=null?fmtN(b.rows):"—")+' routed calls</div></div>'+
+    '</div>'+
+    '<div class="splitbar"><div class="free" style="width:'+freePct+'%" title="free '+freeCalls+' calls"></div>'+
+      '<div class="paid" style="width:'+paidPct+'%" title="paid '+paidCalls+' calls"></div></div>'+
+    '<div class="splitlegend">'+
+      '<span><i style="background:#3dd6a4"></i>Free lanes '+(freeCalls!=null?fmtN(freeCalls):"—")+' calls ('+freePct+'%)</span>'+
+      '<span><i style="background:#f59e0b"></i>Paid lanes '+(paidCalls!=null?fmtN(paidCalls):"—")+' calls ('+paidPct+'%)</span>'+
+    '</div>'+
+    '<div class="freechips">'+chips+'</div>'+
+    ddLine+
+    '<div class="honest"><b>Read this the honest way.</b> '+
+      'Per-lane metering is real (router ledger, every call). Free lanes cost $0 per call — zero-USD, not "free capacity". '+
+      'Nous paid usage lives on the control host and is not metered on this box yet. '+
+      ((b.door_cost&&b.door_cost.rows)?'Door-cost meter: '+fmtU(b.door_cost.total)+' across '+b.door_cost.rows+' door calls. ':'')+
+      esc((b.notes||[]).join(" "))+'</div>'+
+  '</div>';
+}
+function renderLanes(d){
+  const can=!!(d.lane_control&&d.lane_control.can_control);
+  const lanes=(d.lanes&&d.lanes.lanes)||[];
+  const rows=lanes.map(l=>{
+    const on=!!l.on;
+    const free=l.free?'<span class="tagf free">FREE</span>':'<span class="tagf paid">PAID</span>';
+    const offTag=l.registered===false?'<span class="tagf off">no router lane</span>':"";
+    const paused=(!on&&l.control==="pause")?'<span class="pausebadge">paused by you</span>':"";
+    const calls=(l.calls!=null&&l.calls>0)?fmtN(l.calls)+" calls":"0 calls";
+    const model=l.model?esc(l.model):"";
+    const lastCall=l.last_call_ts!=null?' · last call '+ago(Math.max(0,(Date.now()/1000)-l.last_call_ts)):"";
+    return '<div class="lane-row"><div class="ln"><div class="nm2">'+esc(l.lane)+free+paused+'</div>'+
+      '<div class="dt2">'+model+' · '+calls+lastCall+offTag+'</div></div>'+
+      (can
+        ? '<label class="switch"><input type="checkbox" data-lane="'+esc(l.lane)+'"'+(on?" checked":"")+'><span class="tr2"></span></label>'
+        : '<span style="font-size:11px;color:var(--faint);flex-shrink:0">owner only</span>')+
+      '</div>';
+  }).join("");
+  const lastCtl=(d.lane_control&&d.lane_control.last_control);
+  return '<div class="card"><div class="money-lbl" style="margin-bottom:6px">Cut burn — the tap</div>'+
+    '<div style="font-size:12.5px;color:var(--dim);margin-bottom:4px">Flip a lane off and the fleet is told in-band (kanban) within seconds. This is the owner\u2019s kill switch.</div>'+
+    rows+
+    (lastCtl?'<div style="margin-top:10px;font-size:12px;color:var(--faint)">Last directive: <b style="color:var(--gold)">'+esc(String(lastCtl.action||"").toUpperCase())+'</b> '+esc(lastCtl.lane||"")+' by '+esc(lastCtl.by||"?")+' at '+esc(String(lastCtl.ts||"").slice(0,16))+'</div>':"")+
+    '<div style="margin-top:8px;font-size:11.5px;color:var(--faint)">'+esc((d.lanes&&d.lanes.note)||"")+'</div>'+
+    (can?"":'<div class="readonly">Read-only for you — only the owner can cut a lane. (You\u2019re signed in as '+(session.role||"?")+'.)</div>')+
+  '</div>';
+}
+function renderEcosystem(e){
+  const c=(e&&e.counts)||{};
+  const tot=(c.active||0)+(c.verified||0)+(c.registered||0)+(c.retiring||0)+(c.retired||0)+(c.unknown||0);
+  const tile=(k,v,l)=>'<div style="flex:1;min-width:0"><div style="font-family:var(--mono);font-size:17px;color:var(--gold)">'+v+'</div>'+
+    '<div style="font-size:10.5px;color:var(--faint);letter-spacing:1px">'+l+'</div></div>';
+  const bot=((e&&e.bottlenecks&&e.bottlenecks.latest)||[]);
+  const sp=((e&&e.spawns&&e.spawns.latest)||[]);
+  const bots=bot.map(b=>'<div class="lane-row"><div class="ln"><div class="nm2">'+esc(String(b.brick_id||"?"))+'</div>'+
+    '<div class="dt2">'+esc(String(b.reason||""))+' · '+(b.metric_value!=null?esc(String(b.metric_value)):"—")+
+    (b.ts?' · '+ago(Math.max(0,(Date.now()/1000)-b.ts)):"")+'</div></div></div>').join("")||'<div style="font-size:12px;color:var(--faint)">no bottleneck events yet</div>';
+  const sps=sp.map(s=>'<div class="lane-row"><div class="ln"><div class="nm2">'+esc(String(s.new_brick_id||"?"))+'</div>'+
+    '<div class="dt2">replaces '+esc(String(s.replaces||"?"))+' · '+esc(String(s.reason||"").slice(0,60))+
+    (s.card_id?' · <span class="mono">'+esc(s.card_id)+'</span>':"")+'</div></div></div>').join("")||'<div style="font-size:12px;color:var(--faint)">no spawns yet</div>';
+  return '<div class="beat"><div class="beat-k"><span class="num">08</span><h2>Ecosystem engine</h2><span class="q">Bottlenecks → spawns → reap</span></div>'+
+    '<div class="card">'+
+      '<div style="display:flex;gap:10px;margin-bottom:10px">'+
+        tile("",tot,"bricks known")+tile("",c.retiring||0,"retiring")+tile("",c.retired||0,"retired")+
+        tile("",(e&&e.spawns&&e.spawns.total)||0,"spawns")+tile("",(e&&e.bottlenecks&&e.bottlenecks.total)||0,"flags")+
+        tile("",(e&&e.empty_wallets!=null)?e.empty_wallets:"—","empty wallets")+
+      '</div>'+
+      '<div class="money-lbl" style="margin-bottom:4px">Latest bottleneck flags</div>'+bots+
+      '<div class="money-lbl" style="margin:10px 0 4px">Latest spawns</div>'+sps+
+      '<div class="honest">'+esc((e&&e.note)||"")+'</div>'+
+    '</div>'+
+  '</div>';
+}
+/* ---------------- beat 9: the net ---------------- */
+const NET={nodes:[],edges:[],byId:{},selected:null,ctx:null,anim:0,w:0,h:0,pos:{}};
+const NCOLOR={active:"#f5b942",verified:"#3dd6a4",retiring:"#ff6b7a",retired:"#5a6577",parked:"#64748b",registered:"#6fb1ff"};
+const netPill=s=>'<span class="npill '+esc(s)+'">'+esc(s)+'</span>';
+function netLayout(){
+  const {nodes,edges}=NET;
+  const depth={};nodes.forEach(n=>depth[n.id]=0);
+  const kids={};edges.forEach(e=>{(kids[e.from]=kids[e.from]||[]).push(e.to)});
+  const stack=nodes.filter(n=>!n.parent).map(n=>n.id);
+  const seen={};stack.forEach(i=>seen[i]=1);
+  while(stack.length){
+    const id=stack.shift();
+    (kids[id]||[]).forEach(c=>{if(!seen[c]){seen[c]=1;depth[c]=Math.min(4,(depth[id]||0)+1);stack.push(c)}});
+  }
+  const maxD=Math.max(1,...nodes.map(n=>depth[n.id]||0));
+  const layers={};
+  nodes.forEach(n=>{(layers[depth[n.id]||0]=layers[depth[n.id]||0]||[]).push(n.id)});
+  const pos={};
+  const RX=Math.min(NET.w/2-26,300),RY=Math.min(NET.h/2-26,190),k=RY/RX;
+  Object.keys(layers).forEach(ds=>{
+    const d=+ds,ids=layers[ds];
+    const f=(maxD-d+1)/(maxD+1); // 1 for roots ... smaller rings for deeper layers
+    // spacing-aware ring size: every node needs ~15px on the ellipse
+    const circNeed=ids.length*15;
+    const aGuess=Math.max(40,circNeed/(2*Math.PI*Math.sqrt((1+k*k)/2)));
+    const rx=Math.min(RX*f,aGuess,RX);
+    const ry=Math.min(RY*f,rx*k,RY);
+    ids.forEach((id,i)=>{
+      const a=-Math.PI/2+d*0.35+(ids.length>1?(i/ids.length)*2*Math.PI:0);
+      pos[id]={x:NET.w/2+Math.cos(a)*rx,y:NET.h/2+Math.sin(a)*ry,ph:i*1.7,r:5.5};
+    });
+  });
+  NET.pos=pos;
+}
+function netDraw(t){
+  const ctx=NET.ctx;if(!ctx)return;
+  const {nodes,edges,pos}=NET;
+  ctx.clearRect(0,0,NET.w,NET.h);
+  edges.forEach((e,i)=>{
+    const a=pos[e.from],b=pos[e.to];
+    if(!a||!b)return;
+    const wf=1.6*Math.sin(t/800+(a.ph||0)),wf2=1.6*Math.cos(t/950+(b.ph||0));
+    const col=NCOLOR[(NET.byId[e.to]||{}).status]||NCOLOR.registered;
+    ctx.globalAlpha=0.2+0.12*Math.sin(t/1400+i*0.9);
+    ctx.strokeStyle=col;ctx.lineWidth=1.1;
+    ctx.beginPath();ctx.moveTo(a.x+wf,a.y+wf2);
+    ctx.quadraticCurveTo((a.x+b.x)/2,(a.y+b.y)/2-16,b.x+wf2,b.y+wf);ctx.stroke();
+  });
+  nodes.forEach(n=>{
+    const p=pos[n.id];if(!p)return;
+    const col=NCOLOR[n.status]||NCOLOR.registered;
+    const hot=(n.cpu!=null)||n.status==="active";
+    const dim=n.status==="parked"||n.status==="retired";
+    const r=p.r+(hot?2:0);
+    const wf=1.6*Math.sin(t/800+(p.ph||0)),wf2=1.6*Math.cos(t/950+(p.ph||0));
+    const x=p.x+wf,y=p.y+wf2;
+    if(hot){
+      const g=0.5+0.5*Math.sin(t/500+(p.ph||0));
+      const gr=ctx.createRadialGradient(x,y,0,x,y,r+4+g*7);
+      gr.addColorStop(0,col);gr.addColorStop(1,"rgba(0,0,0,0)");
+      ctx.globalAlpha=(dim?0.2:0.5)*(1-g*0.35);
+      ctx.fillStyle=gr;ctx.beginPath();ctx.arc(x,y,r+4+g*7,0,7);ctx.fill();
+    }
+    ctx.globalAlpha=dim?0.42:1;
+    ctx.fillStyle=col;
+    ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();
+    ctx.strokeStyle="rgba(11,14,20,.85)";ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.stroke();
+    if(hot&&!dim){
+      const label=n.id.length>16?n.id.slice(0,15)+"…":n.id;
+      ctx.globalAlpha=0.85;ctx.fillStyle="#eef2f8";ctx.font="9.5px 'SF Mono',Consolas,monospace";
+      const tw=ctx.measureText(label).width;
+      const lx=(x+tw+10>NET.w)?x-r-3-tw:x+r+3; // flip left when it would overflow
+      ctx.fillText(label,lx,y+3);
+    }
+    if(NET.selected===n.id){
+      ctx.globalAlpha=1;ctx.strokeStyle="#ffd97a";ctx.lineWidth=1.6;
+      ctx.beginPath();ctx.arc(x,y,r+4+2*Math.sin(t/300),0,7);ctx.stroke();
+    }
+  });
+  ctx.globalAlpha=1;
+}
+function netLoop(){NET.anim=requestAnimationFrame(netLoop);netDraw(performance.now())}
+function netHit(x,y){
+  let best=null,bd=30;
+  Object.keys(NET.pos).forEach(id=>{
+    const p=NET.pos[id],d=Math.hypot(x-p.x,y-p.y);
+    if(d<bd){bd=d;best=id}
+  });
+  return best;
+}
+function netShow(id){
+  NET.selected=id;
+  const n=NET.byId[id];if(!n)return;
+  const kids=(n.children||[]).map(c=>{
+    const k=NET.byId[c];
+    return '<span class="kchip" data-net="'+esc(c)+'"><span class="dot '+(k&&k.cpu!=null?"live":"amber")+'"></span><b>'+esc(c)+'</b>'+(k&&k.cpu!=null?' '+Math.round(k.cpu)+"%":"")+'</span>';
+  }).join("");
+  const parentHtml=n.parent?(NET.byId[n.parent]
+    ? ' · spawned from <a href="#" data-net="'+esc(n.parent)+'">'+esc(n.parent)+'</a>'
+    : ' · spawned from '+esc(n.parent)):"";
+  const p=$("net-panel");
+  p.className="netpanel open";
+  p.innerHTML='<div class="np-id">'+esc(n.id)+'</div>'+
+    '<div class="np-meta">'+netPill(n.status)+(n.role?'<span class="mchip g">'+esc(n.role)+'</span>':"")+(n.quality?'<span class="mchip">'+esc(n.quality)+'</span>':"")+'</div>'+
+    '<div class="np-stats">'+
+      '<div class="ns"><div class="nsv">'+(n.cpu!=null?n.cpu+"%":"—")+'</div><div class="nsl">CPU now (ps)</div></div>'+
+      '<div class="ns"><div class="nsv">'+(n.ram_mb!=null?Math.round(n.ram_mb)+" MB":"—")+'</div><div class="nsl">RAM now</div></div>'+
+      '<div class="ns"><div class="nsv">'+((n.children||[]).length)+'</div><div class="nsl">Children</div></div>'+
+      '<div class="ns"><div class="nsv">'+ago(n.last_activity?Math.max(0,(Date.now()/1000)-n.last_activity):null)+'</div><div class="nsl">Last activity</div></div>'+
+      '<div class="ns"><div class="nsv">🍌 '+fmtN(n.earns)+'</div><div class="nsl">Earned (clean '+fmtN(n.earns_clean)+')</div></div>'+
+      ((n.procs&&n.procs.length)?'<div class="ns"><div class="nsv">'+esc((n.procs||[]).join(", ").slice(0,20))+'</div><div class="nsl">Processes</div></div>':"")+
+    '</div>'+
+    '<div class="np-kids"><div class="lbl2" style="margin-bottom:6px">Child bricks — tap to drill down</div>'+(kids||'<div style="font-size:12px;color:var(--faint)">no children in the registry</div>')+'</div>'+
+    '<div class="np-parent">'+parentHtml+'</div>';
+  document.querySelectorAll("[data-net]").forEach(el=>el.onclick=ev=>{ev.preventDefault();netShow(el.dataset.net)});
+}
+function netResize(){
+  const cv=$("net-canvas");if(!cv)return;
+  const cw=cv.parentElement.clientWidth;
+  const dpr=window.devicePixelRatio||1;
+  NET.w=cw;NET.h=cv.clientHeight||430;
+  cv.width=Math.round(cw*dpr);cv.height=Math.round(NET.h*dpr);
+  NET.ctx=cv.getContext("2d");NET.ctx.setTransform(dpr,0,0,dpr,0,0);
+  netLayout();
+}
+function bootNet(){
+  const cv=$("net-canvas");if(!cv)return;
+  NET.byId={};NET.nodes.forEach(n=>NET.byId[n.id]=n);
+  netResize();
+  cv.onclick=ev=>{
+    const r=cv.getBoundingClientRect();
+    const id=netHit(ev.clientX-r.left,ev.clientY-r.top);
+    if(id)netShow(id);else{NET.selected=null;const p=$("net-panel");if(p)p.className="netpanel"}
+  };
+  window.removeEventListener("resize",netResize);
+  window.addEventListener("resize",netResize);
+  cancelAnimationFrame(NET.anim);NET.anim=requestAnimationFrame(netLoop);
+}
+function renderNet(n){
+  const nodes=(n&&n.nodes)||[],edges=(n&&n.edges)||[];
+  const c=(n&&n.counts)||{};
+  const tel=(n&&n.telemetry)||{};
+  const host=tel.host||{};
+  NET.nodes=nodes;NET.edges=edges;
+  const rows=nodes.map(nn=>{
+    const live=nn.cpu!=null;
+    const la=nn.last_activity?ago(Math.max(0,(Date.now()/1000)-nn.last_activity)):"—";
+    const dot=live?'<span class="dot live"></span>':(nn.status==="active"?'<span class="dot amber"></span>':'<span class="dot" style="background:#64748b;box-shadow:none"></span>');
+    return '<div class="nt-row"><div class="l1">'+dot+
+      '<span class="bid">'+esc(nn.id)+'</span>'+netPill(nn.status)+'</div>'+
+      '<div class="l2">'+
+      (nn.role?'role <b>'+esc(nn.role)+'</b> · ':"")+
+      'children <b>'+((nn.children||[]).length)+'</b> · '+
+      'cpu <b>'+(nn.cpu!=null?nn.cpu+"%":"—")+'</b> · '+
+      'ram <b>'+(nn.ram_mb!=null?Math.round(nn.ram_mb)+" MB":"—")+'</b> · '+
+      'last <b>'+la+'</b> · 🍌 <b>'+fmtN(nn.earns)+'</b>'+
+      '</div></div>';
+  }).join("");
+  const hostCpu=host.cpu_pct!=null?host.cpu_pct+"%":"—";
+  const hostRam=(host.ram_mb!=null&&host.total_mb!=null)?Math.round(host.ram_mb)+" / "+Math.round(host.total_mb)+" MB":"—";
+  return '<div class="beat">'+
+    '<div class="beat-k"><span class="num">09</span><h2>The Net</h2><span class="q">Every brick — lineage, cpu, ram</span></div>'+
+    '<div class="card">'+
+      '<div class="net-tiles">'+
+        '<div class="nt"><div class="nv">'+fmtN(c.nodes!=null?c.nodes:nodes.length)+'</div><div class="nl">Bricks (nodes)</div></div>'+
+        '<div class="nt"><div class="nv">'+fmtN(c.edges!=null?c.edges:edges.length)+'</div><div class="nl">Lineage edges</div></div>'+
+        '<div class="nt"><div class="nv t">'+fmtN(c.with_telemetry!=null?c.with_telemetry:"—")+'</div><div class="nl">Bricks w/ live cpu·ram</div></div>'+
+        '<div class="nt"><div class="nv g">'+esc(String(hostCpu))+'</div><div class="nl">Box cpu now</div></div>'+
+        '<div class="nt"><div class="nv b">'+esc(String(hostRam))+'</div><div class="nl">Box ram used / total</div></div>'+
+      '</div>'+
+      '<div class="netstage"><canvas id="net-canvas"></canvas><div class="net-hint">tap a node — lines are spawn lineage (parent_brick_id / spawn_of)</div></div>'+
+      '<div id="net-panel" class="netpanel"></div>'+
+      '<div class="nettable"><div class="money-lbl" style="padding:12px 14px 4px">Every brick — live stats</div>'+rows+'</div>'+
+      '<div class="honest">'+(n&&n.note?esc(n.note):"")+' cpu/ram are read from live ps on this box every 30s — bricks with no process running show —. '+(tel.note?esc(tel.note):"")+'</div>'+
+    '</div>'+
+  '</div>';
+}
+
+async function toggleLane(lane,on){
+  const action=on?"resume":"pause";
+  try{
+    const r=await fetch("/api/lane-control",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({lane,action})});
+    const j=await r.json().catch(()=>({}));
+    if(r.status===403){showMsg("err","Only the owner can cut a lane — you\u2019re signed in as "+(session.role||"?")+".");await refresh();return;}
+    if(!r.ok)throw new Error(j.error||("HTTP "+r.status));
+    let note="";
+    if(j.kanban&&j.kanban.ok)note=" · agents told on the kanban board.";
+    else if(j.kanban&&j.kanban.error)note=" · directive logged; kanban note failed ("+esc(j.kanban.error)+").";
+    showMsg("ok",(action==="pause"?"Cut: ":"Resumed: ")+lane+note);
+    await refresh();
+  }catch(e){
+    showMsg("err","Toggle didn\u2019t go through: "+e.message);
+    await refresh();
+  }
+}
+
+/* ---------------- actions ---------------- */
+async function actApproval(id,action,feedback){
+  const btn=document.querySelector('[data-id="'+id+'"][data-act="'+(action==="feedback"?"fb":action)+'"]');
+  if(btn)btn.disabled=true;
+  try{
+    const r=await fetch("/api/approvals/action",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({id,action,feedback:feedback||undefined})});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(j.error||("HTTP "+r.status));
+    showMsg("ok","Done — your call is recorded.");
+    await refresh();
+  }catch(e){
+    showMsg("err","That didn\u2019t go through: "+e.message);
+    if(btn)btn.disabled=false;
+  }
+}
+async function postComms(){
+  const el=$("msg");const body=(el.value||"").trim();
+  if(!body)return;
+  const b=$("send");b.disabled=true;
+  try{
+    const r=await fetch("/api/comms",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({body})});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(j.error||("HTTP "+r.status));
+    el.value="";
+    showMsg("ok","Sent — agents should see it within a minute.");
+    await refresh();
+  }catch(e){
+    showMsg("err","Message not sent: "+e.message);
+    b.disabled=false;
+  }
+}
+
+let msgTimer=null;
+function showMsg(kind,text){
+  const old=document.querySelector(".msg");if(old)old.remove();
+  const d=document.createElement("div");d.className="msg "+kind;d.textContent=text;
+  document.querySelector(".wrap").prepend(d);
+  clearTimeout(msgTimer);msgTimer=setTimeout(()=>d.remove(),6000);
+}
+
+function bind(){
+  document.querySelectorAll("[data-act='approve']").forEach(b=>b.onclick=()=>actApproval(b.dataset.id,"approve"));
+  document.querySelectorAll("[data-act='reject']").forEach(b=>b.onclick=()=>actApproval(b.dataset.id,"reject"));
+  document.querySelectorAll("[data-act='fb']").forEach(b=>b.onclick=()=>{
+    const w=document.querySelector('[data-fb="'+b.dataset.id+'"]');
+    if(w)w.classList.toggle("open");
+  });
+  document.querySelectorAll("[data-act='fbsend']").forEach(b=>b.onclick=()=>{
+    const w=document.querySelector('[data-fb="'+b.dataset.id+'"]');
+    const t=w?w.querySelector("textarea"):null;
+    actApproval(b.dataset.id,"feedback",t?t.value:"");
+  });
+  const s=$("send");if(s)s.onclick=postComms;
+  const m=$("msg");if(m)m.addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.metaKey||e.ctrlKey))postComms()});
+  document.querySelectorAll(".switch input[data-lane]").forEach(c=>c.onchange=()=>toggleLane(c.dataset.lane,c.checked));
+}
+
+/* live clock + data-freshness stamp in the header */
+function tickClock(){
+  const el=$("clock");
+  if(el)el.textContent=new Date().toTimeString().slice(0,8);
+}
+setInterval(tickClock,1000);
+
+async function refresh(){
+  try{
+    const [rd,ra,rc,re,rn]=await Promise.all([
+      fetch("/api/data",{cache:"no-store"}),
+      fetch("/api/approvals",{cache:"no-store"}),
+      fetch("/api/comms",{cache:"no-store"}),
+      fetch("/api/ecosystem",{cache:"no-store"}),
+      fetch("/api/network",{cache:"no-store"})
+    ]);
+    if(rd.status===401){location.href="/login";return}
+    const d=await rd.json();
+    const ap=await ra.json();
+    const comms=await rc.json();
+    const eco=await re.json();
+    const net=await rn.json();
+    session=d.session||session;
+    const g=$("genat");
+    if(g&&d.generated_at)g.textContent="data "+String(d.generated_at).slice(11,19)+"Z";
+    $("app").innerHTML=
+      renderPulse(d)+
+      renderMoney(d)+
+      renderNeeds(ap,comms)+
+      renderEveryBrick(d)+
+      renderAccomplishments(d)+
+      renderEpics(d)+
+      '<div class="beat"><div class="beat-k"><span class="num">07</span><h2>Burn + the tap</h2><span class="q">Live spend control</span></div>'+
+        renderBurn(d)+renderLanes(d)+'</div>'+
+      renderEcosystem(eco)+
+      renderNet(net);
+    const who=session.user||"you";
+    $("foot").innerHTML="Signed in as <b>"+esc(who)+"</b>"+(session.role?" <span style=\"color:var(--faint)\">("+esc(session.role)+")</span>":"")+
+      ' · <a href="/logout" style="color:var(--gold)">sign out</a>'+
+      " · every number here is read live from the box — nothing guessed, missing things say so"+
+      ' · <span class="mono">updated '+esc(d.generated_at||"").slice(11,19)+'Z</span>';
+    bind();
+    bootNet();
+    if(NET.selected&&NET.byId[NET.selected])netShow(NET.selected);
+  }catch(e){
+    const app=$("app");
+    app.innerHTML='<div class="msg err">Couldn\u2019t reach the fleet: '+esc(e.message)+'</div>'+
+      '<div class="beat">'+renderPulse({fleets:{},velocity:{},epics:{epics:[]}})+renderMoney({money:{}})+renderNeeds({cards:[]},{messages:[]})+'</div>'+
+      renderEveryBrick({})+
+      renderAccomplishments({})+
+      renderEpics({})+
+      '<div class="beat"><div class="beat-k"><span class="num">07</span><h2>Burn + the tap</h2></div>'+renderBurn({})+renderLanes({})+'</div>'+
+      renderEcosystem({})+
+      renderNet({});
+    bootNet();
+  }
+}
+refresh();
+setInterval(refresh,30000);
+</script>
+</body>
+</html>
