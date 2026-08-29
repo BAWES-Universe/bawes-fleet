@@ -172,3 +172,9 @@
 {"brick_id": "neurologist-001", "role": "neurologist", "status": "live", "owner": "khalid", "skills": ["neurologist"], "ts": 1787803237.2173731}
 {"brick_id": "evolution-001", "role": "evolution", "status": "live", "owner": "khalid", "skills": ["evolution"], "ts": 1787803237.2173822}
 {"brick_id": "security-001", "role": "security", "status": "live", "owner": "khalid", "skills": ["security"], "ts": 1787803237.2173884}
+{"brick_id": "scientist-001", "role": "scientist", "status": "live", "owner": "khalid", "skills": ["scientist"], "ts": 1787889604.3833044}
+{"brick_id": "neurologist-001", "role": "neurologist", "status": "live", "owner": "khalid", "skills": ["neurologist"], "ts": 1787889604.3833172}
+{"brick_id": "evolution-001", "role": "evolution", "status": "live", "owner": "khalid", "skills": ["evolution"], "ts": 1787889604.383324}
+{"brick_id": "security-001", "role": "security", "status": "live", "owner": "khalid", "skills": ["security"], "ts": 1787889604.3833284}
+{"id": "da-001", "status": "live", "role": "devils-advocate", "earned_bananas": 0, "tasks_done": 0, "artifacts_count": 0, "cost_usd": 0.0, "cv_line": "da-001 \u00b7 devils-advocate \u00b7 adversarial review + dissent", "registered_at": 1787921191.026206}
+{"id": "rebel-001", "status": "live", "role": "rebel", "earned_bananas": 0, "tasks_done": 0, "artifacts_count": 0, "cost_usd": 0.0, "cv_line": "rebel-001 \u00b7 rebel \u00b7 adversarial review + dissent", "registered_at": 1787921191.026293}

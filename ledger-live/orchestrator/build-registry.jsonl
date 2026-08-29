@@ -1,0 +1,51 @@
+[
+ {
+  "builder": "brick",
+  "what": "provider-agnostic telemetry layer (:8088 /api/telemetry + /api/fleet)",
+  "where": "ovh box :8088",
+  "status": "LIVE",
+  "ts": 1787920202
+ },
+ {
+  "builder": "oxbaby",
+  "what": "dispatch_harness (receipt-or-reopen router)",
+  "where": "ovh box orchestrator",
+  "status": "LIVE",
+  "ts": 1787920202
+ },
+ {
+  "builder": "ox",
+  "what": "Brick World game on Vercel (brick-world-game-khalid-proj)",
+  "where": "Vercel",
+  "status": "LIVE",
+  "ts": 1787920202
+ },
+ {
+  "builder": "agi",
+  "what": "Fleet Command view (fleet.html + /api/fleet-net proxy)",
+  "where": "dashboard :3999",
+  "status": "IN-PROGRESS",
+  "ts": 1787920202
+ },
+ {
+  "builder": "agi",
+  "what": "backlog_v2 + bottleneck_engine + thread_state aggregator",
+  "where": "ovh box orchestrator",
+  "status": "LIVE",
+  "ts": 1787920202
+ },
+ {
+  "builder": "hermes-local",
+  "what": "dispatch_harness deploy + AGI-goal fold-in",
+  "where": "ovh box",
+  "status": "LIVE",
+  "ts": 1787920202
+ },
+ {
+  "builder": "hermes-local",
+  "what": "dashboard UX fix per fleet ux-audit (5.9/C): H1 hierarchy + design tokens, KEEP all features",
+  "where": "fleet-dashboard :3999",
+  "status": "CLAIMED",
+  "ts": 1787921063
+ }
+]
